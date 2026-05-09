@@ -12,28 +12,53 @@ public class HotelService : IHotelService
 {
     private readonly IHotelRepository _hotels;
     private readonly IBookingRepository _bookings;
+    private readonly IWalletService _wallet;
+    private readonly ICacheService _cache;
     private readonly IUnitOfWork _uow;
 
-    public HotelService(IHotelRepository hotels, IBookingRepository bookings, IUnitOfWork uow)
+    public HotelService(IHotelRepository hotels, IBookingRepository bookings,
+        IWalletService wallet, ICacheService cache, IUnitOfWork uow)
     {
         _hotels = hotels;
         _bookings = bookings;
+        _wallet = wallet;
+        _cache = cache;
         _uow = uow;
     }
 
     public async Task<(List<HotelDto> Items, int Total)> SearchAsync(HotelSearchRequest req, CancellationToken ct = default)
     {
-        var results = await _hotels.SearchAsync(req.City, req.CheckIn, req.CheckOut, req.Guests, ct);
-        var total = results.Count;
-        var paged = results.Skip((req.Page - 1) * req.PageSize).Take(req.PageSize).Select(ToDto).ToList();
+        var key = $"hotels:{req.City}:{req.CheckIn:yyyyMMdd}:{req.CheckOut:yyyyMMdd}:{req.Guests}:{req.StarRating}:{req.SortBy}";
+        var cached = await _cache.GetAsync<List<HotelDto>>(key, ct);
+
+        List<HotelDto> all;
+        if (cached is not null)
+        {
+            all = cached;
+        }
+        else
+        {
+            var results = await _hotels.SearchAsync(req.City, req.CheckIn, req.CheckOut, req.Guests, ct);
+            all = results.Select(ToDto).ToList();
+            await _cache.SetAsync(key, all, TimeSpan.FromMinutes(5), ct);
+        }
+
+        var total = all.Count;
+        var paged = all.Skip((req.Page - 1) * req.PageSize).Take(req.PageSize).ToList();
         return (paged, total);
     }
 
     public async Task<HotelDto> GetByIdAsync(Guid hotelId, CancellationToken ct = default)
     {
+        var key = $"hotel:{hotelId}";
+        var cached = await _cache.GetAsync<HotelDto>(key, ct);
+        if (cached is not null) return cached;
+
         var hotel = await _hotels.GetByIdAsync(hotelId, ct)
             ?? throw new NotFoundException("Hotel", hotelId);
-        return ToDto(hotel);
+        var dto = ToDto(hotel);
+        await _cache.SetAsync(key, dto, TimeSpan.FromMinutes(30), ct);
+        return dto;
     }
 
     public async Task<BookingCreatedResponse> BookAsync(Guid userId, BookHotelRequest req, CancellationToken ct = default)
@@ -50,6 +75,9 @@ public class HotelService : IHotelService
 
         var total = room.PricePerNight * nights;
         var bookingRef = await _bookings.GenerateBookingRefAsync(ct);
+
+        if (req.UseWallet)
+            await _wallet.DeductAsync(userId, total, $"Hotel booking {bookingRef}", hotel.Id, ct);
 
         var booking = new Booking
         {
@@ -74,16 +102,9 @@ public class HotelService : IHotelService
     }
 
     private static HotelDto ToDto(Hotel h) => new(
-        h.Id,
-        h.Name,
-        h.City,
-        h.Address ?? string.Empty,
-        h.StarRating,
-        h.ReviewScore,
-        h.ReviewCount,
-        h.Description ?? string.Empty,
-        h.Amenities ?? string.Empty,
-        h.ImageUrl ?? string.Empty,
+        h.Id, h.Name, h.City, h.Address ?? string.Empty,
+        h.StarRating, h.ReviewScore, h.ReviewCount,
+        h.Description ?? string.Empty, h.Amenities ?? string.Empty, h.ImageUrl ?? string.Empty,
         h.Rooms.Select(r => new HotelRoomDto(
             r.Id, r.RoomType, r.PricePerNight, r.MaxGuests, r.TotalRooms, r.Amenities ?? string.Empty
         )).ToList());

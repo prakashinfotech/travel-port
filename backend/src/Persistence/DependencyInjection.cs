@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TravelPort.Application.Common.Interfaces;
+using TravelPort.Domain.Entities;
 using TravelPort.Persistence.Context;
 using TravelPort.Persistence.Repositories;
 
@@ -25,6 +26,7 @@ public static class DependencyInjection
         services.AddScoped<IHotelRepository, HotelRepository>();
         services.AddScoped<IBookingRepository, BookingRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+        services.AddScoped<IWalletRepository, WalletRepository>();
         services.AddScoped(typeof(IRepository<>), typeof(BaseRepository<>));
 
         return services;

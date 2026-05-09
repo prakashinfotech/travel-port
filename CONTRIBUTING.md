@@ -35,22 +35,23 @@ git commit -m "feat: describe your change"
 git push origin Development
 ```
 
-### Feature branches (optional, for bigger changes)
+### Feature branches (required for multi-file or significant changes)
 ```bash
 # Create a feature branch from Development
 git checkout Development
-git checkout -b feature/flight-filters
+git pull origin Development
+git checkout -b feature/your-feature-name
 
 # ... do work, commit ...
 
-# Merge back into Development (not main)
-git checkout Development
-git merge feature/flight-filters
-git push origin Development
+# Push the feature branch
+git push origin feature/your-feature-name
 
-# Delete the feature branch
-git branch -d feature/flight-filters
-git push origin --delete feature/flight-filters
+# Open a PR on GitHub: feature/your-feature-name → Development
+# Wait for approval before merging
+# After merge, delete the feature branch
+git branch -d feature/your-feature-name
+git push origin --delete feature/your-feature-name
 ```
 
 ### Releasing to main

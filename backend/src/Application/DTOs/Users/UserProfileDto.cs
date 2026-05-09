@@ -40,3 +40,7 @@ public record AddTravellerRequest(
     DateOnly? DOB,
     string? PassportNo
 );
+
+public record WalletTopUpRequest(decimal Amount, string? Description = null);
+
+public record WalletTransactionsResponse(List<WalletTransactionDto> Items, int Total, int Page, int PageSize);

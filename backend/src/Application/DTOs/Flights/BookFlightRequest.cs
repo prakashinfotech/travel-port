@@ -4,5 +4,6 @@ public record BookFlightRequest(
     Guid FlightId,
     int Passengers,
     string CabinClass = "Economy",
-    string? CouponCode = null
+    string? CouponCode = null,
+    bool UseWallet = false
 );

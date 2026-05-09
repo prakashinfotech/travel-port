@@ -1,6 +1,6 @@
 # 📡 API Documentation — TravelPort
 
-**Base URL:** `https://api.travelport.com/api/v1`  
+**Base URL (local):** `https://localhost:7001/api/v1`  
 **Auth:** `Authorization: Bearer <jwt_token>`
 
 ---
@@ -157,14 +157,76 @@ Query Params:
 
 ## Users (Profile)
 
-| Method | Endpoint                        | Auth | Description          |
-|--------|---------------------------------|------|----------------------|
-| GET    | `/users/profile`                | ✅   | Get profile          |
-| PUT    | `/users/profile`                | ✅   | Update profile       |
-| GET    | `/users/travellers`             | ✅   | Saved travellers     |
-| POST   | `/users/travellers`             | ✅   | Add traveller        |
-| DELETE | `/users/travellers/:id`         | ✅   | Remove traveller     |
-| GET    | `/users/wallet`                 | ✅   | Wallet balance       |
+| Method | Endpoint                              | Auth | Description                 |
+|--------|---------------------------------------|------|-----------------------------|
+| GET    | `/users/profile`                      | ✅   | Get profile                 |
+| PUT    | `/users/profile`                      | ✅   | Update profile              |
+| GET    | `/users/travellers`                   | ✅   | Saved travellers            |
+| POST   | `/users/travellers`                   | ✅   | Add traveller               |
+| DELETE | `/users/travellers/:id`               | ✅   | Remove traveller            |
+| GET    | `/users/wallet`                       | ✅   | Wallet balance              |
+| POST   | `/users/wallet/topup`                 | ✅   | Top up wallet balance       |
+| GET    | `/users/wallet/transactions`          | ✅   | Paginated transaction history |
+
+### POST /users/wallet/topup
+```json
+Request:
+{ "amount": 5000.00, "description": "Manual top-up" }
+
+Response 200:
+{
+  "success": true,
+  "data": {
+    "walletId": "uuid",
+    "balance": 5000.00,
+    "currency": "INR"
+  }
+}
+```
+**Rules:** Amount must be > 0 and ≤ ₹1,00,000 per transaction.
+
+### GET /users/wallet/transactions
+```
+Query Params: page=1&pageSize=20
+
+Response 200:
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "id": "uuid",
+        "type": "Debit",
+        "amount": 4499.00,
+        "description": "Flight booking TP2024001234",
+        "referenceId": "uuid",
+        "createdAt": "2024-12-01T06:30:00Z"
+      }
+    ],
+    "total": 5,
+    "page": 1,
+    "pageSize": 20
+  }
+}
+```
+
+---
+
+## Wallet Payment in Bookings
+
+Both `/flights/book` and `/hotels/book` accept an optional `useWallet` field:
+
+```json
+{
+  "flightId": "uuid",
+  "class": "Economy",
+  "passengers": [{ "name": "John Doe", "age": 30, "gender": "Male", "passportNo": "A1234567" }],
+  "couponCode": "SAVE100",
+  "useWallet": true
+}
+```
+
+When `useWallet: true`, the `finalAmount` (after coupon discount) is deducted from the user's wallet atomically with the booking. If the wallet balance is insufficient, the API returns HTTP **422** with a descriptive error.
 
 ---
 

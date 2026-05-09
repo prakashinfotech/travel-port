@@ -28,4 +28,13 @@ public class RefreshTokenRepository : IRefreshTokenRepository
             .ToListAsync(ct);
         tokens.ForEach(t => t.IsRevoked = true);
     }
+
+    public async Task<int> DeleteExpiredAsync(CancellationToken ct = default)
+    {
+        var expired = await _context.RefreshTokens
+            .Where(r => r.IsRevoked || r.ExpiresAt < DateTime.UtcNow)
+            .ToListAsync(ct);
+        _context.RemoveRange(expired);
+        return expired.Count;
+    }
 }

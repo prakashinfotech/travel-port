@@ -38,37 +38,30 @@ backend/src/
 │   └── Program.cs              ← DI composition root
 │
 ├── Application/                ← Business Logic Layer
-│   ├── Features/               ← CQRS commands & queries
-│   │   ├── Auth/
-│   │   ├── Flights/
-│   │   ├── Hotels/
-│   │   ├── Bookings/
-│   │   └── Users/
+│   ├── Services/               ← Business services (Auth, Flight, Hotel, Booking, Wallet)
 │   ├── Common/
-│   │   ├── Behaviours/         ← MediatR pipeline behaviours
 │   │   ├── Exceptions/
-│   │   ├── Interfaces/
+│   │   ├── Interfaces/         ← ICacheService, IWalletRepository, IWalletService, etc.
 │   │   └── Mappings/
-│   └── DTOs/
+│   ├── DTOs/                   ← Request/Response data transfer objects
+│   └── Validators/             ← FluentValidation validators
 │
 ├── Domain/                     ← Core Domain Layer (no dependencies)
-│   ├── Entities/
+│   ├── Entities/               ← Booking, Flight, Hotel, User, Wallet, WalletTransaction, etc.
 │   ├── Enums/
-│   ├── Events/
 │   └── ValueObjects/
 │
 ├── Infrastructure/             ← External Concerns
-│   ├── Auth/                   ← JWT implementation
-│   ├── Caching/                ← Redis
-│   ├── Email/                  ← SendGrid
-│   └── ExternalAPIs/           ← Amadeus, Razorpay
+│   ├── Auth/                   ← JWT (JwtService, JwtSettings)
+│   ├── Services/               ← CacheService (wraps IDistributedCache with JSON serialization)
+│   └── BackgroundServices/     ← BookingExpiryWorker, RefreshTokenCleanupWorker
 │
 └── Persistence/                ← Database Layer
-    ├── Context/                ← DbContext
-    ├── Migrations/
-    ├── Repositories/
-    ├── Configurations/         ← EF entity configs
-    └── Seeds/
+    ├── Context/                ← TravelPortDbContext
+    ├── Migrations/             ← EF Core migrations
+    ├── Repositories/           ← FlightRepository, HotelRepository, WalletRepository, etc.
+    ├── Configurations/         ← EF entity configurations
+    └── Seeds/                  ← DataSeeder (BCrypt-hashed users, flights, hotels, coupons, bookings)
 ```
 
 ---
@@ -114,13 +107,25 @@ API Service Layer (Axios)
     ↓
 .NET 8 API Controller
     ↓
-MediatR Handler (CQRS)
-    ↓
 Application Service
     ↓
-Repository (EF Core)
+ICacheService (check cache)
+    ├── Cache HIT → return DTO immediately
+    └── Cache MISS → Repository (EF Core) → SQL Server → cache result
+```
+
+### Booking Flow with Wallet Payment
+
+```
+POST /flights/book  (UseWallet: true)
     ↓
-SQL Server
+FlightService.BookAsync
+    ├── Validate flight + seat availability
+    ├── Apply coupon discount
+    ├── IWalletService.DeductAsync (validates balance, creates Debit transaction — NO save yet)
+    ├── Create Booking entity
+    ├── IUnitOfWork.SaveChangesAsync  ← atomic: booking + wallet deduction in one DB round-trip
+    └── Invalidate flight cache key
 ```
 
 ---
@@ -143,33 +148,60 @@ Refresh Token Rotation → New pair issued
 
 ---
 
-## 6. CQRS Pattern (Backend)
+## 6. Caching Strategy
 
-```
-Command (Write):
-  BookFlightCommand → BookFlightCommandHandler → Repository → DB
+| Cache Key Pattern | TTL | Used By |
+|---|---|---|
+| `flights:{Origin}:{Destination}:{Date}:{Passengers}:{Class}` | 5 min | FlightService.SearchAsync |
+| `flight:{id}` | 30 min | FlightService.GetByIdAsync |
+| `hotels:{City}:{CheckIn}:{CheckOut}:{Guests}:{Rating}:{Sort}` | 5 min | HotelService.SearchAsync |
+| `hotel:{id}` | 30 min | HotelService.GetByIdAsync |
 
-Query (Read):
-  SearchFlightsQuery → SearchFlightsQueryHandler → Cached/DB → DTO
-```
+**Implementation:** `ICacheService` wraps `IDistributedCache` with JSON serialization.  
+**Default:** In-memory (`AddDistributedMemoryCache`).  
+**Production swap:** Replace with `AddStackExchangeRedisCache` in `Program.cs` — no service code changes needed.
+
+Cache entries for a flight/hotel are **invalidated on booking** (seat count changes).
 
 ---
 
-## 7. Key Design Decisions
+## 7. Background Services
+
+| Service | Schedule | Responsibility |
+|---|---|---|
+| `BookingExpiryWorker` | Every 5 minutes | Cancels `Pending` bookings older than 30 minutes |
+| `RefreshTokenCleanupWorker` | Every 24 hours | Deletes revoked or expired refresh tokens from DB |
+
+Both extend `BackgroundService` (IHostedService) and use `IServiceScopeFactory` to resolve scoped repositories from the singleton hosted service.
+
+---
+
+## 8. Wallet System
+
+- Each user gets one `Wallet` (created on registration).
+- `WalletTransaction` records every credit/debit with a description and optional reference ID.
+- **Top-up:** `POST /users/wallet/topup` — max ₹1,00,000 per transaction.
+- **Deduction during booking:** `IWalletService.DeductAsync` validates balance and creates the transaction record but does **not** call `SaveChangesAsync` — the booking service saves both atomically.
+- **Refund on cancellation:** `IWalletService.RefundAsync` credits the wallet (also no separate save — caller saves).
+
+---
+
+## 9. Key Design Decisions
 
 | Decision | Choice | Reason |
 |----------|--------|--------|
 | Architecture | Clean Architecture | Separation of concerns, testability |
-| Pattern | CQRS + MediatR | Scalable read/write separation |
 | ORM | EF Core | Type safety, migrations |
-| Caching | Redis | Performance for search results |
+| Caching | IDistributedCache (in-memory / Redis) | Cache-aside pattern; Redis-ready with one line swap |
+| Background Jobs | IHostedService | Native .NET, no extra dependency |
+| Wallet atomicity | DeductAsync without save | Booking + wallet change committed in single UoW call |
 | State | Redux Toolkit | Predictable, DevTools support |
-| Validation | FluentValidation + Zod | Both layers covered |
+| Validation | FluentValidation + Zod | Backend + frontend both validated |
 | Auth | JWT + Refresh Tokens | Stateless, scalable |
 
 ---
 
-## 8. Module Dependency Graph
+## 10. Module Dependency Graph
 
 ```
 Domain ← Application ← Infrastructure ← API

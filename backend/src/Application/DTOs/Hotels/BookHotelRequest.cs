@@ -6,5 +6,6 @@ public record BookHotelRequest(
     DateTime CheckIn,
     DateTime CheckOut,
     int Guests,
-    string? CouponCode = null
+    string? CouponCode = null,
+    bool UseWallet = false
 );

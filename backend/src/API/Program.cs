@@ -36,6 +36,9 @@ try
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddApplication();
 
+    // Distributed cache (in-memory; swap to Redis: AddStackExchangeRedisCache)
+    builder.Services.AddDistributedMemoryCache();
+
     // JWT Authentication
     var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>()
         ?? throw new InvalidOperationException("JwtSettings configuration is missing.");
