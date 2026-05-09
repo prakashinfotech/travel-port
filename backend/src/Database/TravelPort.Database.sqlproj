@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="Current">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <!-- ═══════════════════════════════════════════════════
+       Project identity & SQL Server target version
+  ════════════════════════════════════════════════════ -->
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <Name>TravelPort.Database</Name>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectVersion>4.1</ProjectVersion>
+    <ProjectGuid>{2f48eca5-6a73-49af-8b48-56ff740b52cb}</ProjectGuid>
+    <!-- SQL Server 2019 — change to Sql160 for SQL Server 2022 -->
+    <DSP>Microsoft.Data.Tools.Schema.Sql.Sql150DatabaseSchemaProvider</DSP>
+    <OutputType>Database</OutputType>
+    <RootNamespace>TravelPort.Database</RootNamespace>
+    <AssemblyName>TravelPort.Database</AssemblyName>
+    <ModelCollation>1033, CI</ModelCollation>
+    <DefaultFileStructure>BySchemaAndType</DefaultFileStructure>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <TargetLanguage>CS</TargetLanguage>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <SqlServerVersion>Sql150</SqlServerVersion>
+    <TargetDatabaseSet>True</TargetDatabaseSet>
+  </PropertyGroup>
+  <!-- ═══════════════════════════════════════════════════
+       Debug configuration
+  ════════════════════════════════════════════════════ -->
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <OutputPath>bin\Debug\</OutputPath>
+    <BuildScriptName>$(MSBuildProjectName).sql</BuildScriptName>
+    <TreatWarningsAsErrors>False</TreatWarningsAsErrors>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>false</Optimize>
+    <DefineDebug>true</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <!-- ═══════════════════════════════════════════════════
+       Release configuration
+  ════════════════════════════════════════════════════ -->
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <OutputPath>bin\Release\</OutputPath>
+    <BuildScriptName>$(MSBuildProjectName).sql</BuildScriptName>
+    <TreatWarningsAsErrors>False</TreatWarningsAsErrors>
+    <Optimize>true</Optimize>
+    <DefineDebug>false</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <!-- ═══════════════════════════════════════════════════
+       Folder structure visible in Solution Explorer
+  ════════════════════════════════════════════════════ -->
+  <ItemGroup>
+    <Folder Include="Tables\" />
+    <Folder Include="StoredProcedures\" />
+    <Folder Include="Functions\" />
+    <Folder Include="Views\" />
+    <Folder Include="Scripts\" />
+    <Folder Include="Security\" />
+  </ItemGroup>
+  <!-- ═══════════════════════════════════════════════════
+       Tables
+  ════════════════════════════════════════════════════ -->
+  <ItemGroup>
+    <Build Include="Tables\Users.sql" />
+    <Build Include="Tables\Flights.sql" />
+    <Build Include="Tables\Hotels.sql" />
+    <Build Include="Tables\HotelRooms.sql" />
+    <Build Include="Tables\Bookings.sql" />
+    <Build Include="Tables\Payments.sql" />
+    <Build Include="Tables\Wallets.sql" />
+    <Build Include="Tables\WalletTransactions.sql" />
+    <Build Include="Tables\SavedTravellers.sql" />
+    <Build Include="Tables\Coupons.sql" />
+    <Build Include="Tables\AuditLogs.sql" />
+  </ItemGroup>
+  <!-- ═══════════════════════════════════════════════════
+       Stored Procedures
+  ════════════════════════════════════════════════════ -->
+  <ItemGroup>
+    <Build Include="StoredProcedures\usp_SearchFlights.sql" />
+    <Build Include="StoredProcedures\usp_SearchHotels.sql" />
+    <Build Include="StoredProcedures\usp_BookFlight.sql" />
+    <Build Include="StoredProcedures\usp_CancelBooking.sql" />
+    <Build Include="StoredProcedures\usp_GetUserBookings.sql" />
+    <Build Include="StoredProcedures\usp_ProcessWalletTransaction.sql" />
+  </ItemGroup>
+  <!-- ═══════════════════════════════════════════════════
+       Functions
+  ════════════════════════════════════════════════════ -->
+  <ItemGroup>
+    <Build Include="Functions\fn_GenerateBookingRef.sql" />
+    <Build Include="Functions\fn_CalculateDiscount.sql" />
+    <Build Include="Functions\fn_GetWalletBalance.sql" />
+    <Build Include="Functions\fn_GetUserBookingStats.sql" />
+  </ItemGroup>
+  <!-- ═══════════════════════════════════════════════════
+       Views
+  ════════════════════════════════════════════════════ -->
+  <ItemGroup>
+    <Build Include="Views\vw_FlightSearchResults.sql" />
+    <Build Include="Views\vw_BookingSummary.sql" />
+    <Build Include="Views\vw_AdminDashboard.sql" />
+  </ItemGroup>
+  <!-- ═══════════════════════════════════════════════════
+       Post-deployment script (runs after schema deploy)
+  ════════════════════════════════════════════════════ -->
+  <ItemGroup>
+    <PostDeploy Include="Scripts\SeedData.sql" />
+  </ItemGroup>
+  <!-- ═══════════════════════════════════════════════════
+       SSDT MSBuild targets — required by Visual Studio
+  ════════════════════════════════════════════════════ -->
+  <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets" Condition=" '$(VisualStudioVersion)' != '' And Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets')" />
+  <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v17.0\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets" Condition=" '$(VisualStudioVersion)' == '' And Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v17.0\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets')" />
+</Project>

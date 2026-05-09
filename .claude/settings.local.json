@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(dotnet new install Microsoft.Build.Sql.Templates 2>&1)",
+      "Bash(dotnet build *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Goibibo-AI-Assignment\\\\frontend\" -Recurse -File)",
+      "Bash(Select-Object FullName)"
+    ]
+  }
+}

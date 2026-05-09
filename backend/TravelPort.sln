@@ -1,0 +1,50 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TravelPort.Domain", "src\Domain\TravelPort.Domain.csproj", "{C2944997-23B8-449B-9C46-0DCC88511E56}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TravelPort.Application", "src\Application\TravelPort.Application.csproj", "{898A0344-6F0D-44BF-AA14-C835042BDEE2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TravelPort.Infrastructure", "src\Infrastructure\TravelPort.Infrastructure.csproj", "{C0437D8A-C4F1-4798-8751-E3E9E8588D48}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TravelPort.Persistence", "src\Persistence\TravelPort.Persistence.csproj", "{99A284FC-60B6-48A1-B973-FC1D116DC010}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TravelPort.API", "src\API\TravelPort.API.csproj", "{A33F84FB-63A7-4816-88BA-82F0700C1091}"
+EndProject
+Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "TravelPort.Database", "src\Database\TravelPort.Database.sqlproj", "{2F48ECA5-6A73-49AF-8B48-56FF740B52CB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C2944997-23B8-449B-9C46-0DCC88511E56}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C2944997-23B8-449B-9C46-0DCC88511E56}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C2944997-23B8-449B-9C46-0DCC88511E56}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C2944997-23B8-449B-9C46-0DCC88511E56}.Release|Any CPU.Build.0 = Release|Any CPU
+		{898A0344-6F0D-44BF-AA14-C835042BDEE2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{898A0344-6F0D-44BF-AA14-C835042BDEE2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{898A0344-6F0D-44BF-AA14-C835042BDEE2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{898A0344-6F0D-44BF-AA14-C835042BDEE2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C0437D8A-C4F1-4798-8751-E3E9E8588D48}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C0437D8A-C4F1-4798-8751-E3E9E8588D48}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C0437D8A-C4F1-4798-8751-E3E9E8588D48}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C0437D8A-C4F1-4798-8751-E3E9E8588D48}.Release|Any CPU.Build.0 = Release|Any CPU
+		{99A284FC-60B6-48A1-B973-FC1D116DC010}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{99A284FC-60B6-48A1-B973-FC1D116DC010}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{99A284FC-60B6-48A1-B973-FC1D116DC010}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{99A284FC-60B6-48A1-B973-FC1D116DC010}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A33F84FB-63A7-4816-88BA-82F0700C1091}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A33F84FB-63A7-4816-88BA-82F0700C1091}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A33F84FB-63A7-4816-88BA-82F0700C1091}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A33F84FB-63A7-4816-88BA-82F0700C1091}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2F48ECA5-6A73-49AF-8B48-56FF740B52CB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F48ECA5-6A73-49AF-8B48-56FF740B52CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+	EndGlobalSection
+EndGlobal

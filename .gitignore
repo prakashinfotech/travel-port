@@ -1,0 +1,43 @@
+# .NET build artifacts
+**/bin/
+**/obj/
+*.user
+*.suo
+.vs/
+_ReSharper*/
+*.DotSettings.user
+
+# Logs
+logs/
+*.log
+*.txt
+
+# EF Core migration bundles
+efbundle
+efbundle.exe
+
+# Node / Frontend
+node_modules/
+dist/
+.cache/
+*.local
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+appsettings.Development.json
+appsettings.Production.json
+
+# SQL Server database project artifacts
+*.dbmdl
+*.dbproj.schemaview
+*.jfm
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temp / Claude
+C:/Temp/
