@@ -1,13 +1,12 @@
-import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
-import { Search, Home, ChevronRight, ArrowLeftRight, ChevronLeft, ChevronDown, X } from 'lucide-react'
+import { Search, Home, ChevronRight, ArrowLeftRight, ChevronDown, X } from 'lucide-react'
 import type { FlightDto } from '@/types'
 import { flightService } from '@/services/flightService'
 import { FlightCard } from '@/components/flights/FlightCard'
 import { FlightCardSkeleton } from '@/components/ui/Skeleton'
 import { AirportSearch } from '@/components/search/AirportSearch'
 import { TravellerSelector, type TravellerConfig } from '@/components/search/TravellerSelector'
-import { Select } from '@/components/ui/Select'
 import { Button } from '@/components/ui/Button'
 import { formatCurrency } from '@/utils/formatters'
 
@@ -42,17 +41,6 @@ const TIME_SLOTS: { key: TimeSlot; label: string; sub: string; icon: string; ran
   { key: 'morning',   label: '6 am - 12 pm', sub: '6am - 12pm',  icon: '🌅', range: [6,  12] },
   { key: 'afternoon', label: '12 pm - 6 pm', sub: '12pm - 6pm',  icon: '☀️', range: [12, 18] },
   { key: 'night',     label: 'After 6 pm',   sub: '6pm - 11pm',  icon: '🌆', range: [18, 24] },
-type SortKey = 'price_asc' | 'price_desc' | 'duration_asc' | 'departure_asc' | 'arrival_asc'
-type TripType = 'oneway' | 'roundtrip'
-
-const TODAY = new Date().toISOString().split('T')[0]
-
-const SORT_OPTIONS = [
-  { value: 'price_asc',     label: 'Price: Low to High' },
-  { value: 'price_desc',    label: 'Price: High to Low' },
-  { value: 'duration_asc',  label: 'Duration: Shortest' },
-  { value: 'departure_asc', label: 'Departure: Earliest' },
-  { value: 'arrival_asc',   label: 'Arrival: Earliest' },
 ]
 
 const AIRLINE_COLORS: Record<string, string> = {
@@ -78,8 +66,6 @@ const AIRPORT_NAMES: Record<string, string> = {
   LKO: 'Chaudhary Charan Singh International Airport',
 }
 
-const FARE_TYPES = ['Regular', 'Student', 'Armed Forces', 'Have a GST number ?', 'Senior Citizen', 'Doctor and Nurses']
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function addDays(dateStr: string, n: number): string {
@@ -88,13 +74,6 @@ function addDays(dateStr: string, n: number): string {
   return d.toISOString().split('T')[0]
 }
 
-function fmtDateLabel(dateStr: string): { day: string; date: string } {
-  const d = new Date(dateStr)
-  return {
-    day:  d.toLocaleDateString('en-IN', { weekday: 'short' }),
-    date: d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
-  }
-}
 
 function flightHour(f: FlightDto, field: 'dep' | 'arr'): number {
   return new Date(field === 'dep' ? f.departureTime : f.arrivalTime).getHours()
@@ -187,168 +166,6 @@ function TimeSlotButton({
         <span className="text-gray-400 mt-0.5">₹{Math.round(price / 1000)}k+</span>
       )}
     </button>
-  )
-}
-
-// ── Date Bar ──────────────────────────────────────────────────────────────────
-
-function DateBar({
-  baseDate,
-  onSelect,
-  priceMap,
-}: {
-  baseDate: string
-  onSelect: (d: string) => void
-  priceMap: Record<string, number | null>
-}) {
-  const dates = useMemo(() => {
-    const arr = []
-    for (let i = -3; i <= 4; i++) arr.push(addDays(baseDate, i))
-    return arr
-  }, [baseDate])
-
-  const scrollRef = useRef<HTMLDivElement>(null)
-
-  return (
-    <div className="bg-white border-b border-gray-200 shadow-sm">
-      <div className="mx-auto max-w-6xl px-4 relative">
-        <button
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white border border-gray-200 rounded-full p-1 shadow-sm hover:shadow-md ml-1"
-          onClick={() => scrollRef.current?.scrollBy({ left: -200, behavior: 'smooth' })}
-        >
-          <ChevronLeft className="h-4 w-4 text-gray-500" />
-        </button>
-
-        <div ref={scrollRef} className="flex gap-1 overflow-x-auto scrollbar-hide py-2 mx-6 scroll-smooth">
-          {dates.map(d => {
-            const { day, date } = fmtDateLabel(d)
-            const price = priceMap[d]
-            const isSelected = d === baseDate
-            const isPast = d < TODAY
-            return (
-              <button
-                key={d}
-                disabled={isPast}
-                onClick={() => onSelect(d)}
-                className={`flex flex-col items-center px-4 py-2.5 rounded-lg min-w-[90px] transition-all border flex-shrink-0 ${
-                  isSelected
-                    ? 'border-orange-500 bg-orange-50 text-orange-600'
-                    : isPast
-                    ? 'border-transparent text-gray-300 cursor-not-allowed'
-                    : 'border-transparent hover:border-gray-200 text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <span className={`text-xs font-medium ${isSelected ? 'text-orange-500' : ''}`}>{day}</span>
-                <span className={`text-sm font-semibold mt-0.5 ${isSelected ? 'text-orange-600' : ''}`}>{date}</span>
-                {price !== undefined && price !== null ? (
-                  <span className={`text-xs mt-0.5 font-medium ${isSelected ? 'text-orange-500' : 'text-gray-500'}`}>
-                    ₹ {price.toLocaleString('en-IN')}
-                  </span>
-                ) : (
-                  <span className="text-xs mt-0.5 text-gray-300">—</span>
-                )}
-                {isSelected && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 rounded-full" />}
-              </button>
-            )
-          })}
-        </div>
-
-        <button
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white border border-gray-200 rounded-full p-1 shadow-sm hover:shadow-md mr-1"
-          onClick={() => scrollRef.current?.scrollBy({ left: 200, behavior: 'smooth' })}
-        >
-          <ChevronRight className="h-4 w-4 text-gray-500" />
-        </button>
-      </div>
-    </div>
-  )
-}
-
-// ── Calendar Picker ───────────────────────────────────────────────────────────
-
-function CalendarPicker({
-  value, onSelect, onClose, priceMap,
-}: {
-  value: string; onSelect: (d: string) => void; onClose: () => void; priceMap: Record<string, number | null>
-}) {
-  const [viewDate, setViewDate] = useState(() => {
-    const d = new Date(value || TODAY)
-    return { year: d.getFullYear(), month: d.getMonth() }
-  })
-
-  function prevMonth() {
-    setViewDate(p => p.month === 0 ? { year: p.year - 1, month: 11 } : { year: p.year, month: p.month - 1 })
-  }
-  function nextMonth() {
-    setViewDate(p => p.month === 11 ? { year: p.year + 1, month: 0 } : { year: p.year, month: p.month + 1 })
-  }
-
-  function renderMonth(year: number, month: number) {
-    const monthName = new Date(year, month, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
-    const firstDay  = new Date(year, month, 1).getDay()
-    const daysInMonth = new Date(year, month + 1, 0).getDate()
-    const days = Array.from({ length: daysInMonth }, (_, i) => i + 1)
-    const blanks = Array.from({ length: firstDay }, (_, i) => i)
-
-    return (
-      <div className="flex-1 min-w-[260px]">
-        <p className="font-semibold text-gray-800 mb-3 text-center">{monthName}</p>
-        <div className="grid grid-cols-7 gap-0.5 text-center">
-          {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
-            <div key={d} className="text-xs text-gray-400 font-medium py-1">{d}</div>
-          ))}
-          {blanks.map(i => <div key={`b${i}`} />)}
-          {days.map(day => {
-            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-            const isPast     = dateStr < TODAY
-            const isSelected = dateStr === value
-            const price      = priceMap[dateStr]
-            return (
-              <button
-                key={day}
-                disabled={isPast}
-                onClick={() => { onSelect(dateStr); onClose() }}
-                className={`rounded-md py-1 flex flex-col items-center transition-colors ${
-                  isSelected
-                    ? 'bg-blue-600 text-white'
-                    : isPast
-                    ? 'text-gray-200 cursor-not-allowed'
-                    : 'hover:bg-blue-50 text-gray-800'
-                }`}
-              >
-                <span className="text-sm font-medium">{day}</span>
-                {price !== undefined && price !== null && !isSelected && (
-                  <span className="text-xs text-green-600">{Math.round(price / 1000)}k</span>
-                )}
-                {price !== undefined && price !== null && isSelected && (
-                  <span className="text-xs text-blue-200">{Math.round(price / 1000)}k</span>
-                )}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-    )
-  }
-
-  const next = viewDate.month === 11
-    ? { year: viewDate.year + 1, month: 0 }
-    : { year: viewDate.year, month: viewDate.month + 1 }
-
-  return (
-    <div className="absolute top-full left-0 z-50 mt-1 bg-white rounded-xl shadow-xl border border-gray-200 p-5 w-[560px]">
-      <div className="flex items-center justify-between mb-4">
-        <button onClick={prevMonth} className="p-1 rounded hover:bg-gray-100"><ChevronLeft className="h-4 w-4" /></button>
-        <span className="text-sm font-medium text-gray-600">Select departure date</span>
-        <button onClick={nextMonth} className="p-1 rounded hover:bg-gray-100"><ChevronRight className="h-4 w-4 rotate-180" /></button>
-      </div>
-      <div className="flex gap-6">
-        {renderMonth(viewDate.year, viewDate.month)}
-        <div className="w-px bg-gray-100" />
-        {renderMonth(next.year, next.month)}
-      </div>
-      <p className="text-xs text-gray-400 mt-3 text-center">Showing lowest prices in ₹</p>
-    </div>
   )
 }
 
@@ -610,23 +427,6 @@ export default function FlightsPage() {
     children:   0, infants: 0,
     cabinClass: (searchParams.get('cabinClass') as TravellerConfig['cabinClass']) ?? 'Economy',
   })
-  const [fareType, setFareType] = useState('Regular')
-
-  // Data
-  const [origin,        setOrigin]        = useState(searchParams.get('origin')        ?? '')
-  const [originCity,    setOriginCity]    = useState('')
-  const [destination,   setDestination]   = useState(searchParams.get('destination')   ?? '')
-  const [destinationCity, setDestinationCity] = useState('')
-  const [departureDate, setDepartureDate] = useState(searchParams.get('departureDate') ?? '')
-  const [returnDate,    setReturnDate]    = useState(searchParams.get('returnDate')    ?? '')
-  const [tripType,      setTripType]      = useState<TripType>(searchParams.get('returnDate') ? 'roundtrip' : 'oneway')
-  const [travellers,    setTravellers]    = useState<TravellerConfig>({
-    adults:     Number(searchParams.get('passengers') ?? 1),
-    children:   0,
-    infants:    0,
-    cabinClass: (searchParams.get('cabinClass') as TravellerConfig['cabinClass']) ?? 'Economy',
-  })
-
   const [flights,  setFlights]  = useState<FlightDto[]>([])
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState<string | null>(null)
@@ -634,25 +434,9 @@ export default function FlightsPage() {
   // Filters & sort
   const [filters,  setFilters]  = useState<Filters>(DEFAULT_FILTERS)
   const [sortKey,  setSortKey]  = useState<SortKey>('cheapest')
-  const [maxPrice, setMaxPrice] = useState<number>(0)
-  const [airline,  setAirline]  = useState('')
-  const [sort,     setSort]     = useState<SortKey>('price_asc')
 
   // Date bar prices
   const [datePriceMap, setDatePriceMap] = useState<Record<string, number | null>>({})
-
-  // Calendar picker
-  const [showCal,  setShowCal]  = useState(false)
-  const calRef = useRef<HTMLDivElement>(null)
-
-  // Close calendar on outside click
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (calRef.current && !calRef.current.contains(e.target as Node)) setShowCal(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
 
   // ── Fetch flights ────────────────────────────────────────────────────────
 
@@ -663,23 +447,18 @@ export default function FlightsPage() {
     setFilters(DEFAULT_FILTERS)
     const total = travellers.adults + travellers.children + travellers.infants
     try {
-      const res = await flightService.search({ origin: src, destination: dst, departureDate: date, passengers: total, cabinClass: travellers.cabinClass, pageSize: 100 })
-    const total = travellers.adults + travellers.children + travellers.infants
-    try {
       const res = await flightService.search({
-        origin,
-        destination,
-        departureDate,
+        origin: src,
+        destination: dst,
+        departureDate: date,
         passengers: total,
         cabinClass: travellers.cabinClass,
-        pageSize: 50,
+        pageSize: 100,
       })
       setFlights(res.data ?? [])
-      // Seed current date price into the map
       if (res.data?.length) {
         const minP = Math.min(...res.data.map(f => f.price))
         setDatePriceMap(p => ({ ...p, [date]: minP }))
-        setMaxPrice(Math.max(...res.data.map(f => f.price)))
       }
     } catch {
       setError('Failed to fetch flights. Please check your connection and try again.')
@@ -708,24 +487,9 @@ export default function FlightsPage() {
         setDatePriceMap(prev => ({ ...prev, [d]: p }))
       } catch {
         setDatePriceMap(prev => ({ ...prev, [d]: null }))
-  const airlines = useMemo(() => [...new Set(flights.map(f => f.airline))], [flights])
-  const maxPriceCap = useMemo(() => flights.length ? Math.max(...flights.map(f => f.price)) : 100000, [flights])
-
-  const filtered = useMemo(() => {
-    let list = [...flights]
-    if (airline)  list = list.filter(f => f.airline === airline)
-    if (maxPrice) list = list.filter(f => f.price <= maxPrice)
-    list.sort((a, b) => {
-      switch (sort) {
-        case 'price_asc':     return a.price - b.price
-        case 'price_desc':    return b.price - a.price
-        case 'duration_asc':  return a.durationMinutes - b.durationMinutes
-        case 'departure_asc': return new Date(a.departureTime).getTime() - new Date(b.departureTime).getTime()
-        case 'arrival_asc':   return new Date(a.arrivalTime).getTime() - new Date(b.arrivalTime).getTime()
-        default:              return 0
       }
     })
-  }, [origin, destination, departureDate]) // eslint-disable-line
+  }, [origin, destination, departureDate]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Filtered + sorted results ────────────────────────────────────────────
 
@@ -775,47 +539,12 @@ export default function FlightsPage() {
     fetchFlights(origin, destination, departureDate)
   }
 
-  const handleDateSelect = (d: string) => {
-    setDepartureDate(d)
-    setShowCal(false)
-    fetchFlights(origin, destination, d)
-  }
-
   const swap = () => {
     setOrigin(destination);      setOriginCity(destinationCity)
     setDestination(origin);      setDestinationCity(originCity)
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-
-      {/* ── Search Header ── */}
-      <div className="bg-orange-500 pb-0">
-        {/* Trip type */}
-        <div className="mx-auto max-w-6xl px-4 pt-4 flex gap-4">
-          {(['oneway', 'roundtrip'] as TripType[]).map(t => (
-            <label key={t} className="flex items-center gap-1.5 text-xs font-semibold text-white cursor-pointer">
-              <input type="radio" name="tripType" value={t} checked={tripType === t} onChange={() => setTripType(t)} className="accent-white" />
-              {t === 'oneway' ? 'One Way' : 'Round Trip'}
-            </label>
-          ))}
-        </div>
-
-        {/* Search form */}
-        <form onSubmit={handleSearch} className="mx-auto max-w-6xl px-4 py-3">
-          <div className="bg-white rounded-xl p-3 flex flex-wrap gap-2 items-end shadow-lg">
-            <div className="flex-1 min-w-[150px]">
-              <AirportSearch
-                label="FROM"
-    fetchFlights()
-  }
-
-  const swap = () => {
-    setOrigin(destination); setOriginCity(destinationCity)
-    setDestination(origin); setDestinationCity(originCity)
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -895,54 +624,21 @@ export default function FlightsPage() {
 
         <div className="flex gap-5">
           {/* Filters sidebar */}
-          <aside className="hidden lg:block w-56 flex-shrink-0">
-            <div className="rounded-xl bg-white border border-gray-100 shadow-sm p-5 sticky top-20">
-              <h2 className="flex items-center gap-2 font-semibold text-gray-800 mb-4 text-sm">
-                <SlidersHorizontal className="h-4 w-4" /> Filters
-              </h2>
-              <div className="flex flex-col gap-4">
-                {airlines.length > 0 && (
-                  <Select
-                    label="Airline"
-                    value={airline}
-                    onChange={e => setAirline(e.target.value)}
-                    options={[{ value: '', label: 'All Airlines' }, ...airlines.map(a => ({ value: a, label: a }))]}
-                  />
-                )}
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Max Price</label>
-                  <p className="text-xs text-gray-400 mb-1">
-                    ₹{(maxPrice || maxPriceCap).toLocaleString('en-IN')}
-                  </p>
-                  <input
-                    type="range"
-                    min={0}
-                    max={maxPriceCap}
-                    step={500}
-                    value={maxPrice || maxPriceCap}
-                    onChange={e => setMaxPrice(Number(e.target.value))}
-                    className="w-full accent-blue-600"
-                  />
-                </div>
-                <Button variant="ghost" size="sm" onClick={() => { setAirline(''); setMaxPrice(0) }}>
-                  Clear Filters
-                </Button>
-              </div>
-            </div>
-          </aside>
+          <FilterSidebar
+            flights={flights}
+            filters={filters}
+            setFilters={setFilters}
+            origin={origin}
+            destination={destination}
+          />
 
           {/* Results */}
           <div className="flex-1 min-w-0">
+            <SortTabs sortKey={sortKey} onSort={setSortKey} flights={flights} />
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm text-gray-500">
                 {loading ? 'Searching...' : `${filtered.length} flight${filtered.length !== 1 ? 's' : ''} found`}
               </p>
-              <Select
-                value={sort}
-                onChange={e => setSort(e.target.value as SortKey)}
-                options={SORT_OPTIONS}
-                className="w-52"
-              />
             </div>
 
             {error && (

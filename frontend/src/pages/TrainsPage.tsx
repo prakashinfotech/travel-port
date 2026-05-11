@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Train, Clock, Filter, AlertCircle, Users } from 'lucide-react'
 import { api } from '@/api/axios'
 import { endpoints } from '@/api/endpoints'
@@ -33,11 +34,12 @@ function availabilityColor(avail: string) {
 
 export default function TrainsPage() {
   const today = new Date().toISOString().split('T')[0]
-  const [origin, setOrigin]           = useState('Mumbai')
-  const [destination, setDestination] = useState('Delhi')
-  const [date, setDate]               = useState(today)
+  const [searchParams] = useSearchParams()
+  const [origin, setOrigin]           = useState(searchParams.get('origin') || 'Mumbai')
+  const [destination, setDestination] = useState(searchParams.get('destination') || 'Delhi')
+  const [date, setDate]               = useState(searchParams.get('date') || today)
   const [trainClass, setTrainClass]   = useState('')
-  const [passengers, setPassengers]   = useState(1)
+  const [passengers, setPassengers]   = useState(Number(searchParams.get('passengers')) || 1)
   const [trains, setTrains]           = useState<TrainDto[]>([])
   const [total, setTotal]             = useState(0)
   const [loading, setLoading]         = useState(false)
@@ -45,6 +47,10 @@ export default function TrainsPage() {
   const [searched, setSearched]       = useState(false)
   const [filterTatkal, setFilterTatkal] = useState(false)
   const [sortBy, setSortBy]           = useState<'departure' | 'duration' | 'price'>('departure')
+
+  useEffect(() => {
+    if (searchParams.get('origin')) search()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const search = async () => {
     if (!origin || !destination || !date) return

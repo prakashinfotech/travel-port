@@ -18,6 +18,7 @@ public class FlightService : IFlightService
     private readonly IUnitOfWork _uow;
     private readonly IUserRepository _users;
     private readonly IEmailService _email;
+    private readonly ICouponRepository _coupons;
     private readonly IExternalFlightProvider? _externalProvider;
 
     private static readonly Dictionary<string, string> AirlineCodeMap = new(StringComparer.OrdinalIgnoreCase)
@@ -37,7 +38,7 @@ public class FlightService : IFlightService
 
     public FlightService(IFlightRepository flights, IBookingRepository bookings,
         IWalletService wallet, ICacheService cache, IUnitOfWork uow,
-        IUserRepository users, IEmailService email,
+        IUserRepository users, IEmailService email, ICouponRepository coupons,
         IExternalFlightProvider? externalProvider = null)
     {
         _flights = flights;
@@ -47,6 +48,7 @@ public class FlightService : IFlightService
         _uow = uow;
         _users = users;
         _email = email;
+        _coupons = coupons;
         _externalProvider = externalProvider;
     }
 
@@ -157,8 +159,30 @@ public class FlightService : IFlightService
         var total      = unitPrice * req.Passengers;
         var bookingRef = await _bookings.GenerateBookingRefAsync(ct);
 
+        // Apply coupon discount
+        decimal discount = 0;
+        if (!string.IsNullOrWhiteSpace(req.CouponCode))
+        {
+            var coupon = await _coupons.GetByCodeAsync(req.CouponCode, ct);
+            if (coupon is { IsActive: true } &&
+                (coupon.ExpiresAt == null || coupon.ExpiresAt > DateTime.UtcNow) &&
+                (coupon.UsageLimit == null || coupon.UsedCount < coupon.UsageLimit) &&
+                total >= coupon.MinAmount)
+            {
+                discount = coupon.Type == TravelPort.Domain.Enums.CouponType.Fixed
+                    ? coupon.Value
+                    : total * coupon.Value / 100m;
+                if (coupon.MaxDiscount.HasValue)
+                    discount = Math.Min(discount, coupon.MaxDiscount.Value);
+                discount = Math.Min(discount, total);
+                coupon.UsedCount++;
+                await _coupons.UpdateAsync(coupon, ct);
+            }
+        }
+        var finalAmount = total - discount;
+
         if (req.UseWallet)
-            await _wallet.DeductAsync(userId, total, $"Flight booking {bookingRef}", referenceId, ct);
+            await _wallet.DeductAsync(userId, finalAmount, $"Flight booking {bookingRef}", referenceId, ct);
 
         var booking = new Booking
         {
@@ -170,8 +194,8 @@ public class FlightService : IFlightService
             Passengers     = req.Passengers,
             CouponCode     = req.CouponCode,
             TotalAmount    = total,
-            DiscountAmount = 0,
-            FinalAmount    = total,
+            DiscountAmount = discount,
+            FinalAmount    = finalAmount,
             Status         = BookingStatus.Confirmed
         };
 

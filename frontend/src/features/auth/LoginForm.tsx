@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useEffect } from 'react'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
@@ -23,6 +23,7 @@ interface LoginFormProps {
 export function LoginForm({ onSuccess }: LoginFormProps) {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
+  const location = useLocation()
   const { isAuthenticated, loading, error } = useAuth()
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
@@ -31,11 +32,16 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
 
   useEffect(() => {
     if (isAuthenticated) {
-      if (onSuccess) onSuccess()
-      else navigate('/', { replace: true })
+      if (onSuccess) {
+        onSuccess()
+      } else {
+        const from = (location.state as { from?: Location })?.from
+        const redirect = from ? `${from.pathname}${from.search ?? ''}` : '/'
+        navigate(redirect, { replace: true })
+      }
     }
     return () => { dispatch(clearError()) }
-  }, [isAuthenticated, navigate, dispatch, onSuccess])
+  }, [isAuthenticated, navigate, location, dispatch, onSuccess])
 
   const onSubmit = (data: FormValues) => {
     dispatch(login(data))

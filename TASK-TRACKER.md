@@ -132,6 +132,31 @@
 
 ---
 
+## Phase 5 — Bug Fixes, Design Polish & TypeScript Clean-up
+**Branch:** `feature/ui-overhaul-and-bug-fixes` → current session
+**Date:** 2026-05-11
+**Scope:** Bug fixes from audit, UI polish, zero-error TypeScript build
+
+| # | Feature | Status | Notes |
+|---|---|---|---|
+| 5.1 | **B1** Login redirect — preserve original destination after auth | ✅ | `location.state?.from` path used post-login; LoginForm updated |
+| 5.2 | **B2** Bookings disappear on restart — DataSeeder always re-seeds john's bookings | ✅ | `SeedBookingsAsync` deletes stale bookings for `john@example.com` before inserting fresh ones |
+| 5.3 | **B3** Coupon discount not applied — FlightService + HotelService BookAsync | ✅ | `ICouponRepository` + `CouponRepository` added; discount calculation wired in both services |
+| 5.4 | **D1** HomePage buses/trains/cabs search forms — replaced "Coming soon" block | ✅ | Full search forms with fields pre-wired to URL params for each mode |
+| 5.5 | **D3** BusesPage / TrainsPage / CabsPage — read URL params and auto-search on load | ✅ | `useSearchParams` + `useEffect` added to all three pages |
+| 5.6 | **D4** Recent searches — clickable chips navigate to results; ✕ button removes entry | ✅ | `href` field added to recent-search objects; `removeRecentSearch` helper added |
+| 5.7 | FlightsPage — syntax fix (TIME_SLOTS missing `]`) | ✅ | Fixed `Unexpected token` error at line 45 |
+| 5.8 | FlightsPage — removed duplicate state / type declarations from merged codebases | ✅ | Single `origin`, `destination`, `tripType`, `SortKey`, `TODAY` declarations |
+| 5.9 | FlightsPage — removed broken first `filtered` useMemo; kept Goibibo-style one | ✅ | `filtered` now uses `filters` object + `sortKey` correctly |
+| 5.10 | FlightsPage — wired `FilterSidebar` + `SortTabs` in render (replaced simple sidebar) | ✅ | All previously-defined components now used; no dead code |
+| 5.11 | FlightsPage — removed unused `DateBar`, `CalendarPicker`, `FARE_TYPES`, `fmtDateLabel` | ✅ | Zero TS6133 "declared but not read" errors from FlightsPage |
+| 5.12 | `endpoints.ts` — removed duplicate property keys in `users` object | ✅ | Six duplicate keys removed; TS1117 gone |
+| 5.13 | PaymentPage — added missing imports (`ApiResponse`, `CreateOrderResponse`, `endpoints`, `AlertCircle`) | ✅ | Removed unused card/UPI state; typed `window.Razorpay`; typed `response` handler |
+| 5.14 | HomePage — added `X` to lucide-react import for remove-recent-search button | ✅ | TS2304 resolved |
+| 5.15 | TypeScript build — zero errors across all frontend files | ✅ | `npx tsc --noEmit` exits clean |
+
+---
+
 ## Upcoming / Planned
 
 | # | Feature | Priority | Phase |

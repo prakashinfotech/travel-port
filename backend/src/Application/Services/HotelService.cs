@@ -15,10 +15,11 @@ public class HotelService : IHotelService
     private readonly IWalletService _wallet;
     private readonly ICacheService _cache;
     private readonly IUnitOfWork _uow;
+    private readonly ICouponRepository _coupons;
     private readonly IExternalHotelProvider? _externalProvider;
 
     public HotelService(IHotelRepository hotels, IBookingRepository bookings,
-        IWalletService wallet, ICacheService cache, IUnitOfWork uow,
+        IWalletService wallet, ICacheService cache, IUnitOfWork uow, ICouponRepository coupons,
         IExternalHotelProvider? externalProvider = null)
     {
         _hotels = hotels;
@@ -26,6 +27,7 @@ public class HotelService : IHotelService
         _wallet = wallet;
         _cache = cache;
         _uow = uow;
+        _coupons = coupons;
         _externalProvider = externalProvider;
     }
 
@@ -121,8 +123,30 @@ public class HotelService : IHotelService
 
         var bookingRef = await _bookings.GenerateBookingRefAsync(ct);
 
+        // Apply coupon discount
+        decimal discount = 0;
+        if (!string.IsNullOrWhiteSpace(req.CouponCode))
+        {
+            var coupon = await _coupons.GetByCodeAsync(req.CouponCode, ct);
+            if (coupon is { IsActive: true } &&
+                (coupon.ExpiresAt == null || coupon.ExpiresAt > DateTime.UtcNow) &&
+                (coupon.UsageLimit == null || coupon.UsedCount < coupon.UsageLimit) &&
+                total >= coupon.MinAmount)
+            {
+                discount = coupon.Type == CouponType.Fixed
+                    ? coupon.Value
+                    : total * coupon.Value / 100m;
+                if (coupon.MaxDiscount.HasValue)
+                    discount = Math.Min(discount, coupon.MaxDiscount.Value);
+                discount = Math.Min(discount, total);
+                coupon.UsedCount++;
+                await _coupons.UpdateAsync(coupon, ct);
+            }
+        }
+        var finalAmount = total - discount;
+
         if (req.UseWallet)
-            await _wallet.DeductAsync(userId, total, $"Hotel booking {bookingRef}", referenceId, ct);
+            await _wallet.DeductAsync(userId, finalAmount, $"Hotel booking {bookingRef}", referenceId, ct);
 
         var booking = new Booking
         {
@@ -135,8 +159,8 @@ public class HotelService : IHotelService
             CheckOut       = req.CheckOut,
             CouponCode     = req.CouponCode,
             TotalAmount    = total,
-            DiscountAmount = 0,
-            FinalAmount    = total,
+            DiscountAmount = discount,
+            FinalAmount    = finalAmount,
             Status         = BookingStatus.Confirmed
         };
 

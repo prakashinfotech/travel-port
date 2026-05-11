@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Car, Clock, MapPin, Users, Filter, Shield } from 'lucide-react'
 import { api } from '@/api/axios'
 import { endpoints } from '@/api/endpoints'
@@ -23,10 +24,11 @@ export default function CabsPage() {
   now.setMinutes(now.getMinutes() + 30)
   const defaultPickup = now.toISOString().slice(0, 16)
 
-  const [origin, setOrigin]       = useState('Mumbai')
-  const [destination, setDest]    = useState('Pune')
-  const [pickup, setPickup]       = useState(defaultPickup)
-  const [tripType, setTripType]   = useState<string>('OneWay')
+  const [searchParams] = useSearchParams()
+  const [origin, setOrigin]       = useState(searchParams.get('origin') || 'Mumbai')
+  const [destination, setDest]    = useState(searchParams.get('destination') || 'Pune')
+  const [pickup, setPickup]       = useState(searchParams.get('pickup') || defaultPickup)
+  const [tripType, setTripType]   = useState<string>(searchParams.get('tripType') || 'OneWay')
   const [cabs, setCabs]           = useState<CabDto[]>([])
   const [total, setTotal]         = useState(0)
   const [loading, setLoading]     = useState(false)
@@ -34,6 +36,10 @@ export default function CabsPage() {
   const [searched, setSearched]   = useState(false)
   const [filterAc, setFilterAc]   = useState(false)
   const [sortBy, setSortBy]       = useState<'price' | 'duration'>('price')
+
+  useEffect(() => {
+    if (searchParams.get('origin')) search()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const search = async () => {
     if (!origin || !destination || !pickup) return

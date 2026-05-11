@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Bus, Clock, Wifi, Star, Filter } from 'lucide-react'
 import { api } from '@/api/axios'
 import { endpoints } from '@/api/endpoints'
@@ -18,10 +19,11 @@ function formatDuration(mins: number) {
 
 export default function BusesPage() {
   const today = new Date().toISOString().split('T')[0]
-  const [origin, setOrigin]           = useState('Mumbai')
-  const [destination, setDestination] = useState('Pune')
-  const [date, setDate]               = useState(today)
-  const [seats, setSeats]             = useState(1)
+  const [searchParams] = useSearchParams()
+  const [origin, setOrigin]           = useState(searchParams.get('origin') || 'Mumbai')
+  const [destination, setDestination] = useState(searchParams.get('destination') || 'Pune')
+  const [date, setDate]               = useState(searchParams.get('date') || today)
+  const [seats, setSeats]             = useState(Number(searchParams.get('seats')) || 1)
   const [buses, setBuses]             = useState<BusDto[]>([])
   const [total, setTotal]             = useState(0)
   const [loading, setLoading]         = useState(false)
@@ -30,6 +32,10 @@ export default function BusesPage() {
   const [sortBy, setSortBy]           = useState<'price' | 'departure' | 'duration'>('price')
   const [filterAc, setFilterAc]       = useState(false)
   const [filterRefund, setFilterRefund] = useState(false)
+
+  useEffect(() => {
+    if (searchParams.get('origin')) search()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const search = async () => {
     if (!origin || !destination || !date) return

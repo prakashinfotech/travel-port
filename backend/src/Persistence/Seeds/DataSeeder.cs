@@ -686,8 +686,6 @@ public static class DataSeeder
 
     private static async Task SeedBookingsAsync(TravelPortDbContext context)
     {
-        if (await context.Bookings.AnyAsync()) return;
-
         var john           = await context.Users.FirstOrDefaultAsync(u => u.Email == "john@example.com");
         var flight         = await context.Flights.FirstOrDefaultAsync(f => f.Source == "BOM" && f.Destination == "DEL");
         var cancelledFlight= await context.Flights.FirstOrDefaultAsync(f => f.Source == "DEL" && f.Destination == "BOM");
@@ -696,6 +694,11 @@ public static class DataSeeder
         if (john == null || flight == null || cancelledFlight == null || hotel == null) return;
         var room = hotel.Rooms.FirstOrDefault();
         if (room == null) return;
+
+        // Always refresh john's bookings — flights are re-seeded every restart so old ReferenceIds become stale
+        var staleBookings = await context.Bookings.Where(b => b.UserId == john.Id).ToListAsync();
+        context.Bookings.RemoveRange(staleBookings);
+        await context.SaveChangesAsync();
 
         context.Bookings.AddRange(
             new Booking

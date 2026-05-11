@@ -1,26 +1,28 @@
 import { useState } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
-import { CreditCard, Wallet, CheckCircle, Lock } from 'lucide-react'
+import { CreditCard, Wallet, CheckCircle, Lock, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { api } from '@/api/axios'
+import { endpoints } from '@/api/endpoints'
+import { useAppSelector } from '@/hooks/useAppDispatch'
+import type { ApiResponse, CreateOrderResponse } from '@/types'
+
+declare global {
+  interface Window {
+    Razorpay: new (options: Record<string, unknown>) => { open(): void }
+  }
+}
 
 export default function PaymentPage() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
+  const user = useAppSelector(s => s.auth.user)
   const bookingId = params.get('bookingId') ?? ''
   const amount = Number(params.get('amount') ?? 0)
 
-  const [method, setMethod] = useState<'card' | 'upi' | 'wallet'>('card')
   const [loading, setLoading] = useState(false)
   const [paid, setPaid] = useState(false)
   const [error, setError] = useState('')
-
-  // Card fields
-  const [cardNum, setCardNum] = useState('')
-  const [expiry, setExpiry] = useState('')
-  const [cvv, setCvv] = useState('')
-  const [name, setName] = useState('')
-  const [upi, setUpi] = useState('')
 
   if (!bookingId) return (
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4">
@@ -35,13 +37,11 @@ export default function PaymentPage() {
     setLoading(true)
     setError('')
     try {
-      // Step 1: Create Razorpay order
       const { data } = await api.post<ApiResponse<CreateOrderResponse>>(
         endpoints.payments.initiate, { bookingId }
       )
       const order = data.data
 
-      // Step 2: If mock order (dev mode without Razorpay keys), skip to verify
       if (order.orderId.startsWith('order_mock_')) {
         const verifyRes = await api.post(endpoints.payments.verify, {
           bookingId,
@@ -56,8 +56,7 @@ export default function PaymentPage() {
         return
       }
 
-      // Step 3: Open real Razorpay checkout
-      if (!scriptReady || !window.Razorpay) {
+      if (!window.Razorpay) {
         setError('Payment gateway failed to load. Please refresh and try again.')
         return
       }
@@ -71,7 +70,7 @@ export default function PaymentPage() {
         order_id: order.orderId,
         prefill: { name: user?.name, email: user?.email },
         theme: { color: '#1d4ed8' },
-        handler: async (response) => {
+        handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
           try {
             const verifyRes = await api.post(endpoints.payments.verify, {
               bookingId,
@@ -126,7 +125,6 @@ export default function PaymentPage() {
           <p className="text-gray-500 text-sm mt-1">Booking #{bookingId.slice(0, 8).toUpperCase()}</p>
         </div>
 
-        {/* Amount card */}
         <div className="rounded-xl bg-blue-700 text-white p-5 mb-6">
           <p className="text-blue-200 text-sm">Amount to Pay</p>
           <p className="text-3xl font-bold mt-1">₹{amount.toLocaleString('en-IN')}</p>
@@ -142,7 +140,6 @@ export default function PaymentPage() {
             </div>
           )}
 
-          {/* Payment options info */}
           <div className="mb-6">
             <p className="text-sm font-semibold text-gray-700 mb-3">Supported Payment Methods</p>
             <div className="flex gap-3 flex-wrap">
