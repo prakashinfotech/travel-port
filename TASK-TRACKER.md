@@ -158,6 +158,13 @@
 | 5.17 | FlightsPage → FlightCard — passenger count now passed correctly | ✅ | `passengerCount` prop wired so BookFlightPage shows correct traveller forms |
 | 5.18 | Coupon discount reflected in fare summary | ✅ | Backend: `GET /api/v1/coupons/validate`; Frontend: Apply button, discount line in summary, deducted from total |
 | 5.19 | PDF e-ticket redesign — Goibibo-style layout | ✅ | QuestPDF 2025.1.0 added; branded header (orange), booking ref bar (navy), IATA codes, passenger table, baggage table, cancellation charges, fare summary, customer support section |
+| 5.20 | HotelsPage — Goibibo-style search UI (matching screenshot) | ✅ | Orange header, mode tabs, box-style date fields with "18 May '26 / Monday" format, Guests & Rooms dropdown, SEARCH button |
+| 5.21 | HotelsPage — city prefill from URL params | ✅ | `useState(searchParams.get('city'))` reads URL on mount; auto-search fires when city present |
+| 5.22 | HotelsPage — Goibibo-style filter sidebar | ✅ | Popular Filters (Pool/Parking/Spa/Gym), Star Category toggles, User Rating with colour badges, Price range slider, Amenities chips |
+| 5.23 | HotelsPage — sort tabs replacing Select dropdown | ✅ | ⭐ Top Rated · ₹ Price ↑ · ₹ Price ↓ · ★ Stars pill tabs |
+| 5.24 | HotelDetailPage — new full hotel detail page | ✅ | Hero image + gallery strip, rating card, amenities grid, room cards with Book Now, sticky stay-summary sidebar, Important Info section |
+| 5.25 | HotelCard — pass checkIn/checkOut/guests to detail page URL | ✅ | Search params forwarded so Book Now button on detail page has correct dates |
+| 5.26 | Hotel data expansion — 30 additional hotels | ✅ | +5 Mumbai, +5 Delhi, +5 Goa, +5 Bangalore, +6 Jaipur, +5 Hyderabad; seeder now checks count ≥ 60 |
 
 ---
 
