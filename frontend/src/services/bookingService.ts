@@ -9,6 +9,9 @@ export const bookingService = {
   getById: (id: string) =>
     api.get<ApiResponse<BookingDto>>(endpoints.bookings.byId(id)).then(r => r.data),
 
+  downloadInvoice: (id: string) =>
+    api.get(endpoints.bookings.invoice(id), { responseType: 'blob' }).then(r => r.data as Blob),
+
   cancel: (id: string) =>
     api.post<ApiResponse<CancelBookingResponse>>(endpoints.bookings.cancel(id)).then(r => r.data),
 }

@@ -21,12 +21,20 @@ Full-stack travel booking platform built with .NET 8 Clean Architecture + React 
 ## Overview
 
 TravelPort covers:
-- Flight Search & Booking
-- Hotel Search & Booking
+- Flight Search & Booking (900+ DB seed flights — IndiGo, SpiceJet, Vistara, Akasa Air, Air India, Air India Express, Go First across 42 routes)
+- Goibibo-style Flight Fare Popup + Fare-family Booking Flow
+- Home page recent searches persist and reopen saved result pages
+- Hotel Search & Booking (Amadeus Hotel Offers API — toggle via config)
+- Bus Search (deterministic mock — realistic Indian operators & routes)
+- Train Search (deterministic mock — real train names, 5 classes, availability statuses)
+- Cab Search (deterministic mock — Ola/Uber/Meru/Zoom, distance-based pricing)
 - User Authentication (JWT + Refresh Tokens)
 - Booking Management & Cancellation
 - Wallet & Coupons
+- Razorpay Payment Gateway (toggle via config; falls back to mock in dev)
+- Email Notifications via SMTP (toggle via config)
 - Admin Panel
+- Dynamic Traveller Details UI based on selected seat count
 
 ---
 
@@ -57,7 +65,9 @@ dotnet restore
 dotnet ef database update --project src/Persistence --startup-project src/API
 dotnet run --project src/API --launch-profile https
 ```
-API runs at `https://localhost:7001` | Swagger at `https://localhost:7001/swagger`
+API runs at `http://localhost:5000` (HTTP) and `https://localhost:7001` (HTTPS) | Swagger at `https://localhost:7001/swagger`
+
+> **Frontend connects via HTTP (`http://localhost:5000`)** to avoid browser SSL certificate rejections on the dev self-signed cert.
 
 The database is **auto-seeded** on first startup — no manual SQL needed.
 
@@ -87,9 +97,12 @@ Frontend runs at `http://localhost:5173`
 | Module | Count |
 |---|---|
 | Users | 4 (1 admin, 3 users) |
-| Flights | 24 (10 routes, multiple airlines & dates) |
-| Hotels | 15 (Mumbai, Delhi, Goa, Bangalore, Jaipur, Hyderabad) |
-| Hotel Rooms | 35+ across all hotels |
+| Flights | 900+ programmatically generated across 42 bidirectional routes, 7 airlines (IndiGo, SpiceJet, Air India, Vistara, Akasa Air, Air India Express, Go First), 14 date slots (+7 to +35 days) |
+| Hotels | 40+ across 10 cities (Mumbai, Delhi, Goa, Bangalore, Jaipur, Hyderabad, Chennai, Kolkata, Ahmedabad, Pune, Kochi, Lucknow) |
+| Hotel Rooms | 90+ room types across all hotels |
+| Buses | Deterministic mock — 10–22 results per route, route-specific durations, 14 operators |
+| Trains | Deterministic mock — 6–15 results per route, 39 named trains, route-specific durations & pricing |
+| Cabs | Deterministic mock — Ola, Uber, Meru, Zoom, distance-based pricing |
 | Coupons | 5 (SAVE100, FIRST10, SUMMER20, HOTEL500, FLAT15) |
 | Bookings | 3 sample bookings for john@example.com |
 
@@ -101,17 +114,68 @@ Frontend runs at `http://localhost:5173`
 |---|---|---|
 | POST | /api/v1/auth/register | No |
 | POST | /api/v1/auth/login | No |
-| POST | /api/v1/auth/refresh | No |
-| POST | /api/v1/auth/logout | Yes |
+| POST | /api/v1/auth/forgot-password | No |
+| POST | /api/v1/auth/reset-password | No |
 | GET | /api/v1/flights/search | No |
 | POST | /api/v1/flights/book | Yes |
 | GET | /api/v1/hotels/search | No |
 | POST | /api/v1/hotels/book | Yes |
+| GET | /api/v1/buses/search | No |
+| GET | /api/v1/trains/search | No |
+| GET | /api/v1/cabs/search | No |
+| POST | /api/v1/payments/initiate | Yes |
+| POST | /api/v1/payments/verify | Yes |
 | GET | /api/v1/bookings | Yes |
 | DELETE | /api/v1/bookings/{id}/cancel | Yes |
+| GET | /api/v1/bookings/{id}/invoice | Yes |
 | GET | /api/v1/users/profile | Yes |
 
 Full reference: [API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md)
+
+---
+
+## External API Configuration
+
+Credentials go in `backend/src/API/appsettings.Development.json` (gitignored — never commit secrets to `appsettings.json`).
+
+### Duffel (Real Flights) — **Active in dev**
+> Amadeus for Developers shut down new signups in 2025. Duffel is the replacement.
+1. Sign up at [app.duffel.com/join](https://app.duffel.com/join)
+2. **Developers → Access tokens** → create a **Test** token
+3. Set in `appsettings.Development.json`:
+```json
+"Duffel": { "ApiToken": "duffel_test_YOUR_TOKEN", "Enabled": true }
+```
+
+### Amadeus (Hotels only — existing accounts)
+1. Sign up at [developers.amadeus.com](https://developers.amadeus.com) → Create App → copy API Key & Secret (new signups paused as of 2025)
+2. Set in config:
+```json
+"Amadeus": { "ApiKey": "YOUR_KEY", "ApiSecret": "YOUR_SECRET", "Enabled": true }
+```
+
+### Razorpay (Real Payments)
+1. Create account at [razorpay.com](https://razorpay.com) → Settings → API Keys
+2. Set in config:
+```json
+"Razorpay": { "KeyId": "rzp_test_xxx", "KeySecret": "YOUR_SECRET", "Enabled": true }
+```
+
+### SMTP (Email Notifications)
+1. Use your SMTP provider credentials (Gmail, Mailgun, AWS SES, etc.)
+2. Set in config:
+```json
+"Email": {
+  "Enabled": true,
+  "FromEmail": "noreply@yourdomain.com",
+  "FromName": "TravelPort",
+  "SmtpHost": "smtp.yourprovider.com",
+  "SmtpPort": 587,
+  "Username": "smtp-user",
+  "Password": "smtp-password",
+  "EnableSsl": true
+}
+```
 
 ---
 
@@ -149,3 +213,7 @@ Goibibo-AI-Assignment/
 | [SECURITY_GUIDE.md](docs/SECURITY_GUIDE.md) | Auth & security implementation |
 | [AI_USAGE_REPORT.md](docs/AI_USAGE_REPORT.md) | AI-assisted development log |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Branch workflow & contribution rules |
+| [CLAUDE.md](CLAUDE.md) | AI collaboration guide — project context & standing rules |
+| [GIT.md](GIT.md) | Git workflow, branch naming & commit conventions |
+| [TODO.md](TODO.md) | Backlog — bugs, pending features, technical debt |
+| [TASK-TRACKER.md](TASK-TRACKER.md) | Day-by-day feature delivery log with status |

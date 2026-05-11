@@ -33,6 +33,10 @@ export interface FlightSearchRequest {
   returnDate?: string
   passengers?: number
   cabinClass?: 'Economy' | 'Business' | 'First'
+  maxPrice?: number
+  maxStops?: number       // 0 = non-stop, 1 = 1 stop, undefined = any
+  airlines?: string       // comma-separated IATA codes
+  sortBy?: 'price' | 'duration' | 'departure' | 'arrival'
   page?: number
   pageSize?: number
 }
@@ -41,14 +45,24 @@ export interface FlightDto {
   id: string
   flightNumber: string
   airline: string
+  airlineCode: string
   origin: string
+  originCity: string
   destination: string
+  destinationCity: string
   departureTime: string
   arrivalTime: string
   durationMinutes: number
-  cabinClass: string
-  price: number
   availableSeats: number
+  price: number
+  businessPrice?: number
+  cabinClass: string
+  stops: number
+  isRefundable: boolean
+  baggageIncluded: boolean
+  checkedBags?: number
+  aircraft?: string
+  externalOfferId?: string
 }
 
 // ── Hotels ────────────────────────────────────────────────────────────────────
@@ -60,6 +74,7 @@ export interface HotelSearchRequest {
   minPrice?: number
   maxPrice?: number
   starRating?: number
+  sortBy?: 'price' | 'rating' | 'stars' | 'name'
   page?: number
   pageSize?: number
 }
@@ -71,6 +86,10 @@ export interface HotelRoomDto {
   maxOccupancy: number
   availableRooms: number
   amenities: string
+  cancellationPolicy?: string
+  mealPlan?: string
+  isRefundable?: boolean
+  externalOfferId?: string
 }
 
 export interface HotelDto {
@@ -85,6 +104,110 @@ export interface HotelDto {
   amenities: string
   imageUrl: string
   rooms: HotelRoomDto[]
+  externalHotelId?: string
+  latitude?: number
+  longitude?: number
+}
+
+// ── Buses ─────────────────────────────────────────────────────────────────────
+export interface BusSearchRequest {
+  origin: string
+  destination: string
+  travelDate: string
+  seats?: number
+  page?: number
+  pageSize?: number
+}
+
+export interface BusDto {
+  id: string
+  operator: string
+  busType: string
+  origin: string
+  destination: string
+  departureTime: string
+  arrivalTime: string
+  durationMinutes: number
+  availableSeats: number
+  price: number
+  acAvailable: boolean
+  isRefundable: boolean
+  amenities: string
+  rating: number
+}
+
+// ── Trains ────────────────────────────────────────────────────────────────────
+export interface TrainSearchRequest {
+  origin: string
+  destination: string
+  travelDate: string
+  class?: string       // SL, 3A, 2A, 1A, CC
+  passengers?: number
+  page?: number
+  pageSize?: number
+}
+
+export interface TrainClassDto {
+  className: string
+  availableSeats: number
+  price: number
+  availability: string  // AVAILABLE | WL-5 | RAC-3 | REGRET
+}
+
+export interface TrainDto {
+  id: string
+  trainNumber: string
+  trainName: string
+  origin: string
+  destination: string
+  departureTime: string
+  arrivalTime: string
+  durationMinutes: number
+  classes: Record<string, TrainClassDto>
+  runningDays: string
+  availableSeats: number
+  isTatkal: boolean
+}
+
+// ── Cabs ──────────────────────────────────────────────────────────────────────
+export interface CabSearchRequest {
+  origin: string
+  destination: string
+  pickupDateTime: string
+  tripType?: 'OneWay' | 'RoundTrip' | 'Outstation' | 'Local'
+  page?: number
+  pageSize?: number
+}
+
+export interface CabDto {
+  id: string
+  provider: string
+  cabType: string
+  carModel: string
+  capacity: number
+  price: number
+  pricePerKm: number
+  estimatedDurationMinutes: number
+  estimatedDistanceKm: number
+  acAvailable: boolean
+  driverIncluded: boolean
+  cancellationPolicy: string
+  imageUrl?: string
+}
+
+// ── Payments ──────────────────────────────────────────────────────────────────
+export interface CreateOrderResponse {
+  orderId: string
+  amount: number
+  currency: string
+  keyId: string
+}
+
+export interface VerifyPaymentRequest {
+  bookingId: string
+  razorpayOrderId: string
+  razorpayPaymentId: string
+  razorpaySignature: string
 }
 
 // ── Bookings ──────────────────────────────────────────────────────────────────
@@ -97,6 +220,7 @@ export interface BookingDto {
   type: BookingType
   status: BookingStatus
   totalAmount: number
+  finalAmount: number
   bookingDate: string
   flightId?: string
   hotelId?: string
@@ -105,6 +229,18 @@ export interface BookingDto {
   checkOut?: string
   couponCode?: string
   discountAmount: number
+  userName?: string
+  userEmail?: string
+  userPhone?: string
+  airline?: string
+  flightNumber?: string
+  origin?: string
+  originCity?: string
+  destination?: string
+  destinationCity?: string
+  departureTime?: string
+  arrivalTime?: string
+  durationMinutes?: number
 }
 
 // ── Users ─────────────────────────────────────────────────────────────────────
@@ -133,19 +269,24 @@ export interface SavedTravellerDto {
 export interface BookFlightRequest {
   flightId: string
   passengers: number
+  cabinClass?: string
   couponCode?: string
+  useWallet?: boolean
 }
 
 export interface BookHotelRequest {
-  hotelRoomId: string
+  hotelId: string
+  roomId: string
   checkIn: string
   checkOut: string
+  guests: number
   couponCode?: string
+  useWallet?: boolean
 }
 
 export interface BookingCreatedResponse {
   id: string
-  bookingReference: string
+  bookingRef: string
   totalAmount: number
   status: BookingStatus
 }

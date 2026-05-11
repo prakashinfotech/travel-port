@@ -11,7 +11,10 @@ public record HotelDto(
     string Description,
     string Amenities,
     string ImageUrl,
-    List<HotelRoomDto> Rooms
+    List<HotelRoomDto> Rooms,
+    string? ExternalHotelId = null,
+    double? Latitude = null,
+    double? Longitude = null
 );
 
 public record HotelRoomDto(
@@ -20,5 +23,9 @@ public record HotelRoomDto(
     decimal PricePerNight,
     int MaxOccupancy,
     int AvailableRooms,
-    string Amenities
+    string Amenities,
+    string? CancellationPolicy = null,
+    string? MealPlan = null,
+    bool IsRefundable = false,
+    string? ExternalOfferId = null
 );

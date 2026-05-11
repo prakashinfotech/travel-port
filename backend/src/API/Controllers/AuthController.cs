@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TravelPort.Application.Common.Models;
@@ -28,6 +29,24 @@ public class AuthController : ControllerBase
     {
         var result = await _auth.LoginAsync(request, ct);
         return Ok(ApiResponse<AuthResponse>.Ok(result));
+    }
+
+    [EnableRateLimiting("AuthPolicy")]
+    [HttpPost("forgot-password")]
+    public async Task<ActionResult<ApiResponse<object>>> ForgotPassword(
+        [FromBody] ForgotPasswordRequest request, CancellationToken ct)
+    {
+        await _auth.ForgotPasswordAsync(request, ct);
+        return Ok(ApiResponse<object>.Ok(null!, "If an account with that email exists, a password reset link has been sent."));
+    }
+
+    [EnableRateLimiting("AuthPolicy")]
+    [HttpPost("reset-password")]
+    public async Task<ActionResult<ApiResponse<object>>> ResetPassword(
+        [FromBody] ResetPasswordRequest request, CancellationToken ct)
+    {
+        await _auth.ResetPasswordAsync(request, ct);
+        return Ok(ApiResponse<object>.Ok(null!, "Password reset successful."));
     }
 
     [HttpPost("refresh")]

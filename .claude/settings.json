@@ -12,7 +12,18 @@
       "Read(//c/Temp/**)",
       "PowerShell(netstat -ano | Select-String \"7001|5000\" | ForEach-Object { $_.ToString\\(\\) })",
       "PowerShell(Remove-Item \"C:\\\\Temp\\\\api-out.txt\",\"C:\\\\Temp\\\\api-err.txt\" -ErrorAction SilentlyContinue; $proc = Start-Process -FilePath \"dotnet\" -ArgumentList \"run\", \"--project\", \"C:\\\\Goibibo-AI-Assignment\\\\backend\\\\src\\\\API\", \"--launch-profile\", \"https\" -RedirectStandardOutput \"C:\\\\Temp\\\\api-out.txt\" -RedirectStandardError \"C:\\\\Temp\\\\api-err.txt\" -PassThru -WindowStyle Hidden; \"PID: $\\($proc.Id\\)\")",
-      "PowerShell(Set-Location \"C:\\\\Goibibo-AI-Assignment\"; git add .gitignore README.md .claude docs frontend backend/global.json backend/nuget.config backend/TravelPort.sln backend/src 2>&1 | Where-Object { $_ -notmatch \"^warning:\" } | Select-Object -First 10)"
+      "PowerShell(Set-Location \"C:\\\\Goibibo-AI-Assignment\"; git add .gitignore README.md .claude docs frontend backend/global.json backend/nuget.config backend/TravelPort.sln backend/src 2>&1 | Where-Object { $_ -notmatch \"^warning:\" } | Select-Object -First 10)",
+      "Bash(dir \"c:\\\\Goibibo-AI-Assignment\\\\backend\\\\src\" /s /b)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Goibibo-AI-Assignment\\\\backend\\\\src\" -Recurse -Filter \"*PaymentsController*\" -ErrorAction SilentlyContinue)",
+      "Bash(xargs grep -l \"PaymentMethod\\\\|PaymentStatus\")",
+      "Bash(Get-ChildItem -Path \"C:\\\\Goibibo-AI-Assignment\\\\frontend\\\\src\" -Recurse -Type Directory)",
+      "Bash(npx tsc *)",
+      "WebFetch(domain:developers.amadeus.com)",
+      "WebSearch",
+      "WebFetch(domain:duffel.com)",
+      "Bash(xargs cat)",
+      "WebFetch(domain:www.postman.com)",
+      "Bash(git add *)"
     ]
   }
 }

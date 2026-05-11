@@ -2,7 +2,7 @@ import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/tool
 import axios from 'axios'
 import type { AuthResponse, LoginRequest, RegisterRequest, UserToken } from '@/types'
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://localhost:7001'
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000'
 
 interface AuthState {
   user: UserToken | null
@@ -34,17 +34,23 @@ const initialState: AuthState = {
 
 // ── Thunks ────────────────────────────────────────────────────────────────────
 // Register returns no tokens — backend sends 201 + success message only
+function extractMessage(err: unknown, fallback: string): string {
+  if (!axios.isAxiosError(err)) return fallback
+  if (!err.response) return 'Cannot connect to server. Please ensure the API is running.'
+  return (
+    err.response.data?.message ??
+    err.response.data?.errors?.[0] ??
+    fallback
+  )
+}
+
 export const register = createAsyncThunk<void, RegisterRequest>(
   'auth/register',
   async (body, { rejectWithValue }) => {
     try {
       await axios.post(`${BASE_URL}/api/v1/auth/register`, body)
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        const msg = err.response?.data?.message ?? err.response?.data?.errors?.[0] ?? 'Registration failed'
-        return rejectWithValue(msg)
-      }
-      return rejectWithValue('Registration failed')
+    } catch (err) {
+      return rejectWithValue(extractMessage(err, 'Registration failed'))
     }
   }
 )
@@ -58,11 +64,8 @@ export const login = createAsyncThunk<AuthResponse, LoginRequest>(
         body
       )
       return data.data
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        return rejectWithValue(err.response?.data?.message ?? 'Login failed')
-      }
-      return rejectWithValue('Login failed')
+    } catch (err) {
+      return rejectWithValue(extractMessage(err, 'Login failed'))
     }
   }
 )

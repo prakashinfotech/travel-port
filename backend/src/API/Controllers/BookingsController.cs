@@ -29,6 +29,13 @@ public class BookingsController : BaseApiController
         return Ok(ApiResponse<BookingDto>.Ok(result));
     }
 
+    [HttpGet("{id:guid}/invoice")]
+    public async Task<IActionResult> Invoice(Guid id, CancellationToken ct)
+    {
+        var (content, fileName) = await _bookings.GetInvoiceAsync(CurrentUserId, id, ct);
+        return File(content, "application/pdf", fileName);
+    }
+
     [HttpPost("{id:guid}/cancel")]
     public async Task<ActionResult<ApiResponse<CancelBookingResponse>>> Cancel(Guid id, CancellationToken ct)
     {

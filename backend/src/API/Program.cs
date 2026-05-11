@@ -149,7 +149,8 @@ try
         app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "TravelPort API v1"));
     }
 
-    app.UseHttpsRedirection();
+    if (!app.Environment.IsDevelopment())
+        app.UseHttpsRedirection();
     app.UseSerilogRequestLogging();
     app.UseCors("TravelPortCors");
     app.UseRateLimiter();

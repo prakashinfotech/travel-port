@@ -31,16 +31,71 @@ export default function PaymentPage() {
     </div>
   )
 
-  const handlePay = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleRazorpayPayment = async () => {
     setLoading(true)
     setError('')
     try {
-      await api.post('/payments/initiate', { bookingId, paymentMethod: method })
-      setPaid(true)
-      setTimeout(() => navigate(`/bookings/${bookingId}`), 3000)
+      // Step 1: Create Razorpay order
+      const { data } = await api.post<ApiResponse<CreateOrderResponse>>(
+        endpoints.payments.initiate, { bookingId }
+      )
+      const order = data.data
+
+      // Step 2: If mock order (dev mode without Razorpay keys), skip to verify
+      if (order.orderId.startsWith('order_mock_')) {
+        const verifyRes = await api.post(endpoints.payments.verify, {
+          bookingId,
+          razorpayOrderId: order.orderId,
+          razorpayPaymentId: `pay_mock_${Date.now()}`,
+          razorpaySignature: 'mock_signature',
+        })
+        if (verifyRes.data.success) {
+          setPaid(true)
+          setTimeout(() => navigate(`/bookings/${bookingId}`), 3000)
+        }
+        return
+      }
+
+      // Step 3: Open real Razorpay checkout
+      if (!scriptReady || !window.Razorpay) {
+        setError('Payment gateway failed to load. Please refresh and try again.')
+        return
+      }
+
+      const rzp = new window.Razorpay({
+        key: order.keyId,
+        amount: Math.round(order.amount * 100),
+        currency: order.currency,
+        name: 'TravelPort',
+        description: `Booking #${bookingId.slice(0, 8).toUpperCase()}`,
+        order_id: order.orderId,
+        prefill: { name: user?.name, email: user?.email },
+        theme: { color: '#1d4ed8' },
+        handler: async (response) => {
+          try {
+            const verifyRes = await api.post(endpoints.payments.verify, {
+              bookingId,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
+            })
+            if (verifyRes.data.success) {
+              setPaid(true)
+              setTimeout(() => navigate(`/bookings/${bookingId}`), 3000)
+            } else {
+              setError('Payment verification failed. Contact support.')
+            }
+          } catch {
+            setError('Payment verification failed. Contact support.')
+          }
+        },
+        modal: {
+          ondismiss: () => setLoading(false),
+        },
+      })
+      rzp.open()
     } catch {
-      setError('Payment failed. Please try again or use a different payment method.')
+      setError('Failed to initiate payment. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -63,19 +118,6 @@ export default function PaymentPage() {
     )
   }
 
-  const PayMethodBtn = ({ id, icon: Icon, label }: { id: typeof method; icon: React.ElementType; label: string }) => (
-    <button
-      type="button"
-      onClick={() => setMethod(id)}
-      className={[
-        'flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-sm font-medium transition-colors',
-        method === id ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-gray-300',
-      ].join(' ')}
-    >
-      <Icon className="h-5 w-5" /> {label}
-    </button>
-  )
-
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4">
       <div className="mx-auto max-w-lg">
@@ -95,89 +137,42 @@ export default function PaymentPage() {
 
         <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-6">
           {error && (
-            <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
+            <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 shrink-0" /> {error}
+            </div>
           )}
 
-          {/* Payment method selector */}
-          <p className="text-sm font-semibold text-gray-700 mb-3">Select Payment Method</p>
-          <div className="flex gap-3 mb-6 flex-wrap">
-            <PayMethodBtn id="card" icon={CreditCard} label="Credit/Debit Card" />
-            <PayMethodBtn id="upi" icon={Wallet} label="UPI" />
-            <PayMethodBtn id="wallet" icon={Wallet} label="TravelPort Wallet" />
+          {/* Payment options info */}
+          <div className="mb-6">
+            <p className="text-sm font-semibold text-gray-700 mb-3">Supported Payment Methods</p>
+            <div className="flex gap-3 flex-wrap">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600">
+                <CreditCard className="h-4 w-4" /> Cards
+              </div>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600">
+                <Wallet className="h-4 w-4" /> UPI
+              </div>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600">
+                <Wallet className="h-4 w-4" /> Net Banking
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 mt-3">
+              Powered by Razorpay. You'll be redirected to a secure checkout window.
+            </p>
           </div>
 
-          <form onSubmit={handlePay} className="flex flex-col gap-4">
-            {method === 'card' && (
-              <>
-                <div>
-                  <label className="text-sm font-medium text-gray-700 block mb-1">Card Number</label>
-                  <input
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="1234 5678 9012 3456"
-                    value={cardNum}
-                    onChange={e => setCardNum(e.target.value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim())}
-                    maxLength={19}
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 block mb-1">Expiry</label>
-                    <input
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="MM/YY"
-                      value={expiry}
-                      onChange={e => setExpiry(e.target.value)}
-                      maxLength={5}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 block mb-1">CVV</label>
-                    <input
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="•••"
-                      type="password"
-                      value={cvv}
-                      onChange={e => setCvv(e.target.value)}
-                      maxLength={4}
-                      required
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700 block mb-1">Name on Card</label>
-                  <input
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="John Doe"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    required
-                  />
-                </div>
-              </>
-            )}
-            {method === 'upi' && (
-              <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">UPI ID</label>
-                <input
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="yourname@upi"
-                  value={upi}
-                  onChange={e => setUpi(e.target.value)}
-                  required
-                />
-              </div>
-            )}
-            {method === 'wallet' && (
-              <div className="rounded-lg bg-blue-50 border border-blue-100 p-4 text-sm text-blue-700">
-                Your TravelPort wallet balance will be debited for ₹{amount.toLocaleString('en-IN')}.
-              </div>
-            )}
-            <Button type="submit" loading={loading} className="w-full py-3 text-base">
-              Pay ₹{amount.toLocaleString('en-IN')}
-            </Button>
-          </form>
+          <Button
+            onClick={handleRazorpayPayment}
+            loading={loading}
+            disabled={loading}
+            className="w-full py-3 text-base"
+          >
+            Pay ₹{amount.toLocaleString('en-IN')} Securely
+          </Button>
+
+          <p className="text-center text-xs text-gray-400 mt-4 flex items-center justify-center gap-1">
+            <Lock className="h-3 w-3" /> Your payment info is encrypted and secure
+          </p>
         </div>
       </div>
     </div>

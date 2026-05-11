@@ -8,6 +8,7 @@ public record BookingDto(
     string Type,
     BookingStatus Status,
     decimal TotalAmount,
+    decimal FinalAmount,
     decimal DiscountAmount,
     DateTime BookingDate,
     Guid? FlightId,
@@ -15,7 +16,19 @@ public record BookingDto(
     int? Passengers,
     string? CheckIn,
     string? CheckOut,
-    string? CouponCode
+    string? CouponCode,
+    string? UserName = null,
+    string? UserEmail = null,
+    string? UserPhone = null,
+    string? Airline = null,
+    string? FlightNumber = null,
+    string? Origin = null,
+    string? OriginCity = null,
+    string? Destination = null,
+    string? DestinationCity = null,
+    DateTime? DepartureTime = null,
+    DateTime? ArrivalTime = null,
+    int? DurationMinutes = null
 );
 
 public record BookingCreatedResponse(

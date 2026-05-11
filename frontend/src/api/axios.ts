@@ -2,7 +2,7 @@ import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { store } from '@/store'
 import { setTokens, logout } from '@/features/auth/authSlice'
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://localhost:7001'
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000'
 
 export const api = axios.create({
   baseURL: `${BASE_URL}/api/v1`,

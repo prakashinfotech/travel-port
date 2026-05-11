@@ -20,6 +20,18 @@ export const endpoints = {
     rooms:  (id: string) => `/hotels/${id}/rooms`,
     book:   '/hotels/book',
   },
+  buses: {
+    search: '/buses/search',
+    book:   '/buses/book',
+  },
+  trains: {
+    search: '/trains/search',
+    book:   '/trains/book',
+  },
+  cabs: {
+    search: '/cabs/search',
+    book:   '/cabs/book',
+  },
   bookings: {
     list:    '/bookings',
     byId:    (id: string) => `/bookings/${id}`,
@@ -27,6 +39,12 @@ export const endpoints = {
     invoice: (id: string) => `/bookings/${id}/invoice`,
   },
   users: {
+    profile:             '/users/profile',
+    wallet:              '/users/wallet',
+    walletTopup:         '/users/wallet/topup',
+    walletTransactions:  '/users/wallet/transactions',
+    travellers:          '/users/travellers',
+    traveller:           (id: string) => `/users/travellers/${id}`,
     profile:          '/users/profile',
     wallet:           '/users/wallet',
     walletTopup:      '/users/wallet/topup',

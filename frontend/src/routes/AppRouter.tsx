@@ -22,6 +22,10 @@ const BookHotelPage        = lazy(() => import('@/pages/BookHotelPage'))
 const BookingsPage         = lazy(() => import('@/pages/BookingsPage'))
 const BookingDetailPage    = lazy(() => import('@/pages/BookingDetailPage'))
 
+const BusesPage            = lazy(() => import('@/pages/BusesPage'))
+const TrainsPage           = lazy(() => import('@/pages/TrainsPage'))
+const CabsPage             = lazy(() => import('@/pages/CabsPage'))
+
 const ProfilePage          = lazy(() => import('@/pages/ProfilePage'))
 const AdminPage            = lazy(() => import('@/pages/AdminPage'))
 const PaymentPage          = lazy(() => import('@/pages/PaymentPage'))
@@ -48,6 +52,11 @@ export function AppRouter() {
             <Route path="hotels"                      element={<HotelsPage />} />
             <Route path="hotels/:id"                  element={<HotelDetailPage />} />
             <Route path="hotels/:id/book/:roomId"     element={<PrivateRoute><BookHotelPage /></PrivateRoute>} />
+
+            {/* Transport */}
+            <Route path="buses"  element={<BusesPage />} />
+            <Route path="trains" element={<TrainsPage />} />
+            <Route path="cabs"   element={<CabsPage />} />
 
             {/* Protected */}
             <Route path="bookings"     element={<PrivateRoute><BookingsPage /></PrivateRoute>} />

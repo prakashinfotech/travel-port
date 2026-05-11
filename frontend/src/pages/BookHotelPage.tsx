@@ -55,9 +55,11 @@ export default function BookHotelPage() {
     setError(null)
     try {
       const res = await hotelService.book({
-        hotelRoomId: room.id,
+        hotelId: id!,
+        roomId: room.id,
         checkIn,
         checkOut,
+        guests: 1,
         couponCode: values.couponCode || undefined,
       })
       navigate(`/bookings/${res.data.id}?new=true`)

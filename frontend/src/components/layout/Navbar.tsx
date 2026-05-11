@@ -7,9 +7,9 @@ import { Button } from '@/components/ui/Button'
 const MODES = [
   { to: '/flights', label: 'Flights', icon: Plane },
   { to: '/hotels',  label: 'Hotels',  icon: Hotel },
-  { to: '#cabs',    label: 'Cabs',    icon: Car },
-  { to: '#trains',  label: 'Trains',  icon: Train },
-  { to: '#buses',   label: 'Buses',   icon: Bus },
+  { to: '/cabs',    label: 'Cabs',    icon: Car },
+  { to: '/trains',  label: 'Trains',  icon: Train },
+  { to: '/buses',   label: 'Buses',   icon: Bus },
 ]
 
 export function Navbar() {
