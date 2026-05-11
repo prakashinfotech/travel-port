@@ -59,4 +59,7 @@ export const endpoints = {
     verify:   '/payments/verify',
     status:   (id: string) => `/payments/${id}`,
   },
+  coupons: {
+    validate: '/coupons/validate',
+  },
 }

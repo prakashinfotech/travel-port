@@ -154,6 +154,10 @@
 | 5.13 | PaymentPage — added missing imports (`ApiResponse`, `CreateOrderResponse`, `endpoints`, `AlertCircle`) | ✅ | Removed unused card/UPI state; typed `window.Razorpay`; typed `response` handler |
 | 5.14 | HomePage — added `X` to lucide-react import for remove-recent-search button | ✅ | TS2304 resolved |
 | 5.15 | TypeScript build — zero errors across all frontend files | ✅ | `npx tsc --noEmit` exits clean |
+| 5.16 | BookFlightPage — login banner hidden when already authenticated | ✅ | Uses `useAppSelector`; pre-fills email from auth state |
+| 5.17 | FlightsPage → FlightCard — passenger count now passed correctly | ✅ | `passengerCount` prop wired so BookFlightPage shows correct traveller forms |
+| 5.18 | Coupon discount reflected in fare summary | ✅ | Backend: `GET /api/v1/coupons/validate`; Frontend: Apply button, discount line in summary, deducted from total |
+| 5.19 | PDF e-ticket redesign — Goibibo-style layout | ✅ | QuestPDF 2025.1.0 added; branded header (orange), booking ref bar (navy), IATA codes, passenger table, baggage table, cancellation charges, fare summary, customer support section |
 
 ---
 
@@ -170,7 +174,7 @@
 | 5.7 | Saved travellers UI | 🟡 Medium | Phase 5 |
 | 5.8 | Forgot password / Reset password flow | ✅ Done | Backend endpoints wired; SendGrid email or dev log fallback; reset token expires in 1 hour |
 | 5.9 | Email verification flow (OTP) | 🟡 Medium | Phase 5 |
-| 5.10 | Invoice download (PDF) | ✅ Done | `GET /bookings/{id}/invoice` — backend PDF generation + frontend download fallback |
+| 5.10 | Invoice download (PDF) | ✅ Done | `GET /bookings/{id}/invoice` — Goibibo-style PDF with QuestPDF: branded header, IATA codes, passenger/baggage/cancellation tables |
 | 5.11 | Unit tests for FlightService, HotelService | 🟢 Low | Phase 6 |
 | 5.12 | GitHub Actions CI (build + lint) | 🟢 Low | Phase 6 |
 | 5.13 | Docker containerisation | 🟢 Low | Phase 6 |

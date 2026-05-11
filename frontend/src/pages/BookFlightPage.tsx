@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { AlertCircle, ArrowLeft, BriefcaseBusiness, ChevronRight, Luggage, Mail, Phone, Plane, ShieldAlert, TicketPercent, UserRound } from 'lucide-react'
+import { AlertCircle, ArrowLeft, BriefcaseBusiness, ChevronRight, Luggage, Mail, Phone, Plane, ShieldAlert, Tag, TicketPercent, UserRound } from 'lucide-react'
 import type { FlightDto } from '@/types'
 import { flightService } from '@/services/flightService'
+import { api } from '@/api/axios'
+import { endpoints } from '@/api/endpoints'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { formatCurrency, formatDuration } from '@/utils/formatters'
+import { useAppSelector } from '@/hooks/useAppDispatch'
 
 type FarePlanId = 'saver' | 'flex' | 'max'
 type TravellerGender = 'Male' | 'Female' | 'Other'
@@ -109,6 +112,8 @@ export default function BookFlightPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const authUser = useAppSelector(s => s.auth.user)
+  const isLoggedIn = !!authUser
 
   const selectedFareId = (searchParams.get('fare') as FarePlanId | null) ?? 'saver'
   const requestedPassengers = Number(searchParams.get('passengers') ?? 1)
@@ -118,8 +123,12 @@ export default function BookFlightPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [couponCode, setCouponCode] = useState('')
+  const [couponDiscount, setCouponDiscount] = useState(0)
+  const [couponApplied, setCouponApplied] = useState(false)
+  const [couponError, setCouponError] = useState('')
+  const [couponLoading, setCouponLoading] = useState(false)
   const [mobile, setMobile] = useState('')
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(authUser?.email ?? '')
   const [countryCode, setCountryCode] = useState('India (+91)')
   const [gstNumber, setGstNumber] = useState('')
   const [hasGst, setHasGst] = useState(false)
@@ -147,7 +156,7 @@ export default function BookFlightPage() {
   const farePerAdult = flight ? Math.round(flight.price * selectedFare.multiplier) : 0
   const baseFare = flight ? Math.round(flight.price * 0.61) : 0
   const taxesAndSurcharges = Math.max(0, farePerAdult - baseFare)
-  const totalAmount = farePerAdult * seatCount
+  const totalAmount = Math.max(0, farePerAdult * seatCount - couponDiscount)
 
   const dep = flight ? new Date(flight.departureTime) : null
   const arr = flight ? new Date(flight.arrivalTime) : null
@@ -163,6 +172,33 @@ export default function BookFlightPage() {
     setTravellers(current => current.map((traveller, currentIndex) => (
       currentIndex === index ? { ...traveller, ...patch } : traveller
     )))
+  }
+
+  const applyCoupon = async () => {
+    if (!couponCode.trim()) return
+    setCouponLoading(true)
+    setCouponError('')
+    try {
+      const gross = farePerAdult * seatCount
+      const res = await api.get<{ success: boolean; data: { discountAmount: number; message: string } }>(
+        endpoints.coupons.validate, { params: { code: couponCode.trim(), amount: gross } }
+      )
+      if (res.data.success) {
+        setCouponDiscount(res.data.data.discountAmount)
+        setCouponApplied(true)
+        setCouponError('')
+      } else {
+        setCouponDiscount(0)
+        setCouponApplied(false)
+        setCouponError('Invalid or expired coupon.')
+      }
+    } catch {
+      setCouponDiscount(0)
+      setCouponApplied(false)
+      setCouponError('Could not validate coupon. Please try again.')
+    } finally {
+      setCouponLoading(false)
+    }
   }
 
   const validateForm = () => {
@@ -366,13 +402,15 @@ export default function BookFlightPage() {
             <section className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
               <h2 className="text-2xl font-extrabold text-gray-900">Traveller Details</h2>
 
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-sky-50 px-4 py-3">
-                <div className="flex items-center gap-3 text-sm text-slate-700">
-                  <UserRound className="h-5 w-5 text-sky-700" />
-                  <span>Log in to view your saved traveller list, unlock amazing deals & more!</span>
+              {!isLoggedIn && (
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-sky-50 px-4 py-3">
+                  <div className="flex items-center gap-3 text-sm text-slate-700">
+                    <UserRound className="h-5 w-5 text-sky-700" />
+                    <span>Log in to view your saved traveller list, unlock amazing deals & more!</span>
+                  </div>
+                  <button onClick={() => navigate('/login')} className="text-sm font-bold text-blue-600 hover:underline">LOGIN NOW</button>
                 </div>
-                <button className="text-sm font-bold text-blue-600 hover:underline">LOGIN NOW</button>
-              </div>
+              )}
 
               <div className="mt-5 space-y-5">
                 {travellers.map((traveller, index) => (
@@ -451,6 +489,15 @@ export default function BookFlightPage() {
                   </div>
                   <span className="font-semibold text-gray-900">{formatCurrency(taxesAndSurcharges * seatCount)}</span>
                 </div>
+                {couponApplied && couponDiscount > 0 && (
+                  <div className="flex items-center justify-between gap-3 text-emerald-700">
+                    <div className="flex items-center gap-2">
+                      <Tag className="h-4 w-4" />
+                      <span>Coupon ({couponCode})</span>
+                    </div>
+                    <span className="font-semibold">- {formatCurrency(couponDiscount)}</span>
+                  </div>
+                )}
                 <div className="border-t border-gray-200 pt-4">
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-2xl font-extrabold text-gray-900">Total Amount</span>
@@ -481,9 +528,31 @@ export default function BookFlightPage() {
                 <h2 className="text-2xl font-extrabold text-gray-900">Offers & Discounts</h2>
               </div>
 
-              <div className="mt-5">
-                <Input placeholder="Enter coupon code" value={couponCode} onChange={e => setCouponCode(e.target.value)} />
+              <div className="mt-5 flex gap-2">
+                <Input
+                  placeholder="Enter coupon code"
+                  value={couponCode}
+                  onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponApplied(false); setCouponDiscount(0); setCouponError('') }}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  loading={couponLoading}
+                  onClick={applyCoupon}
+                  className="shrink-0 bg-blue-600 hover:bg-blue-700"
+                >
+                  Apply
+                </Button>
               </div>
+              {couponApplied && (
+                <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-emerald-700">
+                  <Tag className="h-4 w-4" /> {formatCurrency(couponDiscount)} discount applied!
+                </div>
+              )}
+              {couponError && (
+                <p className="mt-2 text-sm text-red-600">{couponError}</p>
+              )}
 
               <div className="mt-5 grid grid-cols-3 gap-2 text-sm">
                 <button className="rounded-lg border border-blue-500 bg-blue-50 px-3 py-2 font-semibold text-blue-600">All</button>
@@ -499,7 +568,7 @@ export default function BookFlightPage() {
                   </div>
                   <span className="font-bold text-emerald-600">₹ 484 off</span>
                 </div>
-                <button type="button" onClick={() => setCouponCode('DEALPANTI')} className="mt-4 text-sm font-bold text-blue-600 hover:underline">
+                <button type="button" onClick={() => { setCouponCode('DEALPANTI'); setCouponApplied(false); setCouponDiscount(0); setCouponError('') }} className="mt-4 text-sm font-bold text-blue-600 hover:underline">
                   Apply
                 </button>
               </div>

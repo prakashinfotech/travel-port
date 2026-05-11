@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
-import { Search, Home, ChevronRight, ArrowLeftRight, ChevronDown, X } from 'lucide-react'
+import { Search, Home, ChevronRight, ArrowLeftRight, ChevronDown, X, Plane, Hotel, Car, TrainFront, Bus } from 'lucide-react'
 import type { FlightDto } from '@/types'
 import { flightService } from '@/services/flightService'
 import { FlightCard } from '@/components/flights/FlightCard'
@@ -550,6 +550,28 @@ export default function FlightsPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Search bar */}
       <div className="bg-blue-800 py-5 px-4 shadow-md">
+        {/* Mode tabs */}
+        <div className="mx-auto max-w-6xl mb-4 flex gap-1 overflow-x-auto pb-1">
+          {([
+            { label: 'Flights', to: '/flights', Icon: Plane,      active: true  },
+            { label: 'Hotels',  to: '/hotels',  Icon: Hotel,      active: false },
+            { label: 'Cabs',    to: '/cabs',    Icon: Car,        active: false },
+            { label: 'Trains',  to: '/trains',  Icon: TrainFront, active: false },
+            { label: 'Buses',   to: '/buses',   Icon: Bus,        active: false },
+          ]).map(({ label, to, Icon, active }) => (
+            <Link
+              key={label}
+              to={to}
+              className={[
+                'flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all',
+                active ? 'bg-white text-gray-900 shadow-lg' : 'text-white/80 hover:text-white hover:bg-white/10',
+              ].join(' ')}
+            >
+              <Icon className="h-4 w-4" /> {label}
+            </Link>
+          ))}
+        </div>
+
         {/* Trip type */}
         <div className="mx-auto max-w-6xl mb-3 flex gap-4">
           {(['oneway', 'roundtrip'] as TripType[]).map(t => (
@@ -655,7 +677,7 @@ export default function FlightsPage() {
                       <p className="text-sm mt-1">Try different dates, airports, or adjust filters</p>
                     </div>
                   )
-                  : filtered.map(f => <FlightCard key={f.id} flight={f} />)
+                  : filtered.map(f => <FlightCard key={f.id} flight={f} passengerCount={travellers.adults + travellers.children + travellers.infants} />)
               }
             </div>
           </div>
