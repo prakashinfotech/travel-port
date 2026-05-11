@@ -1,13 +1,13 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { useNavigate, Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useEffect } from 'react'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { useAppDispatch } from '@/hooks/useAppDispatch'
 import { useAuth } from '@/hooks/useAuth'
-import { register as registerUser, clearError } from './authSlice'
+import { register as registerUser, clearError, clearRegisterSuccess } from './authSlice'
 
 const schema = z.object({
   name:     z.string().min(2, 'Name must be at least 2 characters'),
@@ -25,19 +25,25 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
-export function RegisterForm() {
+interface RegisterFormProps {
+  onSuccess?: () => void
+}
+
+export function RegisterForm({ onSuccess }: RegisterFormProps) {
   const dispatch = useAppDispatch()
-  const navigate = useNavigate()
-  const { isAuthenticated, loading, error } = useAuth()
+  const { loading, error, registerSuccess } = useAuth()
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
   })
 
   useEffect(() => {
-    if (isAuthenticated) navigate('/', { replace: true })
+    if (registerSuccess) {
+      dispatch(clearRegisterSuccess())
+      if (onSuccess) onSuccess()
+    }
     return () => { dispatch(clearError()) }
-  }, [isAuthenticated, navigate, dispatch])
+  }, [registerSuccess, dispatch, onSuccess])
 
   const onSubmit = ({ name, email, phone, password }: FormValues) => {
     dispatch(registerUser({ name, email, phone, password }))
@@ -73,7 +79,7 @@ export function RegisterForm() {
       </Button>
       <p className="text-center text-sm text-gray-500">
         Already have an account?{' '}
-        <Link to="/login" className="text-primary-600 hover:underline font-medium">
+        <Link to="/login" className="text-blue-600 hover:underline font-medium">
           Log in
         </Link>
       </p>

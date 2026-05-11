@@ -16,7 +16,11 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
-export function LoginForm() {
+interface LoginFormProps {
+  onSuccess?: () => void
+}
+
+export function LoginForm({ onSuccess }: LoginFormProps) {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const { isAuthenticated, loading, error } = useAuth()
@@ -26,9 +30,12 @@ export function LoginForm() {
   })
 
   useEffect(() => {
-    if (isAuthenticated) navigate('/', { replace: true })
+    if (isAuthenticated) {
+      if (onSuccess) onSuccess()
+      else navigate('/', { replace: true })
+    }
     return () => { dispatch(clearError()) }
-  }, [isAuthenticated, navigate, dispatch])
+  }, [isAuthenticated, navigate, dispatch, onSuccess])
 
   const onSubmit = (data: FormValues) => {
     dispatch(login(data))
@@ -55,12 +62,17 @@ export function LoginForm() {
         error={errors.password?.message}
         {...register('password')}
       />
+      <div className="text-right">
+        <Link to="/forgot-password" className="text-xs text-blue-600 hover:underline">
+          Forgot password?
+        </Link>
+      </div>
       <Button type="submit" loading={loading} className="w-full mt-1">
         Log In
       </Button>
       <p className="text-center text-sm text-gray-500">
         Don't have an account?{' '}
-        <Link to="/register" className="text-primary-600 hover:underline font-medium">
+        <Link to="/register" className="text-blue-600 hover:underline font-medium">
           Sign up
         </Link>
       </p>

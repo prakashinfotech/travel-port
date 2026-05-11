@@ -10,6 +10,7 @@ interface AuthState {
   refreshToken: string | null
   loading: boolean
   error: string | null
+  registerSuccess: boolean
 }
 
 const loadFromStorage = (): Pick<AuthState, 'user' | 'accessToken' | 'refreshToken'> => {
@@ -28,21 +29,20 @@ const initialState: AuthState = {
   ...loadFromStorage(),
   loading: false,
   error: null,
+  registerSuccess: false,
 }
 
 // ── Thunks ────────────────────────────────────────────────────────────────────
-export const register = createAsyncThunk<AuthResponse, RegisterRequest>(
+// Register returns no tokens — backend sends 201 + success message only
+export const register = createAsyncThunk<void, RegisterRequest>(
   'auth/register',
   async (body, { rejectWithValue }) => {
     try {
-      const { data } = await axios.post<{ data: AuthResponse }>(
-        `${BASE_URL}/api/v1/auth/register`,
-        body
-      )
-      return data.data
+      await axios.post(`${BASE_URL}/api/v1/auth/register`, body)
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
-        return rejectWithValue(err.response?.data?.message ?? 'Registration failed')
+        const msg = err.response?.data?.message ?? err.response?.data?.errors?.[0] ?? 'Registration failed'
+        return rejectWithValue(msg)
       }
       return rejectWithValue('Registration failed')
     }
@@ -83,6 +83,7 @@ const authSlice = createSlice({
       state.accessToken = null
       state.refreshToken = null
       state.error = null
+      state.registerSuccess = false
       localStorage.removeItem('tp_user')
       localStorage.removeItem('tp_access')
       localStorage.removeItem('tp_refresh')
@@ -90,35 +91,44 @@ const authSlice = createSlice({
     clearError(state) {
       state.error = null
     },
+    clearRegisterSuccess(state) {
+      state.registerSuccess = false
+    },
   },
   extraReducers: (builder) => {
-    const onPending = (state: AuthState) => {
-      state.loading = true
-      state.error = null
-    }
-    const onFulfilled = (state: AuthState, action: PayloadAction<AuthResponse>) => {
-      state.loading = false
-      state.user = action.payload.user
-      state.accessToken = action.payload.accessToken
-      state.refreshToken = action.payload.refreshToken
-      localStorage.setItem('tp_user', JSON.stringify(action.payload.user))
-      localStorage.setItem('tp_access', action.payload.accessToken)
-      localStorage.setItem('tp_refresh', action.payload.refreshToken)
-    }
-    const onRejected = (state: AuthState, action: PayloadAction<unknown>) => {
-      state.loading = false
-      state.error = (action.payload as string) ?? 'An error occurred'
-    }
-
     builder
-      .addCase(register.pending, onPending)
-      .addCase(register.fulfilled, onFulfilled)
-      .addCase(register.rejected, onRejected)
-      .addCase(login.pending, onPending)
-      .addCase(login.fulfilled, onFulfilled)
-      .addCase(login.rejected, onRejected)
+      .addCase(register.pending, (state) => {
+        state.loading = true
+        state.error = null
+        state.registerSuccess = false
+      })
+      .addCase(register.fulfilled, (state) => {
+        state.loading = false
+        state.registerSuccess = true
+      })
+      .addCase(register.rejected, (state, action) => {
+        state.loading = false
+        state.error = (action.payload as string) ?? 'Registration failed'
+      })
+      .addCase(login.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(login.fulfilled, (state, action) => {
+        state.loading = false
+        state.user = action.payload.user
+        state.accessToken = action.payload.accessToken
+        state.refreshToken = action.payload.refreshToken
+        localStorage.setItem('tp_user', JSON.stringify(action.payload.user))
+        localStorage.setItem('tp_access', action.payload.accessToken)
+        localStorage.setItem('tp_refresh', action.payload.refreshToken)
+      })
+      .addCase(login.rejected, (state, action) => {
+        state.loading = false
+        state.error = (action.payload as string) ?? 'Login failed'
+      })
   },
 })
 
-export const { setTokens, logout, clearError } = authSlice.actions
+export const { setTokens, logout, clearError, clearRegisterSuccess } = authSlice.actions
 export default authSlice.reducer

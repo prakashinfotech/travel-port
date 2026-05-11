@@ -3,7 +3,7 @@ import { logout, clearError } from '@/features/auth/authSlice'
 
 export function useAuth() {
   const dispatch = useAppDispatch()
-  const { user, accessToken, loading, error } = useAppSelector((s) => s.auth)
+  const { user, accessToken, loading, error, registerSuccess } = useAppSelector((s) => s.auth)
 
   return {
     user,
@@ -11,6 +11,7 @@ export function useAuth() {
     isAdmin: user?.role === 'Admin',
     loading,
     error,
+    registerSuccess,
     logout: () => dispatch(logout()),
     clearError: () => dispatch(clearError()),
   }

@@ -8,6 +8,7 @@ import { userService } from '@/services/userService'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { WalletTopUp } from '@/components/profile/WalletTopUp'
 import { formatCurrency } from '@/utils/formatters'
 
 const profileSchema = z.object({
@@ -112,7 +113,8 @@ export default function ProfilePage() {
           <Wallet className="h-5 w-5 text-primary-600" /> Wallet Balance
         </h2>
         <p className="text-3xl font-bold text-primary-700">{formatCurrency(wallet?.balance ?? 0)}</p>
-        <p className="text-sm text-gray-400 mt-1">Refunds from cancelled bookings are credited here.</p>
+        <p className="text-sm text-gray-400 mt-1 mb-4">Refunds from cancelled bookings are credited here.</p>
+        <WalletTopUp onTopUp={(newBalance) => setWallet(prev => prev ? { ...prev, balance: newBalance } : prev)} />
       </section>
 
       {/* Saved Travellers */}
