@@ -178,33 +178,28 @@ public class HotelService : IHotelService
         var user = await _users.GetByIdAsync(userId, ct);
         if (user is not null)
         {
-            var guestName  = req.GuestName ?? user.Name;
-            var guestEmail = req.GuestEmail ?? user.Email;
-            var details    = BuildConfirmationDetails(req, hotel, nights, total, discount, finalAmount);
-            await _email.SendBookingConfirmationAsync(guestEmail, guestName, booking.BookingRef, details, ct);
+            var guestName    = req.GuestName  ?? user.Name;
+            var guestEmail   = req.GuestEmail ?? user.Email;
+            var hotelName    = hotel?.Name    ?? req.HotelId.ToString();
+            var hotelAddress = hotel?.Address ?? string.Empty;
+            var city         = hotel?.City    ?? string.Empty;
+            var starRating   = hotel?.StarRating ?? 0m;
+            var room         = hotel?.Rooms.FirstOrDefault(r => r.Id == req.RoomId);
+            var roomType     = room?.RoomType   ?? "Room";
+            var pricePerNight = room?.PricePerNight ?? (total / nights);
+
+            await _email.SendHotelBookingConfirmationAsync(
+                guestEmail, guestName, booking.BookingRef,
+                hotelName, hotelAddress, city, starRating,
+                roomType,
+                req.CheckIn.ToString("dd MMM yyyy"),
+                req.CheckOut.ToString("dd MMM yyyy"),
+                nights, req.Guests,
+                req.GuestName, req.GuestPhone,
+                pricePerNight, total, discount, req.CouponCode, finalAmount, ct);
         }
 
         return new BookingCreatedResponse(booking.Id, booking.BookingRef, booking.TotalAmount, booking.Status);
-    }
-
-    private static string BuildConfirmationDetails(
-        DTOs.Hotels.BookHotelRequest req, Domain.Entities.Hotel? hotel,
-        int nights, decimal total, decimal discount, decimal finalAmount)
-    {
-        var hotelName = hotel?.Name ?? req.HotelId.ToString();
-        var roomType  = hotel?.Rooms.FirstOrDefault(r => r.Id == req.RoomId)?.RoomType ?? "Room";
-        var lines = new System.Text.StringBuilder();
-        lines.AppendLine($"Hotel    : {hotelName}");
-        lines.AppendLine($"Room     : {roomType}");
-        lines.AppendLine($"Check-in : {req.CheckIn}");
-        lines.AppendLine($"Check-out: {req.CheckOut}");
-        lines.AppendLine($"Nights   : {nights}");
-        lines.AppendLine($"Guests   : {req.Guests}");
-        lines.AppendLine();
-        lines.AppendLine($"Room Total : Rs.{total:0}");
-        if (discount > 0) lines.AppendLine($"Discount   : -Rs.{discount:0}");
-        lines.AppendLine($"Amount Paid: Rs.{finalAmount:0}");
-        return lines.ToString();
     }
 
     private async Task<List<HotelDto>> SearchDbAsync(HotelSearchRequest req, CancellationToken ct)

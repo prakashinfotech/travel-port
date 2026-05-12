@@ -33,4 +33,30 @@ public class BookingRepository : BaseRepository<Booking>, IBookingRepository
         var count = await _dbSet.CountAsync(cancellationToken);
         return $"{prefix}{year}{(count + 1):D6}";
     }
+
+    public async Task<(IReadOnlyList<Booking> Items, int Total)> GetAllPagedAsync(
+        int page, int pageSize, string? status = null, string? type = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _dbSet.Include(b => b.User).AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<BookingStatus>(status, true, out var s))
+            query = query.Where(b => b.Status == s);
+        if (!string.IsNullOrWhiteSpace(type) && Enum.TryParse<BookingType>(type, true, out var t))
+            query = query.Where(b => b.BookingType == t);
+
+        var total = await query.CountAsync(cancellationToken);
+        var items = await query
+            .OrderByDescending(b => b.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+        return (items, total);
+    }
+
+    public async Task<IReadOnlyList<Booking>> GetAllForAnalyticsAsync(
+        DateTime from, DateTime to, CancellationToken cancellationToken = default)
+        => await _dbSet
+            .Where(b => b.CreatedAt >= from && b.CreatedAt <= to)
+            .ToListAsync(cancellationToken);
 }

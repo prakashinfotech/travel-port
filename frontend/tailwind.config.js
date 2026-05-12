@@ -22,6 +22,15 @@ export default {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
       },
+      keyframes: {
+        'fade-in': {
+          '0%':   { opacity: '0', transform: 'scale(0.95) translateY(-8px)' },
+          '100%': { opacity: '1', transform: 'scale(1) translateY(0)' },
+        },
+      },
+      animation: {
+        'fade-in': 'fade-in 0.18s ease-out both',
+      },
     },
   },
   plugins: [

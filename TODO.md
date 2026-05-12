@@ -33,7 +33,7 @@
 - [ ] 🔴 **Bus & Train booking persistence** — buses and trains are mocked in-memory; they have no DB entity or booking endpoint. Add `Bus` and `Train` domain entities + booking flow.
 - [ ] 🔴 **Cab booking persistence** — same as buses/trains.
 - [ ] 🟡 **Email verification on registration** — OTP flow documented but `IsVerified` is set to `true` in seed; registration sets it `false` with no verification path yet.
-- [ ] 🟡 **Admin analytics endpoint** — `GET /admin/analytics` is a stub; add real aggregation queries.
+- [x] ✅ **Admin analytics endpoint** — `GET /admin/analytics` now returns real monthly revenue, bookings-by-type and bookings-by-status aggregations.
 - [ ] 🟡 **Paginated flight search response** — backend returns all matching flights in one call (up to `pageSize=100`); add proper server-side pagination with `total` and `page` in response.
 - [ ] 🟡 **Persist individual flight traveller details** — the booking UI now collects per-traveller name/age/gender/ID data, but the current flight booking API still stores passenger count only.
 - [ ] 🟢 **Real Razorpay webhook handler** — for production, handle `payment.failed` and `order.paid` webhooks to update booking status asynchronously.
@@ -72,7 +72,7 @@
 - [ ] 🟡 **Cabs page booking flow** — same as trains.
 - [ ] 🟡 **Profile page** — `GET /users/profile` and `PUT /users/profile` exist; profile page UI is basic.
 - [ ] 🟡 **Saved travellers management** — API endpoints exist (`GET/POST/DELETE /users/travellers`) but no UI.
-- [ ] 🟡 **Admin panel UI** — admin routes and endpoints exist but no admin dashboard pages in the frontend.
+- [x] ✅ **Admin panel UI** — full 4-tab dashboard (Dashboard, Users, Bookings, Coupons) with real API integration; `CouponModal`, block/unblock users, `ConfirmDialog` for destructive actions.
 - [ ] 🟡 **Error boundary** — no React error boundary; unhandled component errors crash the whole app.
 - [ ] 🟢 **Toast notifications** — success/error toasts for booking, payment, coupon apply actions.
 - [ ] 🟢 **Skeleton loaders for Hotels, Buses, Trains, Cabs** — only FlightCardSkeleton exists.
@@ -92,6 +92,12 @@
 
 ## Recently Completed ✅
 
+- [x] **Enum serialization fix** — `JsonStringEnumConverter` added; `BookingStatus` now serializes as `"Confirmed"` not `1`; cancel button now visible
+- [x] **Wallet refund on cancellation** — `BookingService.CancelAsync` now calls `_wallet.RefundAsync`; amount actually credited
+- [x] **Email HTML compatibility** — complete rewrite of `SmtpEmailService`; all emails now render correctly in Gmail and Outlook (solid colors, table layouts, table-based buttons)
+- [x] **Password reset UX fixes** — correct TTL text (1 hour), special-char requirement in hint, actual server error shown on validation failure
+- [x] **`ConfirmDialog` component** — themed modal replacing native `confirm()`; danger/warning variants, loading state, keyboard-accessible
+- [x] **Full admin dashboard** — 4-tab React page (Dashboard stats + charts, Users with block/unblock, Bookings with filters, Coupons CRUD); `IAdminService` / `AdminService` Clean Architecture implementation; `AdminController` with 9 real endpoints
 - [x] Duffel API integration (external flight provider, sandboxed)
 - [x] Disable Duffel, switch to rich DB seed data (900+ flights, 60+ hotels, 12 cities)
 - [x] BusSearchProvider — route-specific durations, 14 operators, realistic pricing

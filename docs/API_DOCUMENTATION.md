@@ -431,14 +431,133 @@ When `useWallet: true`, the `finalAmount` (after coupon discount) is deducted fr
 
 ## Admin
 
-| Method | Endpoint                   | Auth  | Role  |
-|--------|----------------------------|-------|-------|
-| GET    | `/admin/dashboard`         | ✅    | Admin |
-| GET    | `/admin/users`             | ✅    | Admin |
-| PUT    | `/admin/users/:id/block`   | ✅    | Admin |
-| GET    | `/admin/bookings`          | ✅    | Admin |
-| POST   | `/admin/coupons`           | ✅    | Admin |
-| GET    | `/admin/analytics`         | ✅    | Admin |
+All admin endpoints require `[Authorize(Roles = "Admin")]`. Enums serialize as strings (e.g. `"Confirmed"`, `"Flight"`) via `JsonStringEnumConverter`.
+
+| Method | Endpoint                        | Auth  | Role  | Description                          |
+|--------|---------------------------------|-------|-------|--------------------------------------|
+| GET    | `/admin/dashboard`              | ✅    | Admin | Aggregate stats (users, revenue, bookings) |
+| GET    | `/admin/analytics`              | ✅    | Admin | Monthly revenue + by-type + by-status |
+| GET    | `/admin/users`                  | ✅    | Admin | Paginated user list with search      |
+| POST   | `/admin/users/:id/block`        | ✅    | Admin | Toggle user active/blocked           |
+| GET    | `/admin/bookings`               | ✅    | Admin | Paginated all bookings with filters  |
+| GET    | `/admin/coupons`                | ✅    | Admin | All coupons                          |
+| POST   | `/admin/coupons`                | ✅    | Admin | Create coupon                        |
+| PUT    | `/admin/coupons/:id`            | ✅    | Admin | Update coupon                        |
+| DELETE | `/admin/coupons/:id`            | ✅    | Admin | Deactivate coupon                    |
+
+### GET /admin/dashboard
+```json
+Response 200:
+{
+  "success": true,
+  "data": {
+    "totalUsers": 4,
+    "totalBookings": 120,
+    "totalRevenue": 548000.00,
+    "activeBookings": 95,
+    "cancelledBookings": 25,
+    "flightBookings": 80,
+    "hotelBookings": 40,
+    "avgBookingValue": 4566.67
+  }
+}
+```
+
+### GET /admin/analytics
+```json
+Response 200:
+{
+  "success": true,
+  "data": {
+    "monthlyRevenue": [
+      { "month": "Dec 2025", "revenue": 82000.00, "bookingCount": 18 }
+    ],
+    "bookingsByStatus": [
+      { "status": "Confirmed", "count": 95 },
+      { "status": "Cancelled", "count": 25 }
+    ],
+    "bookingsByType": [
+      { "type": "Flight", "count": 80, "revenue": 360000.00 },
+      { "type": "Hotel",  "count": 40, "revenue": 188000.00 }
+    ]
+  }
+}
+```
+
+### GET /admin/users
+```
+Query Params: page=1&pageSize=20&search=john
+
+Response 200 (paginated):
+{
+  "success": true,
+  "data": [
+    {
+      "id": "uuid",
+      "name": "John Doe",
+      "email": "john@example.com",
+      "phone": "9876543210",
+      "role": "User",
+      "isActive": true,
+      "isVerified": true,
+      "walletBalance": 1500.00,
+      "totalBookings": 5,
+      "createdAt": "2026-01-01T00:00:00Z"
+    }
+  ],
+  "meta": { "page": 1, "pageSize": 20, "total": 4, "totalPages": 1 }
+}
+```
+
+### POST /admin/users/:id/block
+Toggles `isActive` — blocks active users, unblocks blocked users.
+```json
+Response 200:
+{ "success": true, "message": "User blocked.", "data": { ...AdminUserDto } }
+```
+
+### GET /admin/bookings
+```
+Query Params: page=1&pageSize=15&status=Confirmed&type=Flight
+```
+
+### POST /admin/coupons
+```json
+Request:
+{
+  "code": "SUMMER25",
+  "type": "Percentage",
+  "value": 25,
+  "minAmount": 3000,
+  "maxDiscount": 500,
+  "usageLimit": 100,
+  "expiresAt": "2026-12-31"
+}
+
+Response 201:
+{ "success": true, "message": "Coupon created.", "data": { ...CouponDto } }
+```
+
+### PUT /admin/coupons/:id
+```json
+Request:
+{
+  "type": "Percentage",
+  "value": 20,
+  "minAmount": 2000,
+  "maxDiscount": 400,
+  "usageLimit": 200,
+  "expiresAt": "2026-12-31",
+  "isActive": true
+}
+```
+
+### DELETE /admin/coupons/:id
+Deactivates the coupon (sets `isActive = false`). Does not hard-delete.
+```json
+Response 200:
+{ "success": true, "message": "Coupon deactivated." }
+```
 
 ---
 

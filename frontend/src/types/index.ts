@@ -309,6 +309,75 @@ export interface CancelBookingResponse {
   walletCredited: boolean
 }
 
+// ── Admin ─────────────────────────────────────────────────────────────────────
+export interface AdminDashboardDto {
+  totalUsers: number
+  totalBookings: number
+  totalRevenue: number
+  activeBookings: number
+  cancelledBookings: number
+  flightBookings: number
+  hotelBookings: number
+  avgBookingValue: number
+}
+
+export interface AdminUserDto {
+  id: string
+  name: string
+  email: string
+  phone?: string
+  role: string
+  isActive: boolean
+  isVerified: boolean
+  walletBalance: number
+  totalBookings: number
+  createdAt: string
+}
+
+export interface CouponDto {
+  id: string
+  code: string
+  type: 'Fixed' | 'Percentage'
+  value: number
+  minAmount: number
+  maxDiscount?: number
+  usageLimit?: number
+  usedCount: number
+  expiresAt?: string
+  isActive: boolean
+  createdAt: string
+}
+
+export interface CreateCouponRequest {
+  code: string
+  type: 'Fixed' | 'Percentage'
+  value: number
+  minAmount: number
+  maxDiscount?: number
+  usageLimit?: number
+  expiresAt?: string
+}
+
+export interface UpdateCouponRequest {
+  type: 'Fixed' | 'Percentage'
+  value: number
+  minAmount: number
+  maxDiscount?: number
+  usageLimit?: number
+  expiresAt?: string
+  isActive: boolean
+}
+
+export interface MonthlyRevenueDto { month: string; revenue: number; bookingCount: number }
+export interface BookingsByStatusDto { status: string; count: number }
+export interface BookingsByTypeDto { type: string; count: number; revenue: number }
+
+export interface AdminAnalyticsDto {
+  monthlyRevenue: MonthlyRevenueDto[]
+  bookingsByStatus: BookingsByStatusDto[]
+  bookingsByType: BookingsByTypeDto[]
+}
+
 // ── API wrapper ───────────────────────────────────────────────────────────────
 export interface ApiResponse<T> {
   success: boolean

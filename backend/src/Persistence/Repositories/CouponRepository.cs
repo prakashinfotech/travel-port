@@ -13,4 +13,12 @@ public class CouponRepository : BaseRepository<Coupon>, ICouponRepository
         => await _dbSet.FirstOrDefaultAsync(
             c => c.Code == code.ToUpper() && c.IsActive,
             cancellationToken);
+
+    public async Task<IReadOnlyList<Coupon>> GetAllCouponsAsync(CancellationToken cancellationToken = default)
+        => await _dbSet
+            .OrderByDescending(c => c.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+    public async Task<bool> CodeExistsAsync(string code, CancellationToken cancellationToken = default)
+        => await _dbSet.AnyAsync(c => c.Code == code.ToUpper(), cancellationToken);
 }

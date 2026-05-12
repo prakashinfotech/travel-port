@@ -15,6 +15,7 @@ public class BookingService : IBookingService
     private readonly IHotelRepository _hotels;
     private readonly IInvoiceDocumentService _invoiceDocumentService;
     private readonly IEmailService _email;
+    private readonly IWalletService _wallet;
     private readonly IUnitOfWork _uow;
 
     public BookingService(
@@ -24,6 +25,7 @@ public class BookingService : IBookingService
         IHotelRepository hotels,
         IInvoiceDocumentService invoiceDocumentService,
         IEmailService email,
+        IWalletService wallet,
         IUnitOfWork uow)
     {
         _bookings = bookings;
@@ -32,6 +34,7 @@ public class BookingService : IBookingService
         _hotels = hotels;
         _invoiceDocumentService = invoiceDocumentService;
         _email = email;
+        _wallet = wallet;
         _uow = uow;
     }
 
@@ -92,6 +95,10 @@ public class BookingService : IBookingService
 
         await _bookings.UpdateAsync(booking, ct);
         await _uow.SaveChangesAsync(ct);
+
+        // Credit refund to wallet
+        if (refund > 0)
+            await _wallet.RefundAsync(userId, refund, $"Refund for cancelled booking {booking.BookingRef}", bookingId, ct);
 
         var user = await _users.GetByIdAsync(userId, ct);
         if (user is not null)

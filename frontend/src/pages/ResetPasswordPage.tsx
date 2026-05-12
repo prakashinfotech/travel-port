@@ -26,8 +26,12 @@ export default function ResetPasswordPage() {
       await api.post('/auth/reset-password', { token, newPassword: password })
       setDone(true)
       setTimeout(() => navigate('/login'), 3000)
-    } catch {
-      setError('Reset link is invalid or expired. Please request a new one.')
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })
+        ?.response?.data?.message
+      setError(msg && !msg.toLowerCase().includes('invalid or expired')
+        ? msg
+        : 'Reset link is invalid or expired. Please request a new one.')
     } finally {
       setLoading(false)
     }
@@ -81,7 +85,7 @@ export default function ResetPasswordPage() {
               label="New Password"
               type="password"
               placeholder="••••••••"
-              hint="Min 8 chars, one uppercase, one number"
+              hint="Min 8 chars, uppercase, number & special character (e.g. @#$!)"
               value={password}
               onChange={e => setPassword(e.target.value)}
               required

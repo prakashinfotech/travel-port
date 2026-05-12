@@ -212,23 +212,55 @@
 
 ---
 
+---
+
+## Phase 7 — Admin Dashboard, Bug Fixes & Email Overhaul
+**Branch:** `feature/admin-dashboard-bugfixes`
+**Date:** 2026-05-12
+**Scope:** Full admin panel, enum serialization fix, wallet refund fix, email HTML compatibility, reset password UX polish, themed ConfirmDialog
+
+| # | Feature | Status | Notes |
+|---|---|---|---|
+| 7.1 | `JsonStringEnumConverter` added to `Program.cs` | ✅ | All enums now serialize as strings (e.g. `"Confirmed"` not `1`); fixes cancel button not showing |
+| 7.2 | `BookingStatus.Refunded` renamed to `Completed` | ✅ | Matches frontend `'Completed'` type; no migration needed (integer values unchanged) |
+| 7.3 | `BookingService.CancelAsync` — wallet refund wired | ✅ | Was calculating refund amount but never calling `_wallet.RefundAsync`; fixed; email no longer lies |
+| 7.4 | `SmtpEmailService` — full HTML email rewrite | ✅ | All `linear-gradient`, `rgba()`, `opacity`, `display:flex/inline-block` replaced with email-client-safe `background-color`, table layouts, table-based CTA buttons |
+| 7.5 | `SmtpEmailService` — password reset email | ✅ | Shows clickable button + copy-paste fallback link; visible in Gmail/Outlook |
+| 7.6 | `ConfirmDialog` component (`frontend/src/components/ui/ConfirmDialog.tsx`) | ✅ | Branded modal replaces native `confirm()`; supports `danger`/`warning` variants, loading state, Escape + backdrop dismiss |
+| 7.7 | `tailwind.config.js` — `animate-fade-in` keyframe | ✅ | Scale + translateY entrance for ConfirmDialog |
+| 7.8 | `BookingCard` — cancel flow uses ConfirmDialog | ✅ | `handleCancelClick` shows dialog; `handleConfirmCancel` calls API; `statusVariant` updated for `Completed` |
+| 7.9 | `ResetPasswordPage` — password hint & error fix | ✅ | Hint now mentions special chars; error shows actual server validation message; "1 hour" TTL text |
+| 7.10 | `ForgotPasswordPage` — TTL text fix | ✅ | "30 minutes" → "1 hour" to match backend `IMemoryCache` TTL |
+| 7.11 | Admin DTOs — 4 new files | ✅ | `AdminDashboardDto`, `AdminUserDto`, `CouponDto`/`CreateCouponRequest`/`UpdateCouponRequest`, `AdminAnalyticsDto` |
+| 7.12 | `IUserRepository.GetPagedAsync` | ✅ | Paged + search by name/email, ordered by `CreatedAt` desc |
+| 7.13 | `IBookingRepository.GetAllPagedAsync` + `GetAllForAnalyticsAsync` | ✅ | Status/type filter, date-range analytics query |
+| 7.14 | `ICouponRepository.GetAllCouponsAsync` + `CodeExistsAsync` | ✅ | Ordered by `CreatedAt` desc; uniqueness check for create |
+| 7.15 | `IAdminService` + `AdminService` | ✅ | 9-method service: dashboard, analytics, users (paged+search), block/unblock, bookings (paged+filter), coupons CRUD |
+| 7.16 | `AdminController` — replaced placeholder with real endpoints | ✅ | 9 endpoints under `/api/v1/admin`, all `[Authorize(Roles = "Admin")]` |
+| 7.17 | `AdminService` registered in DI | ✅ | `services.AddScoped<IAdminService, AdminService>()` in `DependencyInjection.cs` |
+| 7.18 | `frontend/src/types/index.ts` — admin types added | ✅ | `AdminDashboardDto`, `AdminUserDto`, `CouponDto`, `CreateCouponRequest`, `UpdateCouponRequest`, `AdminAnalyticsDto` + related sub-types |
+| 7.19 | `endpoints.ts` — admin section updated | ✅ | Added `analytics` endpoint and `coupon(id)` factory for PUT/DELETE |
+| 7.20 | `adminService.ts` (new) | ✅ | 9 typed methods wrapping all admin API calls |
+| 7.21 | `AdminPage.tsx` — full 4-tab dashboard | ✅ | Dashboard (stat cards + bar chart + type/status breakdown), Users (search + block/unblock), Bookings (status+type filter, paginated), Coupons (create/edit/deactivate with `CouponModal`) |
+| 7.22 | `CouponModal` — inline create/edit modal | ✅ | All coupon fields with validation; code forced uppercase; disabled on edit |
+| 7.23 | `AdminPage` — `ConfirmDialog` for block/deactivate | ✅ | Confirm before blocking user or deactivating coupon; danger/warning variants |
+| 7.24 | `AdminPage` — skeleton loading rows | ✅ | Animated pulse placeholders during API calls |
+| 7.25 | Backend full solution build — 0 errors | ✅ | Application, Persistence, and API all compile clean; 2 pre-existing warnings in `RazorpayService` |
+
+---
+
 ## Upcoming / Planned
 
 | # | Feature | Priority | Phase |
 |---|---|---|---|
-| 5.1 | Mobile filter drawer (slide-over) for FlightsPage | 🔴 High | Phase 5 |
-| 5.2 | Hotel search filter sidebar (Goibibo style) | 🔴 High | Phase 5 |
-| 5.3 | Bus / Train / Cab booking — persistence + API | 🔴 High | Phase 5 |
-| 5.4 | Fix coupon discount not applied to `FinalAmount` | 🔴 High | Phase 5 |
-| 5.5 | Wallet transaction race condition fix | 🟡 Medium | Phase 5 |
-| 5.6 | Admin dashboard UI (React pages) | 🟡 Medium | Phase 5 |
-| 5.7 | Saved travellers UI | 🟡 Medium | Phase 5 |
-| 5.8 | Forgot password / Reset password flow | ✅ Done | Backend endpoints wired; SendGrid email or dev log fallback; reset token expires in 1 hour |
-| 5.9 | Email verification flow (OTP) | 🟡 Medium | Phase 5 |
-| 5.10 | Invoice download (PDF) | ✅ Done | `GET /bookings/{id}/invoice` — Goibibo-style PDF with QuestPDF: branded header, IATA codes, passenger/baggage/cancellation tables |
-| 5.11 | Unit tests for FlightService, HotelService | 🟢 Low | Phase 6 |
-| 5.12 | GitHub Actions CI (build + lint) | 🟢 Low | Phase 6 |
-| 5.13 | Docker containerisation | 🟢 Low | Phase 6 |
+| 8.1 | Mobile filter drawer (slide-over) for FlightsPage | 🔴 High | Phase 8 |
+| 8.2 | Bus / Train / Cab booking — persistence + API | 🔴 High | Phase 8 |
+| 8.3 | Wallet transaction race condition fix | 🟡 Medium | Phase 8 |
+| 8.4 | Saved travellers UI | 🟡 Medium | Phase 8 |
+| 8.5 | Email verification flow (OTP) | 🟡 Medium | Phase 8 |
+| 8.6 | Unit tests for FlightService, HotelService | 🟢 Low | Phase 8 |
+| 8.7 | GitHub Actions CI (build + lint) | 🟢 Low | Phase 8 |
+| 8.8 | Docker containerisation | 🟢 Low | Phase 8 |
 
 ---
 
@@ -248,13 +280,13 @@ dotnet run --project src/API --launch-profile https
 
 | Metric | Value |
 |---|---|
-| Total phases completed | 6 |
-| Total features delivered | 130+ |
+| Total phases completed | 7 |
+| Total features delivered | 155+ |
 | Flights in seed DB | 900+ (dynamic demand-based pricing) |
 | Hotels in seed DB | 60+ (12 cities) |
 | Coupons | 11 (5 original + 6 new: FLYSAVER, FLYOFF200, FLYDEAL15, HOTELOFF15, STAYMORE, HOTELDEAL) |
-| API endpoints | 40+ |
-| Frontend pages | 13 |
+| API endpoints | 49+ |
+| Frontend pages | 14 |
 | Airlines covered | 7 |
 | Routes covered | 42 bidirectional |
 | External API integrations | 3 (Duffel, Razorpay, SMTP/Office365) |

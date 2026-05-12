@@ -123,6 +123,7 @@ public class FlightService : IFlightService
     {
         decimal unitPrice;
         Guid referenceId;
+        Domain.Entities.Flight? flightEntity = null;
 
         // Check external offer caches: Duffel first, then Amadeus fallback
         var duffelRaw  = await _cache.GetAsync<JsonElement>($"duffel_offer:{req.FlightId}", ct);
@@ -142,18 +143,18 @@ public class FlightService : IFlightService
         }
         else
         {
-            var flight = await _flights.GetByIdAsync(req.FlightId, ct)
+            flightEntity = await _flights.GetByIdAsync(req.FlightId, ct)
                 ?? throw new NotFoundException("Flight", req.FlightId);
 
-            if (flight.AvailableSeats < req.Passengers)
+            if (flightEntity.AvailableSeats < req.Passengers)
                 throw new BusinessException("Not enough seats available.");
 
-            unitPrice   = req.CabinClass == "Business" && flight.BusinessPrice.HasValue
-                ? flight.BusinessPrice.Value : flight.EconomyPrice;
-            referenceId = flight.Id;
+            unitPrice   = req.CabinClass == "Business" && flightEntity.BusinessPrice.HasValue
+                ? flightEntity.BusinessPrice.Value : flightEntity.EconomyPrice;
+            referenceId = flightEntity.Id;
 
-            flight.AvailableSeats -= req.Passengers;
-            await _flights.UpdateAsync(flight, ct);
+            flightEntity.AvailableSeats -= req.Passengers;
+            await _flights.UpdateAsync(flightEntity, ct);
         }
 
         var total      = unitPrice * req.Passengers;
@@ -204,10 +205,19 @@ public class FlightService : IFlightService
         await _cache.RemoveAsync($"flight:{req.FlightId}", ct);
 
         var user = await _users.GetByIdAsync(userId, ct);
-        if (user is not null)
+        if (user is not null && flightEntity is not null)
         {
-            var details = BuildBookingConfirmationDetails(referenceId, req, unitPrice, total);
-            await _email.SendBookingConfirmationAsync(user.Email, user.Name, booking.BookingRef, details, ct);
+            var depTime = flightEntity.DepartureTime.ToString("dd MMM yyyy, hh:mm tt");
+            var arrTime = flightEntity.ArrivalTime.ToString("dd MMM yyyy, hh:mm tt");
+            var dur     = $"{flightEntity.Duration / 60}h {flightEntity.Duration % 60}m";
+            await _email.SendFlightBookingConfirmationAsync(
+                user.Email, user.Name, booking.BookingRef,
+                flightEntity.Airline, flightEntity.FlightNumber,
+                flightEntity.Source, flightEntity.Source,
+                flightEntity.Destination, flightEntity.Destination,
+                depTime, arrTime, dur,
+                req.CabinClass, req.Passengers,
+                unitPrice, total, discount, req.CouponCode, finalAmount, ct);
         }
 
         return new BookingCreatedResponse(booking.Id, booking.BookingRef, booking.TotalAmount, booking.Status);
@@ -273,14 +283,4 @@ public class FlightService : IFlightService
         return 0m;
     }
 
-    private static string BuildBookingConfirmationDetails(Guid referenceId, BookFlightRequest request, decimal unitPrice, decimal total)
-    {
-        return
-            $"Booking Type: Flight{Environment.NewLine}" +
-            $"Flight Reference: {referenceId}{Environment.NewLine}" +
-            $"Cabin Class: {request.CabinClass}{Environment.NewLine}" +
-            $"Passengers: {request.Passengers}{Environment.NewLine}" +
-            $"Price Per Traveller: INR {unitPrice:0}{Environment.NewLine}" +
-            $"Total Amount: INR {total:0}";
-    }
 }

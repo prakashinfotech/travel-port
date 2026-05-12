@@ -9,4 +9,6 @@ public interface IBookingRepository : IRepository<Booking>
     Task<Booking?> GetByRefAsync(string bookingRef, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Booking>> GetByStatusAsync(BookingStatus status, CancellationToken cancellationToken = default);
     Task<string> GenerateBookingRefAsync(string prefix = "TP", CancellationToken cancellationToken = default);
+    Task<(IReadOnlyList<Booking> Items, int Total)> GetAllPagedAsync(int page, int pageSize, string? status = null, string? type = null, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Booking>> GetAllForAnalyticsAsync(DateTime from, DateTime to, CancellationToken cancellationToken = default);
 }

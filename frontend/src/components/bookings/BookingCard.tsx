@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useNavigate } from 'react-router-dom'
 import {
   Plane, Hotel, Calendar, ArrowRight,
@@ -36,7 +37,8 @@ function fmtTime(iso?: string) {
 
 export function BookingCard({ booking, onCancelled }: BookingCardProps) {
   const navigate   = useNavigate()
-  const [cancelling, setCancelling] = useState(false)
+  const [cancelling, setCancelling]   = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
 
   const isHotel  = booking.type === 'Hotel'
   const canCancel = booking.status === 'Pending' || booking.status === 'Confirmed'
@@ -51,14 +53,19 @@ export function BookingCard({ booking, onCancelled }: BookingCardProps) {
     else         navigate(`/bookings/${booking.id}`)
   }
 
-  const handleCancel = async (e: React.MouseEvent) => {
+  const handleCancelClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (!confirm('Cancel this booking? A 90% refund will be credited to your wallet.')) return
+    setShowConfirm(true)
+  }
+
+  const handleConfirmCancel = async () => {
     setCancelling(true)
     try {
       await bookingService.cancel(booking.id)
+      setShowConfirm(false)
       onCancelled(booking.id)
     } catch {
+      setShowConfirm(false)
       alert('Failed to cancel booking. Please try again.')
     } finally {
       setCancelling(false)
@@ -66,6 +73,18 @@ export function BookingCard({ booking, onCancelled }: BookingCardProps) {
   }
 
   return (
+    <>
+    <ConfirmDialog
+      open={showConfirm}
+      title="Cancel Booking?"
+      message="Are you sure you want to cancel this booking? A 90% refund will be credited to your wallet within 5–7 business days."
+      confirmLabel="Yes, Cancel Booking"
+      cancelLabel="Keep Booking"
+      variant="danger"
+      loading={cancelling}
+      onConfirm={handleConfirmCancel}
+      onCancel={() => setShowConfirm(false)}
+    />
     <div
       onClick={handleClick}
       className="rounded-2xl border border-gray-100 bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer overflow-hidden"
@@ -207,8 +226,7 @@ export function BookingCard({ booking, onCancelled }: BookingCardProps) {
           <Button
             variant="danger"
             size="sm"
-            loading={cancelling}
-            onClick={handleCancel}
+            onClick={handleCancelClick}
             className="text-xs"
           >
             Cancel Booking
@@ -216,5 +234,6 @@ export function BookingCard({ booking, onCancelled }: BookingCardProps) {
         )}
       </div>
     </div>
+    </>
   )
 }

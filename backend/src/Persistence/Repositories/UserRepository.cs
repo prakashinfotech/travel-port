@@ -14,4 +14,22 @@ public class UserRepository : BaseRepository<User>, IUserRepository
 
     public async Task<bool> EmailExistsAsync(string email, CancellationToken cancellationToken = default)
         => await _dbSet.AnyAsync(u => u.Email == email, cancellationToken);
+
+    public async Task<(IReadOnlyList<User> Items, int Total)> GetPagedAsync(
+        int page, int pageSize, string? search = null, CancellationToken cancellationToken = default)
+    {
+        var query = _dbSet.Include(u => u.Wallet).AsQueryable();
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var lower = search.ToLower();
+            query = query.Where(u => u.Name.ToLower().Contains(lower) || u.Email.ToLower().Contains(lower));
+        }
+        var total = await query.CountAsync(cancellationToken);
+        var items = await query
+            .OrderByDescending(u => u.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+        return (items, total);
+    }
 }

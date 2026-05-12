@@ -33,7 +33,7 @@ TravelPort covers:
 - Wallet & 11 Coupons (flight and hotel specific)
 - Razorpay Payment Gateway (toggle via config; falls back to mock in dev)
 - SMTP Email Notifications — booking confirmed, booking cancelled, password reset (Office365/Gmail)
-- Admin Panel
+- Admin Panel — 4-tab dashboard (stats + analytics, user management, all bookings, coupon CRUD)
 - Dynamic Traveller Details UI based on selected seat count
 - Bookings Page with numbered pagination, sorted by latest first
 
@@ -131,6 +131,15 @@ Frontend runs at `http://localhost:5173`
 | GET | /api/v1/bookings/{id}/invoice | Yes |
 | POST | /api/v1/coupons/validate | No |
 | GET | /api/v1/users/profile | Yes |
+| GET | /api/v1/admin/dashboard | Yes (Admin) |
+| GET | /api/v1/admin/analytics | Yes (Admin) |
+| GET | /api/v1/admin/users | Yes (Admin) |
+| POST | /api/v1/admin/users/{id}/block | Yes (Admin) |
+| GET | /api/v1/admin/bookings | Yes (Admin) |
+| GET | /api/v1/admin/coupons | Yes (Admin) |
+| POST | /api/v1/admin/coupons | Yes (Admin) |
+| PUT | /api/v1/admin/coupons/{id} | Yes (Admin) |
+| DELETE | /api/v1/admin/coupons/{id} | Yes (Admin) |
 
 Full reference: [API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md)
 
