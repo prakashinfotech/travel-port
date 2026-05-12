@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { MapPin } from 'lucide-react'
-import { searchAirports, type Airport } from '@/data/airports'
+import { AIRPORTS, searchAirports, type Airport } from '@/data/airports'
 
 interface AirportSearchProps {
   label: string
@@ -9,6 +9,8 @@ interface AirportSearchProps {
   onChange: (code: string, city: string) => void
   className?: string
 }
+
+const POPULAR_AIRPORTS = AIRPORTS.slice(0, 8)
 
 export function AirportSearch({ label, placeholder, value, onChange, className = '' }: AirportSearchProps) {
   const [query, setQuery] = useState(value)
@@ -30,9 +32,15 @@ export function AirportSearch({ label, placeholder, value, onChange, className =
 
   const handleInput = (q: string) => {
     setQuery(q)
-    const results = searchAirports(q)
+    const results = q.trim() ? searchAirports(q) : POPULAR_AIRPORTS
     setSuggestions(results)
-    setOpen(results.length > 0)
+    setOpen(true)
+  }
+
+  const handleFocus = () => {
+    const results = query.trim() ? searchAirports(query) : POPULAR_AIRPORTS
+    setSuggestions(results)
+    setOpen(true)
   }
 
   const handleSelect = (airport: Airport) => {
@@ -50,7 +58,7 @@ export function AirportSearch({ label, placeholder, value, onChange, className =
           type="text"
           value={query}
           onChange={e => handleInput(e.target.value)}
-          onFocus={() => query && setOpen(suggestions.length > 0)}
+          onFocus={handleFocus}
           placeholder={placeholder ?? 'City or Airport'}
           className="w-full bg-transparent text-gray-900 text-sm font-medium placeholder:text-gray-400 focus:outline-none"
         />
@@ -58,6 +66,12 @@ export function AirportSearch({ label, placeholder, value, onChange, className =
 
       {open && (
         <div className="absolute top-full left-0 z-50 mt-1 w-72 rounded-xl bg-white shadow-2xl border border-gray-100 overflow-hidden">
+          {suggestions.length === 0 && (
+            <p className="px-4 py-3 text-sm text-gray-400">No airports found</p>
+          )}
+          {!query.trim() && (
+            <p className="px-4 pt-3 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">Popular Cities</p>
+          )}
           {suggestions.map(airport => (
             <button
               key={airport.code}

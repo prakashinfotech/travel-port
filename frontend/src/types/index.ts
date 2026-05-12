@@ -232,6 +232,7 @@ export interface BookingDto {
   userName?: string
   userEmail?: string
   userPhone?: string
+  // Flight fields
   airline?: string
   flightNumber?: string
   origin?: string
@@ -241,6 +242,14 @@ export interface BookingDto {
   departureTime?: string
   arrivalTime?: string
   durationMinutes?: number
+  // Hotel fields
+  hotelName?: string
+  hotelAddress?: string
+  hotelCity?: string
+  hotelStars?: number
+  roomType?: string
+  pricePerNight?: number
+  nightsCount?: number
 }
 
 // ── Users ─────────────────────────────────────────────────────────────────────
@@ -282,6 +291,9 @@ export interface BookHotelRequest {
   guests: number
   couponCode?: string
   useWallet?: boolean
+  guestName?: string
+  guestEmail?: string
+  guestPhone?: string
 }
 
 export interface BookingCreatedResponse {

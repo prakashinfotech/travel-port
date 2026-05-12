@@ -10,6 +10,20 @@ import { formatCurrency } from '@/utils/formatters'
 
 const FALLBACK_IMG = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80'
 
+const ROOM_IMAGES: { keywords: string[]; url: string }[] = [
+  { keywords: ['suite', 'presidential', 'penthouse'], url: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=400&q=70' },
+  { keywords: ['deluxe', 'superior', 'premium'],      url: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400&q=70' },
+  { keywords: ['twin', 'double'],                     url: 'https://images.unsplash.com/photo-1595576508898-0ad5c879a061?w=400&q=70' },
+  { keywords: ['family', 'connecting'],               url: 'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?w=400&q=70' },
+  { keywords: ['studio', 'apartment'],                url: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&q=70' },
+]
+const ROOM_FALLBACK = 'https://images.unsplash.com/photo-1631049552057-403cdb8f0658?w=400&q=70'
+
+function getRoomImage(roomType: string): string {
+  const t = roomType.toLowerCase()
+  return ROOM_IMAGES.find(r => r.keywords.some(k => t.includes(k)))?.url ?? ROOM_FALLBACK
+}
+
 function galleryImg(base: string, n: number): string {
   try {
     const url = new URL(base)
@@ -71,8 +85,19 @@ function RoomCard({ room, hotelId, checkIn, checkOut, guests }: {
   params.set('guests', String(guests))
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 hover:border-orange-300 hover:shadow-sm transition-all">
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+    <div className="rounded-xl border border-gray-200 bg-white overflow-hidden hover:border-orange-300 hover:shadow-sm transition-all">
+      <div className="flex flex-col sm:flex-row">
+        {/* Room image */}
+        <div className="sm:w-44 h-40 sm:h-auto flex-shrink-0 overflow-hidden">
+          <img
+            src={getRoomImage(room.roomType)}
+            alt={room.roomType}
+            className="w-full h-full object-cover"
+            onError={e => { (e.target as HTMLImageElement).src = ROOM_FALLBACK }}
+          />
+        </div>
+
+        <div className="flex flex-1 flex-col sm:flex-row sm:items-start justify-between gap-4 p-5">
         <div className="flex-1">
           <h3 className="font-bold text-gray-900 text-base">{room.roomType}</h3>
           <div className="flex flex-wrap gap-3 mt-2 text-sm text-gray-500">
@@ -109,6 +134,7 @@ function RoomCard({ room, hotelId, checkIn, checkOut, guests }: {
           >
             Book Now
           </button>
+        </div>
         </div>
       </div>
     </div>

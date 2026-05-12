@@ -8,9 +8,9 @@
 
 | # | Item | Priority | Notes |
 |---|---|---|---|
-| 1 | Drop + recreate DB after seed data expansion | 🔴 | Run migration commands after pulling latest |
-| 2 | Test all flight filter combinations end-to-end | 🔴 | Especially combined stop + airline + time filters |
-| 3 | Verify calendar popup closes on outside click on mobile | 🟡 | Touch event handling |
+| 1 | Test all flight filter combinations end-to-end | 🔴 | Especially combined stop + airline + time filters |
+| 2 | Verify TravellerSelector popup closes correctly on mobile | 🟡 | `overflow-hidden` fix applied; test touch events |
+| 3 | Verify SMTP email delivery end-to-end | 🟡 | Office365 configured; `FromEmail` must match `Username` |
 
 ---
 
@@ -18,9 +18,15 @@
 
 ### Bugs
 - [x] ✅ **Coupon discount not applied to `FinalAmount`** — Fixed: `ICouponRepository` + `CouponRepository` added; discount wired in both `FlightService.BookAsync` and `HotelService.BookAsync`.
-- [x] ✅ **DataSeeder always drops flight-linked bookings on restart** — Fixed: `SeedBookingsAsync` now deletes stale john@example.com bookings before re-inserting fresh ones tied to new flight IDs.
+- [x] ✅ **DataSeeder always drops flight-linked bookings on restart** — Fixed: `SeedFlightsAsync` now returns early if flights exist; `SeedBookingsAsync` skips if John has bookings. User flight/hotel bookings survive restarts.
+- [x] ✅ **Background workers crash API on shutdown** — Fixed: `OperationCanceledException` from `Task.Delay` now caught at outer loop level in both `BookingExpiryWorker` and `RefreshTokenCleanupWorker`.
+- [x] ✅ **SMTP `FromEmail` mismatch** — Fixed: `FromEmail` now matches SMTP `Username` (Office365 rejects mismatched sender).
+- [x] ✅ **`TravellerSelector` popup not opening** — Fixed: removed `overflow-hidden` from the search form container that was clipping absolute-positioned dropdowns.
+- [x] ✅ **`AirportSearch` shows nothing on focus** — Fixed: shows top 8 popular cities when the input is focused and empty.
+- [x] ✅ **Flight bookings disappear on restart** — Fixed: stable seeder preserves flight IDs and existing user bookings.
 - [ ] 🟡 **Wallet deduction happens before booking confirmation** — if `_bookings.AddAsync` fails after `_wallet.DeductAsync`, the balance is permanently deducted. Wrap in a transaction or use compensating action.
 - [ ] 🟡 **Flight seat decrement race condition** — two concurrent `BookAsync` calls for the same flight can both pass the seat check before either decrements. Add optimistic concurrency or row-level lock.
+
 
 ### Features Pending
 - [ ] 🔴 **Multi-city flight search** — `FlightSearchRequest` supports origin/destination only. Add `MultiCity` trip type.
@@ -46,13 +52,15 @@
 
 ### Bugs
 - [x] ✅ **Login redirect** — Fixed: post-login now restores `location.state.from` so users return to their intended page.
-- [x] ✅ **endpoints.ts duplicate property keys** — Fixed: removed duplicate `profile`, `wallet`, `walletTopup`, `walletTransactions`, `travellers`, `traveller` keys from `users` object.
-- [x] ✅ **FlightsPage TypeScript errors** — Fixed: zero TS errors; removed dead components (DateBar, CalendarPicker), fixed duplicate state, wired FilterSidebar + SortTabs.
-- [x] ✅ **PaymentPage broken imports** — Fixed: added `ApiResponse`, `CreateOrderResponse`, `endpoints`, `AlertCircle`; removed unused card/UPI state; typed Razorpay window.
-- [ ] 🔴 **Mobile filter sidebar hidden** — the sidebar uses `hidden lg:block`; on mobile there's no way to access filters. Add a slide-over drawer triggered by a filter button.
-- [ ] 🟡 **Calendar popup z-index on mobile** — calendar may render behind the search bar on small screens.
-- [ ] 🟡 **Date bar adjacent-date fetches fire on every render** — the `useEffect` for background date-price fetching has incomplete deps; debounce or guard with a ref.
-- [ ] 🟢 **`AirportSearch` doesn't pre-populate city label on page reload** — `originCity` state is empty on load from URL params; city name only shows after user interacts.
+- [x] ✅ **endpoints.ts duplicate property keys** — Fixed: removed duplicate keys from `users` object.
+- [x] ✅ **FlightsPage TypeScript errors** — Fixed: zero TS errors; removed dead components, fixed duplicate state, wired FilterSidebar + SortTabs.
+- [x] ✅ **PaymentPage broken imports** — Fixed: all imports corrected, Razorpay typed.
+- [x] ✅ **Search hero `overflow-hidden` clips dropdowns** — Fixed: `TravellerSelector` popup and `AirportSearch` dropdown now open correctly.
+- [x] ✅ **`AirportSearch` empty focus shows nothing** — Fixed: popular cities shown on focus; city name pre-populated from URL params (`Mumbai (BOM)` instead of `BOM (BOM)`).
+- [x] Search hero UI consistency across Flights/Hotels — Fixed.
+- [ ] 🔴 **Mobile filter sidebar hidden** — `hidden lg:block`; no access on mobile. Add slide-over drawer.
+- [ ] 🟡 **Calendar popup z-index on mobile** — may render behind search bar on small screens.
+- [ ] 🟡 **Date bar adjacent-date fetches fire on every render** — incomplete `useEffect` deps; debounce or ref-guard needed.
 
 ### Features Pending
 - [x] ✅ **HomePage buses/trains/cabs search** — Added full search forms for each mode; replaced "Coming soon" block; each form navigates with URL params and auto-triggers search.
@@ -85,16 +93,26 @@
 ## Recently Completed ✅
 
 - [x] Duffel API integration (external flight provider, sandboxed)
-- [x] Disable Duffel, switch to rich DB seed data (900+ flights, 40+ hotels, 12 cities)
+- [x] Disable Duffel, switch to rich DB seed data (900+ flights, 60+ hotels, 12 cities)
 - [x] BusSearchProvider — route-specific durations, 14 operators, realistic pricing
 - [x] TrainSearchProvider — 39 named trains, route-specific durations, distance-based pricing
 - [x] Goibibo-style FlightsPage — Popular Filters, date bar with prices, calendar picker, sort tabs, fare type
 - [x] FlightCard redesign — airline color badge, VIEW FARES button, Goibibo layout
 - [x] Buses, Trains, Cabs frontend pages
 - [x] PaymentPage with Razorpay checkout and mock fallback
-- [x] Forgot password / Reset password flow with expiring email link and token invalidation
+- [x] Forgot password / Reset password flow with expiring email link
 - [x] Goibibo-style flight fare popup with fare-family booking flow and traveller details UI
 - [x] Goibibo-style booking detail page with downloadable PDF e-ticket
 - [x] Home page recent searches saved with click-through navigation
-- [x] FlightCard — stops badge, baggage, refundable, originCity/destinationCity
 - [x] CLAUDE.md, GIT.md, TODO.md, TASK-TRACKER.md created
+- [x] Hotel booking with guest details (GuestName/Email/Phone on Booking entity + migration)
+- [x] FL/HT prefixed booking references (FL2026XXXXXX, HT2026XXXXXX)
+- [x] SMTP email for all booking events (confirmed, cancelled, password reset) — Office365 support
+- [x] Flight PDF redesigned for A4 — compact layout, no overflow
+- [x] Hotel PDF invoice — property details, stay dates, price summary with GST, policies
+- [x] BookingsPage numbered pagination (Prev / page numbers / Next)
+- [x] Stable DataSeeder — flight bookings and user bookings survive restarts
+- [x] 6 new coupons — FLYSAVER, FLYOFF200, FLYDEAL15, HOTELOFF15, STAYMORE, HOTELDEAL
+- [x] AirportSearch — popular cities on focus; city name pre-populated from URL params
+- [x] TravellerSelector — fixed popup clipping caused by `overflow-hidden` on form container
+- [x] Background workers — graceful shutdown (no more crash on API stop)

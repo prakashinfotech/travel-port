@@ -9,6 +9,11 @@ public class HotelRepository : BaseRepository<Hotel>, IHotelRepository
 {
     public HotelRepository(TravelPortDbContext context) : base(context) { }
 
+    public override async Task<Hotel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+        => await _dbSet
+            .Include(h => h.Rooms.Where(r => r.IsActive))
+            .FirstOrDefaultAsync(h => h.Id == id, cancellationToken);
+
     public async Task<IReadOnlyList<Hotel>> SearchAsync(
         string city,
         DateTime checkIn,

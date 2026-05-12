@@ -55,6 +55,51 @@ public class SmtpEmailService : IEmailService
         await SendAsync(toEmail, toName, $"Booking Confirmed - {bookingRef}", html, ct);
     }
 
+    public async Task SendBookingCancellationAsync(string toEmail, string toName, string bookingRef,
+        string bookingType, decimal refundAmount, CancellationToken ct = default)
+    {
+        if (!IsConfigured)
+        {
+            _logger.LogInformation("Email skipped (SMTP not configured) — cancellation for {Email} / {BookingRef}", toEmail, bookingRef);
+            return;
+        }
+
+        var refundText = refundAmount > 0
+            ? $"<p>A refund of <strong>Rs.{refundAmount:0}</strong> (90%) has been credited to your TravelPort wallet.</p>"
+            : string.Empty;
+
+        var icon = bookingType == "Hotel" ? "🏨" : "✈️";
+
+        var html = $"""
+            <!DOCTYPE html>
+            <html>
+            <body style="font-family:Arial,sans-serif;background:#f5f7fb;padding:24px">
+              <div style="max-width:640px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb">
+                <div style="background:#DC2626;color:#fff;padding:24px 28px">
+                  <h1 style="margin:0;font-size:28px">TravelPort</h1>
+                  <p style="margin:8px 0 0;opacity:.92">{icon} Booking Cancelled</p>
+                </div>
+                <div style="padding:28px">
+                  <p>Hi <strong>{WebUtility.HtmlEncode(toName)}</strong>,</p>
+                  <p>Your <strong>{WebUtility.HtmlEncode(bookingType)}</strong> booking has been successfully cancelled.</p>
+                  <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:16px;margin:20px 0">
+                    <p style="margin:0;color:#991b1b"><strong>Booking Reference:</strong> {WebUtility.HtmlEncode(bookingRef)}</p>
+                    <p style="margin:8px 0 0;color:#991b1b"><strong>Status:</strong> Cancelled</p>
+                  </div>
+                  {refundText}
+                  <p>If you did not request this cancellation or need further help, please contact our support team.</p>
+                  <p style="margin-top:24px;color:#6b7280;font-size:13px">
+                    📧 support@travelport.com &nbsp;|&nbsp; 📞 1800-123-4567 (Toll Free)
+                  </p>
+                </div>
+              </div>
+            </body>
+            </html>
+            """;
+
+        await SendAsync(toEmail, toName, $"Booking Cancelled - {bookingRef}", html, ct);
+    }
+
     public async Task SendPasswordResetAsync(string toEmail, string toName, string resetLink, CancellationToken ct = default)
     {
         if (!IsConfigured)
@@ -112,10 +157,16 @@ public class SmtpEmailService : IEmailService
         {
             ct.ThrowIfCancellationRequested();
             await client.SendMailAsync(message, ct);
+            _logger.LogInformation("Email sent to {ToEmail} — Subject: {Subject}", toEmail, subject);
+        }
+        catch (System.Net.Mail.SmtpException ex)
+        {
+            _logger.LogError(ex, "SMTP send failed — Host: {Host}:{Port}, From: {From}, To: {To}, StatusCode: {Code}, Message: {Msg}",
+                _settings.SmtpHost, _settings.SmtpPort, _settings.FromEmail, toEmail, ex.StatusCode, ex.Message);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "SMTP email send failed");
+            _logger.LogError(ex, "Email send failed — To: {To}, Subject: {Subject}", toEmail, subject);
         }
     }
 }

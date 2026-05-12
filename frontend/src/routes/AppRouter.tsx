@@ -15,9 +15,10 @@ const NotFoundPage         = lazy(() => import('@/pages/NotFoundPage'))
 const FlightsPage          = lazy(() => import('@/pages/FlightsPage'))
 const BookFlightPage       = lazy(() => import('@/pages/BookFlightPage'))
 
-const HotelsPage           = lazy(() => import('@/pages/HotelsPage'))
-const HotelDetailPage      = lazy(() => import('@/pages/HotelDetailPage'))
-const BookHotelPage        = lazy(() => import('@/pages/BookHotelPage'))
+const HotelsPage                = lazy(() => import('@/pages/HotelsPage'))
+const HotelDetailPage           = lazy(() => import('@/pages/HotelDetailPage'))
+const BookHotelPage             = lazy(() => import('@/pages/BookHotelPage'))
+const HotelBookingConfirmPage   = lazy(() => import('@/pages/HotelBookingConfirmPage'))
 
 const BookingsPage         = lazy(() => import('@/pages/BookingsPage'))
 const BookingDetailPage    = lazy(() => import('@/pages/BookingDetailPage'))
@@ -49,9 +50,10 @@ export function AppRouter() {
             <Route path="flights/:id/book"      element={<PrivateRoute><BookFlightPage /></PrivateRoute>} />
 
             {/* Hotels */}
-            <Route path="hotels"                      element={<HotelsPage />} />
-            <Route path="hotels/:id"                  element={<HotelDetailPage />} />
-            <Route path="hotels/:id/book/:roomId"     element={<PrivateRoute><BookHotelPage /></PrivateRoute>} />
+            <Route path="hotels"                              element={<HotelsPage />} />
+            <Route path="hotels/:id"                          element={<HotelDetailPage />} />
+            <Route path="hotels/:id/book/:roomId"             element={<PrivateRoute><BookHotelPage /></PrivateRoute>} />
+            <Route path="hotels/booking/:id/confirm"          element={<PrivateRoute><HotelBookingConfirmPage /></PrivateRoute>} />
 
             {/* Transport */}
             <Route path="buses"  element={<BusesPage />} />

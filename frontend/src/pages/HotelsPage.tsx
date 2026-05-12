@@ -1,25 +1,35 @@
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
-import { Search, Home, ChevronRight, MapPin, ChevronDown, ChevronUp, X, Star, SlidersHorizontal, Plane, Building2, Car, TrainFront, Bus } from 'lucide-react'
+import {
+  Search, Home, ChevronRight, MapPin, ChevronDown, ChevronUp,
+  X, Star, SlidersHorizontal,
+} from 'lucide-react'
 import type { HotelDto } from '@/types'
 import { hotelService } from '@/services/hotelService'
 import { HotelCard } from '@/components/hotels/HotelCard'
 import { HotelCardSkeleton } from '@/components/ui/Skeleton'
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────────────────
 
 const TODAY = new Date().toISOString().split('T')[0]
+
+const HOTEL_CITIES = [
+  'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Kolkata',
+  'Goa', 'Jaipur', 'Pune', 'Ahmedabad', 'Kochi', 'Lucknow',
+  'Agra', 'Varanasi', 'Udaipur', 'Jodhpur', 'Shimla', 'Manali',
+  'Rishikesh', 'Darjeeling', 'Mysore', 'Ooty', 'Coorg',
+  'Amritsar', 'Chandigarh', 'Bhopal', 'Indore', 'Surat', 'Vadodara',
+]
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmtDate(d: string): string {
   if (!d) return ''
   const dt = new Date(d + 'T00:00:00')
-  const day = dt.getDate().toString().padStart(2, '0')
-  const month = dt.toLocaleDateString('en-US', { month: 'short' })
-  const yr = dt.getFullYear().toString().slice(2)
-  return `${day} ${month} '${yr}`
+  return `${dt.getDate().toString().padStart(2, '0')} ${dt.toLocaleDateString('en-US', { month: 'short' })} '${dt.getFullYear().toString().slice(2)}`
 }
 
-function dayName(d: string): string {
+function dayLabel(d: string): string {
   if (!d) return ''
   return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long' })
 }
@@ -28,27 +38,231 @@ function parseAmenities(raw: string): string[] {
   try { return JSON.parse(raw) as string[] } catch { return [] }
 }
 
+function toggle<T>(arr: T[], v: T): T[] {
+  return arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v]
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type SortKey = 'rating_desc' | 'price_asc' | 'price_desc' | 'stars_desc'
 
+interface GuestConfig { adults: number; children: number; infants: number; rooms: number }
+
 interface Filters {
-  minStars:       number
-  maxPrice:       number
-  minRating:      number
-  amenities:      string[]
-  popularFilters: string[]
+  minStars: number; maxPrice: number; minRating: number
+  amenities: string[]; popularFilters: string[]
 }
 
 const INIT_FILTERS: Filters = { minStars: 0, maxPrice: 0, minRating: 0, amenities: [], popularFilters: [] }
+const AMENITY_OPTS = ['Pool', 'Spa', 'Gym', 'Restaurant', 'WiFi', 'Parking', 'Bar', 'Beach']
+const POPULAR_OPTS = ['Swimming Pool', 'Parking', 'Spa', 'Gym']
+const RATING_LABELS: Record<number, string> = { 4.5: 'Exceptional', 4.0: 'Very Good', 3.5: 'Good', 3.0: 'Pleasant' }
 
-const AMENITY_OPTS   = ['Pool', 'Spa', 'Gym', 'Restaurant', 'WiFi', 'Parking', 'Bar', 'Beach']
-const POPULAR_OPTS   = ['Swimming Pool', 'Parking', 'Spa', 'Gym']
-const RATING_LABELS: Record<number, string> = { 4.5: 'Exceptional', 4: 'Very Good', 3.5: 'Good', 3: 'Pleasant' }
+// ── CitySearch ────────────────────────────────────────────────────────────────
 
-function toggle<T>(arr: T[], v: T): T[] { return arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v] }
+interface CitySearchProps {
+  value: string
+  onChange: (city: string) => void
+}
 
-// ── FilterSection ─────────────────────────────────────────────────────────────
+function CitySearch({ value, onChange }: CitySearchProps) {
+  const [query,   setQuery]   = useState(value)
+  const [open,    setOpen]    = useState(false)
+  const ref                   = useRef<HTMLDivElement>(null)
+
+  // sync external value (e.g. on mount from URL)
+  useEffect(() => { setQuery(value) }, [value])
+
+  // close on outside click
+  useEffect(() => {
+    const fn = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', fn)
+    return () => document.removeEventListener('mousedown', fn)
+  }, [])
+
+  const suggestions = query.trim().length > 0
+    ? HOTEL_CITIES.filter(c => c.toLowerCase().includes(query.trim().toLowerCase()))
+    : HOTEL_CITIES
+
+  const select = (city: string) => { setQuery(city); onChange(city); setOpen(false) }
+
+  return (
+    <div className="relative" ref={ref}>
+      <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Where to</p>
+      <div className="flex items-center gap-2">
+        <MapPin className="h-4 w-4 text-orange-400 shrink-0" />
+        <input
+          value={query}
+          onChange={e => { setQuery(e.target.value); onChange(e.target.value); setOpen(true) }}
+          onFocus={() => setOpen(true)}
+          placeholder="Enter city, area or hotel"
+          className="w-full text-xl font-bold text-gray-900 bg-transparent focus:outline-none placeholder:text-gray-300 placeholder:font-normal placeholder:text-sm"
+          autoComplete="off"
+          required
+        />
+        {query && (
+          <button type="button" onClick={() => { setQuery(''); onChange(''); setOpen(false) }}>
+            <X className="h-4 w-4 text-gray-300 hover:text-gray-500" />
+          </button>
+        )}
+      </div>
+
+      {open && suggestions.length > 0 && (
+        <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide px-4 pt-3 pb-1">
+            {query.trim() ? 'Matching cities' : 'Popular destinations'}
+          </p>
+          <ul className="max-h-60 overflow-y-auto">
+            {suggestions.slice(0, 8).map(city => (
+              <li key={city}>
+                <button
+                  type="button"
+                  onMouseDown={e => { e.preventDefault(); select(city) }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-orange-50 text-left transition-colors"
+                >
+                  <MapPin className="h-4 w-4 text-orange-400 flex-shrink-0" />
+                  <span className="text-sm font-medium text-gray-800">{city}</span>
+                  <span className="ml-auto text-xs text-gray-400">Hotels</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── DateField ─────────────────────────────────────────────────────────────────
+
+interface DateFieldProps {
+  label: string
+  value: string
+  min: string
+  onChange: (v: string) => void
+  nights?: number
+  required?: boolean
+}
+
+function DateField({ label, value, min, onChange, nights }: DateFieldProps) {
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const open = () => {
+    if (!inputRef.current) return
+    // showPicker is widely supported in modern browsers
+    try { (inputRef.current as HTMLInputElement & { showPicker?: () => void }).showPicker?.() }
+    catch { inputRef.current.click() }
+  }
+
+  return (
+    <div className="cursor-pointer select-none" onClick={open}>
+      <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">{label}</p>
+      {value ? (
+        <>
+          <p className="text-base font-bold text-gray-900 leading-tight">{fmtDate(value)}</p>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {dayLabel(value)}{label === 'Check-out' && nights && nights > 0 ? ` · ${nights} night${nights > 1 ? 's' : ''}` : ''}
+          </p>
+        </>
+      ) : (
+        <p className="text-sm text-gray-300 font-medium">Select date</p>
+      )}
+      <input
+        ref={inputRef}
+        type="date"
+        value={value}
+        min={min}
+        onChange={e => onChange(e.target.value)}
+        className="sr-only"
+      />
+    </div>
+  )
+}
+
+// ── GuestsDropdown ────────────────────────────────────────────────────────────
+
+function GuestsDropdown({ value, onChange }: {
+  value: GuestConfig
+  onChange: (g: GuestConfig) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref             = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const fn = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', fn)
+    return () => document.removeEventListener('mousedown', fn)
+  }, [])
+
+  const set = (key: keyof GuestConfig, delta: number, min = 0) =>
+    onChange({ ...value, [key]: Math.max(min, value[key] + delta) })
+
+  const summary = `${value.adults} Adult${value.adults !== 1 ? 's' : ''}${value.children ? `, ${value.children} Child${value.children !== 1 ? 'ren' : ''}` : ''}${value.infants ? `, ${value.infants} Infant${value.infants !== 1 ? 's' : ''}` : ''} · ${value.rooms} Room${value.rooms !== 1 ? 's' : ''}`
+
+  const rows: { key: keyof GuestConfig; label: string; sub: string; min: number }[] = [
+    { key: 'adults',   label: 'Adults',   sub: 'Age 12+',  min: 1 },
+    { key: 'children', label: 'Children', sub: 'Age 2–11', min: 0 },
+    { key: 'infants',  label: 'Infants',  sub: 'Under 2',  min: 0 },
+    { key: 'rooms',    label: 'Rooms',    sub: '',         min: 1 },
+  ]
+
+  return (
+    <div className="relative" ref={ref}>
+      <button type="button" className="text-left w-full" onClick={() => setOpen(v => !v)}>
+        <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Guests &amp; Rooms</p>
+        <div className="flex items-center gap-1">
+          <p className="text-base font-bold text-gray-900 leading-tight truncate">{summary}</p>
+          {open ? <ChevronUp className="h-4 w-4 text-gray-400 flex-shrink-0" /> : <ChevronDown className="h-4 w-4 text-gray-400 flex-shrink-0" />}
+        </div>
+      </button>
+
+      {open && (
+        <div className="absolute top-full right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 p-5 z-50 w-72">
+          <div className="space-y-4">
+            {rows.map(({ key, label, sub, min }) => (
+              <div key={key} className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">{label}</p>
+                  {sub && <p className="text-xs text-gray-400">{sub}</p>}
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => set(key, -1, min)}
+                    disabled={value[key] <= min}
+                    className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-orange-500 hover:text-orange-500 disabled:opacity-30 disabled:cursor-not-allowed font-bold transition-colors text-lg leading-none"
+                  >−</button>
+                  <span className="w-5 text-center font-bold text-gray-900">{value[key]}</span>
+                  <button
+                    type="button"
+                    onClick={() => set(key, 1, min)}
+                    className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-orange-500 hover:text-orange-500 font-bold transition-colors text-lg leading-none"
+                  >+</button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {value.infants > 0 && (
+            <p className="mt-3 text-[11px] text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
+              Infants travel on an adult's lap. Each infant must be accompanied by an adult.
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="mt-4 w-full py-2.5 bg-orange-500 text-white text-sm font-bold rounded-lg hover:bg-orange-600 transition-colors"
+          >
+            Done
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── FilterSidebar ─────────────────────────────────────────────────────────────
 
 function FilterSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -58,8 +272,6 @@ function FilterSection({ title, children }: { title: string; children: React.Rea
     </div>
   )
 }
-
-// ── FilterSidebar ─────────────────────────────────────────────────────────────
 
 function FilterSidebar({ filters, setFilters, hotels }: {
   filters: Filters
@@ -87,59 +299,39 @@ function FilterSidebar({ filters, setFilters, hotels }: {
       </div>
 
       <div className="px-4 max-h-[calc(100vh-180px)] overflow-y-auto scrollbar-hide">
-        {/* Popular Filters */}
         <FilterSection title="Popular Filters">
           <div className="flex flex-col gap-2">
             {POPULAR_OPTS.map(f => (
               <label key={f} className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={filters.popularFilters.includes(f)}
+                <input type="checkbox" checked={filters.popularFilters.includes(f)}
                   onChange={() => setFilters(p => ({ ...p, popularFilters: toggle(p.popularFilters, f) }))}
-                  className="accent-orange-500 rounded"
-                />
+                  className="accent-orange-500 rounded" />
                 <span className="text-sm text-gray-700">{f}</span>
               </label>
             ))}
           </div>
         </FilterSection>
 
-        {/* Star Category */}
         <FilterSection title="Star Category">
           <div className="flex gap-1.5 flex-wrap">
             {[1, 2, 3, 4, 5].map(s => (
-              <button
-                key={s}
-                type="button"
+              <button key={s} type="button"
                 onClick={() => setFilters(p => ({ ...p, minStars: p.minStars === s ? 0 : s }))}
-                className={[
-                  'flex items-center gap-1 px-2.5 py-1.5 rounded-full border text-xs font-semibold transition-all',
-                  filters.minStars === s
-                    ? 'bg-orange-500 border-orange-500 text-white'
-                    : 'border-gray-200 text-gray-600 hover:border-orange-300',
-                ].join(' ')}
-              >
+                className={['flex items-center gap-1 px-2.5 py-1.5 rounded-full border text-xs font-semibold transition-all',
+                  filters.minStars === s ? 'bg-orange-500 border-orange-500 text-white' : 'border-gray-200 text-gray-600 hover:border-orange-300'].join(' ')}>
                 {s}<Star className="h-3 w-3 fill-current" />
               </button>
             ))}
           </div>
         </FilterSection>
 
-        {/* User Rating */}
         <FilterSection title="User Rating">
           <div className="flex flex-col gap-1.5">
             {[4.5, 4.0, 3.5, 3.0].map(r => (
-              <button
-                key={r}
-                type="button"
+              <button key={r} type="button"
                 onClick={() => setFilters(p => ({ ...p, minRating: p.minRating === r ? 0 : r }))}
-                className={[
-                  'flex items-center gap-2 text-sm px-3 py-1.5 rounded border transition-all text-left',
-                  filters.minRating === r
-                    ? 'bg-orange-50 border-orange-400 text-orange-700'
-                    : 'border-gray-200 text-gray-600 hover:border-orange-300',
-                ].join(' ')}
-              >
+                className={['flex items-center gap-2 text-sm px-3 py-1.5 rounded border transition-all text-left',
+                  filters.minRating === r ? 'bg-orange-50 border-orange-400 text-orange-700' : 'border-gray-200 text-gray-600 hover:border-orange-300'].join(' ')}>
                 <span className={`font-bold text-[11px] px-1.5 py-0.5 rounded text-white ${r >= 4.5 ? 'bg-green-600' : r >= 4 ? 'bg-green-500' : r >= 3.5 ? 'bg-yellow-500' : 'bg-orange-400'}`}>
                   {r}+
                 </span>
@@ -149,18 +341,12 @@ function FilterSidebar({ filters, setFilters, hotels }: {
           </div>
         </FilterSection>
 
-        {/* Price Range */}
         <FilterSection title="Price Per Night">
           <div className="space-y-2">
-            <input
-              type="range"
-              min={0}
-              max={maxPriceCap}
-              step={500}
+            <input type="range" min={0} max={maxPriceCap} step={500}
               value={filters.maxPrice || maxPriceCap}
               onChange={e => setFilters(p => ({ ...p, maxPrice: Number(e.target.value) }))}
-              className="w-full accent-orange-500"
-            />
+              className="w-full accent-orange-500" />
             <div className="flex justify-between text-xs text-gray-500">
               <span>₹0</span>
               <span className="font-medium text-gray-800">
@@ -171,21 +357,13 @@ function FilterSidebar({ filters, setFilters, hotels }: {
           </div>
         </FilterSection>
 
-        {/* Amenities */}
         <FilterSection title="Amenities">
           <div className="flex flex-wrap gap-1.5">
             {AMENITY_OPTS.map(a => (
-              <button
-                key={a}
-                type="button"
+              <button key={a} type="button"
                 onClick={() => setFilters(p => ({ ...p, amenities: toggle(p.amenities, a) }))}
-                className={[
-                  'px-2.5 py-1 rounded-full border text-xs font-medium transition-all',
-                  filters.amenities.includes(a)
-                    ? 'bg-orange-500 border-orange-500 text-white'
-                    : 'border-gray-200 text-gray-600 hover:border-orange-300',
-                ].join(' ')}
-              >
+                className={['px-2.5 py-1 rounded-full border text-xs font-medium transition-all',
+                  filters.amenities.includes(a) ? 'bg-orange-500 border-orange-500 text-white' : 'border-gray-200 text-gray-600 hover:border-orange-300'].join(' ')}>
                 {a}
               </button>
             ))}
@@ -196,61 +374,6 @@ function FilterSidebar({ filters, setFilters, hotels }: {
   )
 }
 
-// ── GuestsDropdown ────────────────────────────────────────────────────────────
-
-function GuestsDropdown({ guests, rooms, onGuests, onRooms }: {
-  guests: number; rooms: number; onGuests: (n: number) => void; onRooms: (n: number) => void
-}) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const fn = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false) }
-    document.addEventListener('mousedown', fn)
-    return () => document.removeEventListener('mousedown', fn)
-  }, [])
-
-  return (
-    <div className="relative" ref={ref}>
-      <button type="button" className="text-left w-full" onClick={() => setOpen(v => !v)}>
-        <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Guests &amp; Rooms</p>
-        <div className="flex items-center gap-1.5">
-          <p className="text-lg font-bold text-gray-900">
-            {guests} Adult{guests !== 1 ? 's' : ''} | {rooms} Room{rooms !== 1 ? 's' : ''}
-          </p>
-          {open ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
-        </div>
-      </button>
-
-      {open && (
-        <div className="absolute top-full right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 p-5 z-50 min-w-[230px]">
-          {[
-            { label: 'Adults', val: guests, min: 1, max: 10, set: onGuests },
-            { label: 'Rooms',  val: rooms,  min: 1, max: 10, set: onRooms  },
-          ].map(({ label, val, min, max, set }) => (
-            <div key={label} className="flex items-center justify-between mb-4 last:mb-0">
-              <span className="text-sm font-semibold text-gray-800">{label}</span>
-              <div className="flex items-center gap-3">
-                <button type="button" onClick={() => set(Math.max(min, val - 1))}
-                  className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-orange-500 hover:text-orange-500 font-bold transition-colors">−</button>
-                <span className="w-5 text-center font-bold text-gray-900">{val}</span>
-                <button type="button" onClick={() => set(Math.min(max, val + 1))}
-                  className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-orange-500 hover:text-orange-500 font-bold transition-colors">+</button>
-              </div>
-            </div>
-          ))}
-          <button type="button" onClick={() => setOpen(false)}
-            className="mt-4 w-full py-2 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors">
-            Done
-          </button>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ── SortTabs ──────────────────────────────────────────────────────────────────
-
 const SORT_TABS: { key: SortKey; label: string }[] = [
   { key: 'rating_desc', label: '⭐ Top Rated' },
   { key: 'price_asc',   label: '₹ Price ↑'   },
@@ -260,14 +383,6 @@ const SORT_TABS: { key: SortKey; label: string }[] = [
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
-const MODE_TABS = [
-  { label: 'Flights', to: '/flights', Icon: Plane,     active: false },
-  { label: 'Hotels',  to: '/hotels',  Icon: Building2, active: true  },
-  { label: 'Cabs',    to: '/cabs',    Icon: Car,       active: false },
-  { label: 'Trains',  to: '/trains',  Icon: TrainFront,active: false },
-  { label: 'Buses',   to: '/buses',   Icon: Bus,       active: false },
-]
-
 export default function HotelsPage() {
   const [searchParams] = useSearchParams()
   const navigate       = useNavigate()
@@ -275,8 +390,12 @@ export default function HotelsPage() {
   const [city,     setCity]     = useState(searchParams.get('city')     ?? '')
   const [checkIn,  setCheckIn]  = useState(searchParams.get('checkIn')  ?? '')
   const [checkOut, setCheckOut] = useState(searchParams.get('checkOut') ?? '')
-  const [guests,   setGuests]   = useState(Number(searchParams.get('guests') ?? 2))
-  const [rooms,    setRooms]    = useState(Number(searchParams.get('rooms')  ?? 1))
+  const [guests,   setGuests]   = useState<GuestConfig>(() => ({
+    adults:   Number(searchParams.get('adults')   ?? 2),
+    children: Number(searchParams.get('children') ?? 0),
+    infants:  Number(searchParams.get('infants')  ?? 0),
+    rooms:    Number(searchParams.get('rooms')    ?? 1),
+  }))
 
   const [hotels,  setHotels]  = useState<HotelDto[]>([])
   const [loading, setLoading] = useState(false)
@@ -284,11 +403,13 @@ export default function HotelsPage() {
   const [sort,    setSort]    = useState<SortKey>('rating_desc')
   const [filters, setFilters] = useState<Filters>(INIT_FILTERS)
 
+  const totalGuests = guests.adults + guests.children
+
   const fetchHotels = async (c = city) => {
     if (!c) return
     setLoading(true); setError(null)
     try {
-      const res = await hotelService.search({ city: c, checkIn, checkOut, guests, pageSize: 50 })
+      const res = await hotelService.search({ city: c, checkIn, checkOut, guests: totalGuests, pageSize: 50 })
       setHotels(res.data ?? [])
     } catch {
       setError('Failed to fetch hotels. Please try again.')
@@ -321,9 +442,9 @@ export default function HotelsPage() {
         return filters.popularFilters.every(f => {
           const fl = f.toLowerCase()
           if (fl === 'swimming pool') return ams.some(a => a.includes('pool'))
-          if (fl === 'parking') return ams.some(a => a.includes('parking'))
-          if (fl === 'spa') return ams.some(a => a.includes('spa'))
-          if (fl === 'gym') return ams.some(a => a.includes('gym'))
+          if (fl === 'parking')       return ams.some(a => a.includes('parking'))
+          if (fl === 'spa')           return ams.some(a => a.includes('spa'))
+          if (fl === 'gym')           return ams.some(a => a.includes('gym'))
           return true
         })
       })
@@ -344,7 +465,12 @@ export default function HotelsPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    navigate(`/hotels?${new URLSearchParams({ city, checkIn, checkOut, guests: String(guests), rooms: String(rooms) })}`, { replace: true })
+    const params = new URLSearchParams({
+      city, checkIn, checkOut,
+      adults: String(guests.adults), children: String(guests.children),
+      infants: String(guests.infants), rooms: String(guests.rooms),
+    })
+    navigate(`/hotels?${params}`, { replace: true })
     fetchHotels()
   }
 
@@ -357,96 +483,55 @@ export default function HotelsPage() {
 
       {/* ── Search Header ── */}
       <div className="bg-orange-500 py-8 px-4">
-
-        {/* Mode tabs */}
-        <div className="mx-auto max-w-6xl mb-5 flex gap-1 overflow-x-auto pb-1">
-          {MODE_TABS.map(({ label, to, Icon, active }) => (
-            <Link key={label} to={to} className={[
-              'flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all',
-              active ? 'bg-white text-gray-900 shadow-lg' : 'text-white/80 hover:text-white hover:bg-white/10',
-            ].join(' ')}>
-              <Icon className="h-4 w-4" /> {label}
-            </Link>
-          ))}
-        </div>
-
         {/* Search form */}
-        <form onSubmit={handleSearch} className="mx-auto max-w-5xl">
-          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-            <div className="flex flex-wrap items-stretch divide-x divide-gray-200">
+        <form onSubmit={handleSearch} className="mx-auto max-w-6xl">
+          <div className="rounded-2xl bg-white shadow-xl">
+            <div className="flex flex-col divide-y divide-gray-200 lg:flex-row lg:items-stretch lg:divide-x lg:divide-y-0">
 
-              {/* Where to */}
-              <div className="flex-[2] min-w-[200px] px-5 py-4">
-                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Where to</p>
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-orange-400 shrink-0" />
-                  <input
-                    value={city}
-                    onChange={e => setCity(e.target.value)}
-                    placeholder="Enter city, area or hotel"
-                    className="w-full text-xl font-bold text-gray-900 bg-transparent focus:outline-none placeholder:text-gray-300 placeholder:font-normal placeholder:text-sm"
-                    required
-                  />
-                </div>
+              {/* City with autocomplete */}
+              <div className="relative z-20 flex-[2] px-4 py-4 lg:min-w-0">
+                <CitySearch value={city} onChange={setCity} />
               </div>
 
               {/* Check-in */}
-              <div className="relative flex-1 min-w-[130px] px-5 py-4 cursor-pointer">
-                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Check-in</p>
-                {checkIn ? (
-                  <>
-                    <p className="text-base font-bold text-gray-900">{fmtDate(checkIn)}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{dayName(checkIn)}</p>
-                  </>
-                ) : (
-                  <p className="text-sm text-gray-300 font-medium mt-1">Select date</p>
-                )}
-                <input
-                  type="date" value={checkIn} min={TODAY}
-                  onChange={e => setCheckIn(e.target.value)}
-                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+              <div className="px-4 py-4 lg:w-[220px]">
+                <DateField
+                  label="Check-in"
+                  value={checkIn}
+                  min={TODAY}
+                  onChange={setCheckIn}
                   required
                 />
               </div>
 
               {/* Check-out */}
-              <div className="relative flex-1 min-w-[130px] px-5 py-4 cursor-pointer">
-                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Check-out</p>
-                {checkOut ? (
-                  <>
-                    <p className="text-base font-bold text-gray-900">{fmtDate(checkOut)}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {dayName(checkOut)}{nights > 0 ? ` · ${nights} night${nights > 1 ? 's' : ''}` : ''}
-                    </p>
-                  </>
-                ) : (
-                  <p className="text-sm text-gray-300 font-medium mt-1">Select date</p>
-                )}
-                <input
-                  type="date" value={checkOut} min={checkIn || TODAY}
-                  onChange={e => setCheckOut(e.target.value)}
-                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+              <div className="px-4 py-4 lg:w-[220px]">
+                <DateField
+                  label="Check-out"
+                  value={checkOut}
+                  min={checkIn || TODAY}
+                  onChange={setCheckOut}
+                  nights={nights}
                   required
                 />
               </div>
 
               {/* Guests & Rooms */}
-              <div className="flex-1 min-w-[180px] px-5 py-4">
-                <GuestsDropdown guests={guests} rooms={rooms} onGuests={setGuests} onRooms={setRooms} />
+              <div className="relative z-10 px-4 py-4 lg:w-[280px]">
+                <GuestsDropdown value={guests} onChange={setGuests} />
               </div>
 
+              <div className="px-4 py-4 lg:flex lg:items-center lg:justify-center">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-70 lg:w-auto"
+                >
+                  <Search className="h-5 w-5" />
+                  {loading ? 'Searching…' : 'Search'}
+                </button>
+              </div>
             </div>
-          </div>
-
-          <div className="mt-5 flex justify-center">
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-14 py-3.5 rounded-full bg-white text-orange-600 border-2 border-orange-200 font-bold text-lg uppercase tracking-widest shadow-xl hover:bg-orange-50 transition-all hover:scale-105 active:scale-100 flex items-center gap-2"
-            >
-              <Search className="h-5 w-5" />
-              {loading ? 'Searching…' : 'SEARCH'}
-            </button>
           </div>
         </form>
       </div>
@@ -473,12 +558,8 @@ export default function HotelsPage() {
               <div className="flex gap-1.5 flex-wrap">
                 {SORT_TABS.map(t => (
                   <button key={t.key} onClick={() => setSort(t.key)}
-                    className={[
-                      'px-3 py-1.5 rounded-full border text-xs font-semibold transition-all',
-                      sort === t.key
-                        ? 'bg-orange-500 border-orange-500 text-white'
-                        : 'border-gray-200 bg-white text-gray-600 hover:border-orange-300',
-                    ].join(' ')}>
+                    className={['px-3 py-1.5 rounded-full border text-xs font-semibold transition-all',
+                      sort === t.key ? 'bg-orange-500 border-orange-500 text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-orange-300'].join(' ')}>
                     {t.label}
                   </button>
                 ))}
@@ -498,7 +579,7 @@ export default function HotelsPage() {
                     </div>
                   )
                   : filtered.map(h => (
-                    <HotelCard key={h.id} hotel={h} checkIn={checkIn} checkOut={checkOut} guests={guests} />
+                    <HotelCard key={h.id} hotel={h} checkIn={checkIn} checkOut={checkOut} guests={totalGuests} />
                   ))
               }
             </div>

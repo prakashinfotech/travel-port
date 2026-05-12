@@ -21,18 +21,25 @@ public class RefreshTokenCleanupWorker : BackgroundService
     {
         _logger.LogInformation("RefreshTokenCleanupWorker started. Runs every {Hours}h.", Interval.TotalHours);
 
-        while (!ct.IsCancellationRequested)
+        try
         {
-            try
+            while (!ct.IsCancellationRequested)
             {
-                await CleanupAsync(ct);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                _logger.LogError(ex, "Error during refresh token cleanup.");
-            }
+                try
+                {
+                    await CleanupAsync(ct);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.LogError(ex, "Error during refresh token cleanup.");
+                }
 
-            await Task.Delay(Interval, ct);
+                await Task.Delay(Interval, ct);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Normal shutdown — cancellation token was triggered, exit gracefully.
         }
     }
 

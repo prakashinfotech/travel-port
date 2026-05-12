@@ -20,6 +20,7 @@ public record BookingDto(
     string? UserName = null,
     string? UserEmail = null,
     string? UserPhone = null,
+    // Flight fields
     string? Airline = null,
     string? FlightNumber = null,
     string? Origin = null,
@@ -28,7 +29,15 @@ public record BookingDto(
     string? DestinationCity = null,
     DateTime? DepartureTime = null,
     DateTime? ArrivalTime = null,
-    int? DurationMinutes = null
+    int? DurationMinutes = null,
+    // Hotel fields
+    string? HotelName = null,
+    string? HotelAddress = null,
+    string? HotelCity = null,
+    decimal? HotelStars = null,
+    string? RoomType = null,
+    decimal? PricePerNight = null,
+    int? NightsCount = null
 );
 
 public record BookingCreatedResponse(

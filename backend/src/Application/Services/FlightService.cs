@@ -157,7 +157,7 @@ public class FlightService : IFlightService
         }
 
         var total      = unitPrice * req.Passengers;
-        var bookingRef = await _bookings.GenerateBookingRefAsync(ct);
+        var bookingRef = await _bookings.GenerateBookingRefAsync("FL", ct);
 
         // Apply coupon discount
         decimal discount = 0;

@@ -3,6 +3,7 @@
 > Day-by-day progress tracker for the Goibibo AI Assignment.
 > Status: ✅ Done · 🚧 In Progress · ❌ Not Started · ⚠️ Partial / Needs Work
 
+
 ---
 
 ## Phase 1 — Initial Full-Stack Implementation
@@ -165,6 +166,49 @@
 | 5.24 | HotelDetailPage — new full hotel detail page | ✅ | Hero image + gallery strip, rating card, amenities grid, room cards with Book Now, sticky stay-summary sidebar, Important Info section |
 | 5.25 | HotelCard — pass checkIn/checkOut/guests to detail page URL | ✅ | Search params forwarded so Book Now button on detail page has correct dates |
 | 5.26 | Hotel data expansion — 30 additional hotels | ✅ | +5 Mumbai, +5 Delhi, +5 Goa, +5 Bangalore, +6 Jaipur, +5 Hyderabad; seeder now checks count ≥ 60 |
+| 5.27 | Flights/Hotels search heroes - remove duplicate in-page mode tabs and align CTA placement | DONE | Shared navbar is now the only top transport menu; HotelsPage search button moved inline to match FlightsPage |
+
+---
+
+## Phase 6 — Hotel Booking Flow, Email, PDF, Bookings UX & Bug Fixes
+**Branch:** `Development` → current session
+**Date:** 2026-05-12
+**Scope:** Guest details on hotel bookings, SMTP email for all events, PDF generator switched to PdfSharpCore (A4), bookings pagination, FL/HT booking ref prefixes, stable seeder, airport search UX fix, TravellerSelector popup fix
+
+| # | Feature | Status | Notes |
+|---|---|---|---|
+| 6.1 | `Booking` entity — `GuestName`, `GuestEmail`, `GuestPhone` fields | ✅ | EF migration `AddGuestDetailsToBooking` applied |
+| 6.2 | `BookHotelRequest` DTO — guest detail fields | ✅ | `GuestName`, `GuestEmail`, `GuestPhone` passed from UI |
+| 6.3 | `BookingDto` — guest fields surfaced in response | ✅ | `UserName/Email/Phone` resolved from guest fields first, then account |
+| 6.4 | FL / HT booking reference prefixes | ✅ | `GenerateBookingRefAsync(prefix)` — FlightService uses "FL", HotelService uses "HT"; format `FL2026XXXXXX` |
+| 6.5 | `HotelService.BookAsync` — booking confirmation email | ✅ | Uses `GuestEmail ?? user.Email`; sends HTML confirmation with hotel/room/dates/amounts |
+| 6.6 | `BookingService.CancelAsync` — cancellation email | ✅ | Uses guest email for hotel bookings, account email for flights; 90% refund shown |
+| 6.7 | `IEmailService` — `SendBookingCancellationAsync` method | ✅ | Red-header HTML email with booking ref, status, refund amount |
+| 6.8 | `SmtpEmailService` — Outlook/Office365 SMTP support | ✅ | `smtp.office365.com:587`; `FromEmail` must match `Username` (fixed); SMTP error now logs host/port/status code |
+| 6.9 | `SmtpEmailService` — success logging | ✅ | Logs `Email sent to {ToEmail}` on success for visibility |
+| 6.10 | Background workers — graceful shutdown fix | ✅ | `OperationCanceledException` caught at outer try; API no longer crashes on stop |
+| 6.11 | PDF generator switched from QuestPDF → PdfSharpCore | ✅ | QuestPDF removed; `PdfSharpCore 1.3.67` added to `TravelPort.Infrastructure.csproj`; `InvoiceDocumentService` fully rewritten using `XGraphics` imperative drawing API |
+| 6.12 | Flight PDF — A4, rewritten with PdfSharpCore | ✅ | Header, booking ref bar, flight route card, passenger table, baggage table, cancellation/date-change charges, fare summary, support footer — all on A4 |
+| 6.13 | Hotel PDF — `GenerateHotelInvoicePdf` with PdfSharpCore | ✅ | Property card, stay card (check-in/out/nights/guests), guest details table, price summary with GST, hotel policies, support footer |
+| 6.14 | `IInvoiceDocumentService` — hotel invoice method | ✅ | `GenerateHotelInvoicePdf(BookingDto)` added to interface |
+| 6.15 | `BookingService.GetInvoiceAsync` — routes by booking type | ✅ | Hotel bookings use `GenerateHotelInvoicePdf`; flight bookings use `GenerateBookingTicketPdf` |
+| 6.16 | DataSeeder — stable flight seeding | ✅ | `SeedFlightsAsync` returns early if flights exist; preserves flight IDs so user flight bookings survive restarts |
+| 6.17 | DataSeeder — stable John's bookings | ✅ | `SeedBookingsAsync` skips if John already has bookings; real user bookings no longer wiped on restart |
+| 6.18 | DataSeeder — 6 new coupons | ✅ | FLYSAVER (Rs.300 off), FLYOFF200 (Rs.200 off), FLYDEAL15 (15%), HOTELOFF15 (15%), STAYMORE (Rs.500 off), HOTELDEAL (10%) |
+| 6.19 | `BookingsPage` — numbered pagination | ✅ | Replaced "Load More" with Prev / page numbers / Next; ellipsis for large page counts; scrolls to top on page change |
+| 6.20 | `BookingsPage` — sorted by latest first | ✅ | Backend `OrderByDescending(b => b.CreatedAt)` already in place; confirmed working |
+| 6.21 | `BookingCard` — cancel & invoice download actions | ✅ | Cancel button triggers API + local state update; Download Invoice fetches PDF blob |
+| 6.22 | `BookHotelPage` — guest details form | ✅ | Guest name / email / phone fields sent to booking API |
+| 6.23 | `BookHotelPage` — real coupon API validation | ✅ | Replaced hardcoded coupon logic with `POST /api/v1/coupons/validate`; shows discount amount |
+| 6.24 | `BookHotelPage` — 3 hotel coupon offer cards | ✅ | HOTELOFF15, STAYMORE, HOTELDEAL — click-to-apply |
+| 6.25 | `BookFlightPage` — 3 flight coupon offer cards | ✅ | FLYSAVER, FLYOFF200, FLYDEAL15 replace static "DEALPANTI" card; click-to-apply |
+| 6.26 | `BookingDetailPage` — coupon code in discount label | ✅ | Shows `Coupon (FLYSAVER)` instead of plain "Discount" |
+| 6.27 | `HotelBookingConfirmPage` — new page | ✅ | Hotel booking confirmation with nights count, price summary, guest info, status |
+| 6.28 | `AppRouter` — `/hotel-booking-confirm` route | ✅ | Lazy-loaded, private route |
+| 6.29 | `AirportSearch` — popular cities on empty focus | ✅ | Shows top 8 airports with "Popular Cities" header when input is focused and empty |
+| 6.30 | `AirportSearch` — "No airports found" fallback | ✅ | Shown when search query has no matches |
+| 6.31 | `FlightsPage` — fix `overflow-hidden` clipping dropdowns | ✅ | Removed `overflow-hidden` from form container; `TravellerSelector` popup and `AirportSearch` dropdown now display correctly |
+| 6.32 | `FlightsPage` — city name lookup from URL params | ✅ | `originCity`/`destinationCity` initialized from `AIRPORTS` data; display shows `Mumbai (BOM)` instead of `BOM (BOM)` |
 
 ---
 
@@ -204,12 +248,15 @@ dotnet run --project src/API --launch-profile https
 
 | Metric | Value |
 |---|---|
-| Total phases completed | 4 |
-| Total features delivered | 100+ |
+| Total phases completed | 6 |
+| Total features delivered | 130+ |
 | Flights in seed DB | 900+ (dynamic demand-based pricing) |
-| Hotels in seed DB | 40+ (12 cities) |
-| API endpoints | 37+ |
-| Frontend pages | 11 |
+| Hotels in seed DB | 60+ (12 cities) |
+| Coupons | 11 (5 original + 6 new: FLYSAVER, FLYOFF200, FLYDEAL15, HOTELOFF15, STAYMORE, HOTELDEAL) |
+| API endpoints | 40+ |
+| Frontend pages | 13 |
 | Airlines covered | 7 |
 | Routes covered | 42 bidirectional |
-| External API integrations | 3 (Duffel, Razorpay, SMTP) |
+| External API integrations | 3 (Duffel, Razorpay, SMTP/Office365) |
+| PDF invoices | 2 types (Flight e-ticket A4, Hotel invoice A4) |
+| Email events covered | 3 (booking confirmed, booking cancelled, password reset) |

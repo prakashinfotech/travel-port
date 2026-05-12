@@ -17,20 +17,37 @@ const statusVariant: Record<BookingStatus, 'info' | 'success' | 'danger' | 'warn
 
 interface BookingUiSnapshot {
   bookingId: string
-  email: string
-  mobile: string
-  countryCode: string
-  userName: string
-  origin: string
-  originCity: string
-  destination: string
-  destinationCity: string
-  airline: string
-  flightNumber: string
-  departureTime: string
-  arrivalTime: string
-  durationMinutes: number
-  passengers: number
+  bookingType?: 'Flight' | 'Hotel'
+  // Flight fields
+  email?: string
+  mobile?: string
+  countryCode?: string
+  userName?: string
+  origin?: string
+  originCity?: string
+  destination?: string
+  destinationCity?: string
+  airline?: string
+  flightNumber?: string
+  departureTime?: string
+  arrivalTime?: string
+  durationMinutes?: number
+  passengers?: number
+  // Hotel fields
+  guestName?: string
+  phone?: string
+  hotelName?: string
+  hotelAddress?: string
+  hotelCity?: string
+  hotelStars?: number
+  roomType?: string
+  checkIn?: string
+  checkOut?: string
+  nights?: number
+  guests?: number
+  pricePerNight?: number
+  taxes?: number
+  totalAmount?: number
 }
 
 function downloadBlob(blob: Blob, fileName: string) {
@@ -99,18 +116,26 @@ export default function BookingDetailPage() {
     }
 
     bookingService.getById(id)
-      .then(response => setBooking(response.data))
+      .then(response => {
+        const b = response.data
+        // Redirect hotel bookings to the hotel confirm page
+        if (b.type === 'Hotel') {
+          navigate(`/hotels/booking/${id}/confirm`, { replace: true })
+          return
+        }
+        setBooking(b)
+      })
       .catch(() => setError('Booking not found.'))
       .finally(() => setLoading(false))
-  }, [id])
+  }, [id, navigate])
 
   const mergedBooking = useMemo(() => {
     if (!booking) return null
     return {
       ...booking,
-      userName: booking.userName ?? bookingUi?.userName,
+      userName: booking.userName ?? bookingUi?.userName ?? bookingUi?.guestName,
       userEmail: booking.userEmail ?? bookingUi?.email,
-      userPhone: booking.userPhone ?? bookingUi?.mobile,
+      userPhone: booking.userPhone ?? bookingUi?.mobile ?? bookingUi?.phone,
       airline: booking.airline ?? bookingUi?.airline,
       flightNumber: booking.flightNumber ?? bookingUi?.flightNumber,
       origin: booking.origin ?? bookingUi?.origin,
@@ -121,6 +146,8 @@ export default function BookingDetailPage() {
       arrivalTime: booking.arrivalTime ?? bookingUi?.arrivalTime,
       durationMinutes: booking.durationMinutes ?? bookingUi?.durationMinutes,
       passengers: booking.passengers ?? bookingUi?.passengers,
+      checkIn: booking.checkIn ?? bookingUi?.checkIn,
+      checkOut: booking.checkOut ?? bookingUi?.checkOut,
     }
   }, [booking, bookingUi])
 
@@ -144,10 +171,39 @@ export default function BookingDetailPage() {
     setDownloading(true)
     try {
       const blob = await bookingService.downloadInvoice(mergedBooking.id)
-      downloadBlob(blob, `${mergedBooking.bookingReference}-e-ticket.pdf`)
+      downloadBlob(blob, `${mergedBooking.bookingReference}-invoice.pdf`)
     } catch {
-      const fallbackLines = [
+      const isHotel = bookingUi?.bookingType === 'Hotel' || mergedBooking.type === 'Hotel'
+      const fallbackLines = isHotel ? [
+        'TravelPort Hotel Invoice',
+        '--------------------------------------------',
+        `Booking Reference: ${mergedBooking.bookingReference}`,
+        `Status: ${mergedBooking.status}`,
+        '',
+        'PROPERTY DETAILS',
+        `Hotel: ${bookingUi?.hotelName ?? 'Hotel'}`,
+        `Address: ${bookingUi?.hotelAddress ?? '-'}`,
+        `Room: ${bookingUi?.roomType ?? '-'}`,
+        '',
+        'STAY DETAILS',
+        `Check-in:  ${bookingUi?.checkIn  ?? mergedBooking.checkIn  ?? '-'}`,
+        `Check-out: ${bookingUi?.checkOut ?? mergedBooking.checkOut ?? '-'}`,
+        `Duration:  ${bookingUi?.nights ?? '-'} night(s)`,
+        `Guests:    ${bookingUi?.guests  ?? '-'}`,
+        '',
+        'GUEST DETAILS',
+        `Name:  ${bookingUi?.guestName ?? '-'}`,
+        `Email: ${bookingUi?.email ?? '-'}`,
+        `Phone: ${bookingUi?.phone ?? '-'}`,
+        '',
+        'PRICE SUMMARY',
+        `Room Rate × Nights: ${formatCurrency(mergedBooking.totalAmount)}`,
+        `Total Paid: ${formatCurrency(mergedBooking.finalAmount || mergedBooking.totalAmount)}`,
+        '',
+        'Thank you for booking with TravelPort!',
+      ] : [
         'TravelPort Flight E-Ticket',
+        '--------------------------------------------',
         `Booking Reference: ${mergedBooking.bookingReference}`,
         `Traveller: ${mergedBooking.userName ?? 'Primary Traveller'}`,
         `Email: ${mergedBooking.userEmail ?? '-'}`,
@@ -159,7 +215,7 @@ export default function BookingDetailPage() {
         `Passengers: ${mergedBooking.passengers ?? 1}`,
         `Total Amount: ${formatCurrency(mergedBooking.finalAmount || mergedBooking.totalAmount)}`,
       ]
-      downloadBlob(buildPdfBlob(fallbackLines), `${mergedBooking.bookingReference}-e-ticket.pdf`)
+      downloadBlob(buildPdfBlob(fallbackLines), `${mergedBooking.bookingReference}-invoice.pdf`)
     } finally {
       setDownloading(false)
     }
@@ -387,7 +443,7 @@ export default function BookingDetailPage() {
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2 text-emerald-700">
                       <TicketPercent className="h-4 w-4" />
-                      <span>Discount Applied</span>
+                      <span>Coupon {mergedBooking.couponCode ? `(${mergedBooking.couponCode})` : 'Discount'}</span>
                     </div>
                     <span className="font-semibold text-emerald-700">- {formatCurrency(mergedBooking.discountAmount)}</span>
                   </div>

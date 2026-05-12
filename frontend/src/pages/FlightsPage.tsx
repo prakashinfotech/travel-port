@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
-import { Search, Home, ChevronRight, ArrowLeftRight, ChevronDown, X, Plane, Hotel, Car, TrainFront, Bus } from 'lucide-react'
+import { Search, Home, ChevronRight, ArrowLeftRight, ChevronDown, X } from 'lucide-react'
 import type { FlightDto } from '@/types'
 import { flightService } from '@/services/flightService'
 import { FlightCard } from '@/components/flights/FlightCard'
@@ -9,6 +9,7 @@ import { AirportSearch } from '@/components/search/AirportSearch'
 import { TravellerSelector, type TravellerConfig } from '@/components/search/TravellerSelector'
 import { Button } from '@/components/ui/Button'
 import { formatCurrency } from '@/utils/formatters'
+import { AIRPORTS } from '@/data/airports'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -550,28 +551,6 @@ export default function FlightsPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Search bar */}
       <div className="bg-blue-800 py-5 px-4 shadow-md">
-        {/* Mode tabs */}
-        <div className="mx-auto max-w-6xl mb-4 flex gap-1 overflow-x-auto pb-1">
-          {([
-            { label: 'Flights', to: '/flights', Icon: Plane,      active: true  },
-            { label: 'Hotels',  to: '/hotels',  Icon: Hotel,      active: false },
-            { label: 'Cabs',    to: '/cabs',    Icon: Car,        active: false },
-            { label: 'Trains',  to: '/trains',  Icon: TrainFront, active: false },
-            { label: 'Buses',   to: '/buses',   Icon: Bus,        active: false },
-          ]).map(({ label, to, Icon, active }) => (
-            <Link
-              key={label}
-              to={to}
-              className={[
-                'flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all',
-                active ? 'bg-white text-gray-900 shadow-lg' : 'text-white/80 hover:text-white hover:bg-white/10',
-              ].join(' ')}
-            >
-              <Icon className="h-4 w-4" /> {label}
-            </Link>
-          ))}
-        </div>
-
         {/* Trip type */}
         <div className="mx-auto max-w-6xl mb-3 flex gap-4">
           {(['oneway', 'roundtrip'] as TripType[]).map(t => (
@@ -583,52 +562,70 @@ export default function FlightsPage() {
         </div>
 
         <form onSubmit={handleSearch} className="mx-auto max-w-6xl">
-          <div className="bg-white rounded-xl p-3 flex flex-wrap gap-2 items-end">
-            <div className="flex-1 min-w-[150px]">
+          <div className="overflow-hidden rounded-2xl bg-white shadow-xl">
+            <div className="flex flex-col divide-y divide-gray-200 lg:flex-row lg:items-stretch lg:divide-x lg:divide-y-0">
+              <div className="flex-1 px-4 py-4 lg:min-w-0">
               <AirportSearch
                 label="From"
                 value={origin ? `${originCity || origin} (${origin})` : ''}
                 onChange={(code, city) => { setOrigin(code); setOriginCity(city) }}
               />
-            </div>
-            <button type="button" onClick={swap} className="mb-1 p-1.5 rounded-full border border-gray-200 hover:border-blue-400 transition-colors">
-              <ArrowLeftRight className="h-3.5 w-3.5 text-gray-400" />
-            </button>
-            <div className="flex-1 min-w-[150px]">
-              <AirportSearch
-                label="To"
-                value={destination ? `${destinationCity || destination} (${destination})` : ''}
-                onChange={(code, city) => { setDestination(code); setDestinationCity(city) }}
-              />
-            </div>
-            <div className="min-w-[130px]">
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Departure</label>
-              <input
-                type="date"
-                value={departureDate}
-                min={TODAY}
-                onChange={e => setDepartureDate(e.target.value)}
-                className="w-full text-sm font-medium text-gray-900 border-b-2 border-gray-300 focus:border-blue-600 focus:outline-none pb-1 bg-transparent"
-              />
-            </div>
-            {tripType === 'roundtrip' && (
-              <div className="min-w-[130px]">
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Return</label>
-                <input
-                  type="date"
-                  value={returnDate}
-                  min={departureDate || TODAY}
-                  onChange={e => setReturnDate(e.target.value)}
-                  className="w-full text-sm font-medium text-gray-900 border-b-2 border-gray-300 focus:border-blue-600 focus:outline-none pb-1 bg-transparent"
+              </div>
+
+              <div className="relative flex-1 px-4 py-4 lg:min-w-0">
+                <button
+                  type="button"
+                  onClick={swap}
+                  className="absolute -top-3 right-4 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-400 shadow-sm transition-colors hover:border-blue-400 hover:text-blue-600 lg:left-0 lg:right-auto lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2"
+                >
+                  <ArrowLeftRight className="h-3.5 w-3.5" />
+                </button>
+                <AirportSearch
+                  label="To"
+                  value={destination ? `${destinationCity || destination} (${destination})` : ''}
+                  onChange={(code, city) => { setDestination(code); setDestinationCity(city) }}
                 />
               </div>
-            )}
-            <div className="min-w-[200px]">
-              <TravellerSelector value={travellers} onChange={setTravellers} />
+
+              <div className="px-4 py-4 lg:w-[220px]">
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Departure</label>
+                <input
+                  type="date"
+                  value={departureDate}
+                  min={TODAY}
+                  onChange={e => setDepartureDate(e.target.value)}
+                  className="w-full border-b-2 border-gray-300 bg-transparent pb-1 text-sm font-medium text-gray-900 focus:border-blue-600 focus:outline-none"
+                />
+              </div>
+
+              {tripType === 'roundtrip' && (
+                <div className="px-4 py-4 lg:w-[220px]">
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Return</label>
+                  <input
+                    type="date"
+                    value={returnDate}
+                    min={departureDate || TODAY}
+                    onChange={e => setReturnDate(e.target.value)}
+                    className="w-full border-b-2 border-gray-300 bg-transparent pb-1 text-sm font-medium text-gray-900 focus:border-blue-600 focus:outline-none"
+                  />
+                </div>
+              )}
+
+              <div className="px-4 py-4 lg:w-[280px]">
+                <TravellerSelector value={travellers} onChange={setTravellers} />
+              </div>
+
+              <div className="px-4 py-4 lg:flex lg:items-center lg:justify-center">
+                <Button
+                  type="submit"
+                  variant="secondary"
+                  loading={loading}
+                  className="w-full rounded-xl px-6 py-3 text-base font-semibold lg:w-auto"
+                >
+                  <Search className="h-4 w-4" /> Search
+                </Button>
+              </div>
             </div>
-            <Button type="submit" variant="secondary" loading={loading} className="shrink-0">
-              <Search className="h-4 w-4" /> Search
-            </Button>
           </div>
         </form>
       </div>

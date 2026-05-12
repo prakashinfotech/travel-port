@@ -24,17 +24,18 @@ TravelPort covers:
 - Flight Search & Booking (900+ DB seed flights — IndiGo, SpiceJet, Vistara, Akasa Air, Air India, Air India Express, Go First across 42 routes)
 - Goibibo-style Flight Fare Popup + Fare-family Booking Flow
 - Home page recent searches persist and reopen saved result pages
-- Hotel Search & Booking (Amadeus Hotel Offers API — toggle via config)
+- Hotel Search & Booking with Guest Details (name/email/phone stored per booking)
 - Bus Search (deterministic mock — realistic Indian operators & routes)
 - Train Search (deterministic mock — real train names, 5 classes, availability statuses)
 - Cab Search (deterministic mock — Ola/Uber/Meru/Zoom, distance-based pricing)
 - User Authentication (JWT + Refresh Tokens)
-- Booking Management & Cancellation
-- Wallet & Coupons
+- Booking Management, Cancellation & PDF Invoice Download (Flight e-ticket + Hotel invoice, A4)
+- Wallet & 11 Coupons (flight and hotel specific)
 - Razorpay Payment Gateway (toggle via config; falls back to mock in dev)
-- Email Notifications via SMTP (toggle via config)
+- SMTP Email Notifications — booking confirmed, booking cancelled, password reset (Office365/Gmail)
 - Admin Panel
 - Dynamic Traveller Details UI based on selected seat count
+- Bookings Page with numbered pagination, sorted by latest first
 
 ---
 
@@ -98,13 +99,13 @@ Frontend runs at `http://localhost:5173`
 |---|---|
 | Users | 4 (1 admin, 3 users) |
 | Flights | 900+ programmatically generated across 42 bidirectional routes, 7 airlines (IndiGo, SpiceJet, Air India, Vistara, Akasa Air, Air India Express, Go First), 14 date slots (+7 to +35 days) |
-| Hotels | 40+ across 10 cities (Mumbai, Delhi, Goa, Bangalore, Jaipur, Hyderabad, Chennai, Kolkata, Ahmedabad, Pune, Kochi, Lucknow) |
-| Hotel Rooms | 90+ room types across all hotels |
+| Hotels | 60+ across 12 cities (Mumbai, Delhi, Goa, Bangalore, Jaipur, Hyderabad, Chennai, Kolkata, Ahmedabad, Pune, Kochi, Lucknow) |
+| Hotel Rooms | 120+ room types across all hotels |
 | Buses | Deterministic mock — 10–22 results per route, route-specific durations, 14 operators |
 | Trains | Deterministic mock — 6–15 results per route, 39 named trains, route-specific durations & pricing |
 | Cabs | Deterministic mock — Ola, Uber, Meru, Zoom, distance-based pricing |
-| Coupons | 5 (SAVE100, FIRST10, SUMMER20, HOTEL500, FLAT15) |
-| Bookings | 3 sample bookings for john@example.com |
+| Coupons | 11 — SAVE100, FIRST10, SUMMER20, HOTEL500, FLAT15, FLYSAVER, FLYOFF200, FLYDEAL15, HOTELOFF15, STAYMORE, HOTELDEAL |
+| Bookings | 3 sample bookings for john@example.com (only seeded on fresh DB; real bookings preserved on restart) |
 
 ---
 
@@ -126,8 +127,9 @@ Frontend runs at `http://localhost:5173`
 | POST | /api/v1/payments/initiate | Yes |
 | POST | /api/v1/payments/verify | Yes |
 | GET | /api/v1/bookings | Yes |
-| DELETE | /api/v1/bookings/{id}/cancel | Yes |
+| POST | /api/v1/bookings/{id}/cancel | Yes |
 | GET | /api/v1/bookings/{id}/invoice | Yes |
+| POST | /api/v1/coupons/validate | No |
 | GET | /api/v1/users/profile | Yes |
 
 Full reference: [API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md)

@@ -12,20 +12,26 @@ public class BookingService : IBookingService
     private readonly IBookingRepository _bookings;
     private readonly IUserRepository _users;
     private readonly IFlightRepository _flights;
+    private readonly IHotelRepository _hotels;
     private readonly IInvoiceDocumentService _invoiceDocumentService;
+    private readonly IEmailService _email;
     private readonly IUnitOfWork _uow;
 
     public BookingService(
         IBookingRepository bookings,
         IUserRepository users,
         IFlightRepository flights,
+        IHotelRepository hotels,
         IInvoiceDocumentService invoiceDocumentService,
+        IEmailService email,
         IUnitOfWork uow)
     {
         _bookings = bookings;
         _users = users;
         _flights = flights;
+        _hotels = hotels;
         _invoiceDocumentService = invoiceDocumentService;
+        _email = email;
         _uow = uow;
     }
 
@@ -61,6 +67,10 @@ public class BookingService : IBookingService
             throw new UnauthorizedException("Access denied.");
 
         var dto = await ToDtoAsync(booking, ct);
+
+        if (booking.BookingType == BookingType.Hotel)
+            return (_invoiceDocumentService.GenerateHotelInvoicePdf(dto), $"{booking.BookingRef}-hotel-invoice.pdf");
+
         return (_invoiceDocumentService.GenerateBookingTicketPdf(dto), $"{booking.BookingRef}-e-ticket.pdf");
     }
 
@@ -83,6 +93,19 @@ public class BookingService : IBookingService
         await _bookings.UpdateAsync(booking, ct);
         await _uow.SaveChangesAsync(ct);
 
+        var user = await _users.GetByIdAsync(userId, ct);
+        if (user is not null)
+        {
+            var bookingType = booking.BookingType.ToString();
+            var toEmail = booking.BookingType == BookingType.Hotel && !string.IsNullOrWhiteSpace(booking.GuestEmail)
+                ? booking.GuestEmail
+                : user.Email;
+            var toName = booking.BookingType == BookingType.Hotel && !string.IsNullOrWhiteSpace(booking.GuestName)
+                ? booking.GuestName
+                : user.Name;
+            await _email.SendBookingCancellationAsync(toEmail, toName, booking.BookingRef, bookingType, refund, ct);
+        }
+
         return new CancelBookingResponse(bookingId, refund);
     }
 
@@ -90,9 +113,31 @@ public class BookingService : IBookingService
     {
         var user = await _users.GetByIdAsync(booking.UserId, ct);
         Flight? flight = null;
+        Hotel? hotel = null;
 
         if (booking.BookingType == BookingType.Flight)
             flight = await _flights.GetByIdAsync(booking.ReferenceId, ct);
+
+        if (booking.BookingType == BookingType.Hotel)
+            hotel = await _hotels.GetByIdAsync(booking.ReferenceId, ct);
+
+        // Derive hotel stay details
+        int? nights = null;
+        decimal? pricePerNight = null;
+        string? roomType = null;
+
+        if (hotel is not null && booking.CheckIn.HasValue && booking.CheckOut.HasValue)
+        {
+            nights = (booking.CheckOut.Value - booking.CheckIn.Value).Days;
+            if (nights > 0)
+                pricePerNight = booking.TotalAmount / nights.Value;
+
+            var matchedRoom = hotel.Rooms
+                .Where(r => r.IsActive)
+                .OrderBy(r => Math.Abs(r.PricePerNight - (pricePerNight ?? 0)))
+                .FirstOrDefault();
+            roomType = matchedRoom?.RoomType;
+        }
 
         return new BookingDto(
             booking.Id,
@@ -109,9 +154,9 @@ public class BookingService : IBookingService
             booking.CheckIn?.ToString("yyyy-MM-dd"),
             booking.CheckOut?.ToString("yyyy-MM-dd"),
             booking.CouponCode,
-            user?.Name,
-            user?.Email,
-            user?.Phone,
+            booking.GuestName ?? user?.Name,
+            booking.GuestEmail ?? user?.Email,
+            booking.GuestPhone ?? user?.Phone,
             flight?.Airline,
             flight?.FlightNumber,
             flight?.Source,
@@ -120,7 +165,14 @@ public class BookingService : IBookingService
             MapCityName(flight?.Destination),
             flight?.DepartureTime,
             flight?.ArrivalTime,
-            flight?.Duration
+            flight?.Duration,
+            hotel?.Name,
+            hotel?.Address,
+            hotel?.City,
+            hotel?.StarRating,
+            roomType,
+            pricePerNight,
+            nights
         );
     }
 

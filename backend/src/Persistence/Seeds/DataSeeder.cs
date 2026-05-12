@@ -68,21 +68,11 @@ public static class DataSeeder
 
     private static async Task SeedFlightsAsync(TravelPortDbContext context)
     {
-        // Always refresh flights so departure dates stay in the future
-        var existing = await context.Flights.ToListAsync();
-        if (existing.Any())
-        {
-            var ids = existing.Select(f => f.Id).ToHashSet();
-            var flightBookings = await context.Bookings
-                .Where(b => ids.Contains(b.ReferenceId) && b.BookingType == BookingType.Flight)
-                .ToListAsync();
-            context.Bookings.RemoveRange(flightBookings);
-            context.Flights.RemoveRange(existing);
-            await context.SaveChangesAsync();
-        }
+        // Return early if flights already exist — preserves flight IDs so user bookings stay valid.
+        // Dates may drift stale over time but that is acceptable for a demo environment.
+        if (await context.Flights.AnyAsync()) return;
 
-        var flights = BuildFlights();
-        context.Flights.AddRange(flights);
+        context.Flights.AddRange(BuildFlights());
     }
 
     // Route config: (origin, dest, durationMin, economyBase, businessBase?)
@@ -925,15 +915,28 @@ public static class DataSeeder
 
     private static async Task SeedCouponsAsync(TravelPortDbContext context)
     {
-        if (await context.Coupons.AnyAsync()) return;
+        var all = new[]
+        {
+            // Generic
+            new Coupon { Id = Guid.NewGuid(), Code = "SAVE100",    Type = CouponType.Fixed,      Value = 100, MinAmount = 1000,  UsageLimit = 1000, ExpiresAt = DateTime.UtcNow.AddMonths(3),  IsActive = true },
+            new Coupon { Id = Guid.NewGuid(), Code = "FIRST10",    Type = CouponType.Percentage,  Value = 10,  MinAmount = 500,   MaxDiscount = 500,  UsageLimit = 500,  ExpiresAt = DateTime.UtcNow.AddMonths(6),  IsActive = true },
+            new Coupon { Id = Guid.NewGuid(), Code = "SUMMER20",   Type = CouponType.Percentage,  Value = 20,  MinAmount = 2000,  MaxDiscount = 1000, UsageLimit = 200,  ExpiresAt = DateTime.UtcNow.AddMonths(2),  IsActive = true },
+            new Coupon { Id = Guid.NewGuid(), Code = "HOTEL500",   Type = CouponType.Fixed,       Value = 500, MinAmount = 3000,  UsageLimit = 300,   ExpiresAt = DateTime.UtcNow.AddMonths(4),  IsActive = true },
+            new Coupon { Id = Guid.NewGuid(), Code = "FLAT15",     Type = CouponType.Percentage,  Value = 15,  MinAmount = 1500,  MaxDiscount = 750,  UsageLimit = 400,  ExpiresAt = DateTime.UtcNow.AddMonths(5),  IsActive = true },
+            // Flight-specific
+            new Coupon { Id = Guid.NewGuid(), Code = "FLYSAVER",   Type = CouponType.Percentage,  Value = 10,  MinAmount = 500,   MaxDiscount = 800,  UsageLimit = 1000, ExpiresAt = DateTime.UtcNow.AddMonths(6),  IsActive = true },
+            new Coupon { Id = Guid.NewGuid(), Code = "FLYOFF200",  Type = CouponType.Fixed,       Value = 200, MinAmount = 2000,  UsageLimit = 500,   ExpiresAt = DateTime.UtcNow.AddMonths(4),  IsActive = true },
+            new Coupon { Id = Guid.NewGuid(), Code = "FLYDEAL15",  Type = CouponType.Percentage,  Value = 15,  MinAmount = 3000,  MaxDiscount = 1500, UsageLimit = 300,  ExpiresAt = DateTime.UtcNow.AddMonths(3),  IsActive = true },
+            // Hotel-specific
+            new Coupon { Id = Guid.NewGuid(), Code = "HOTELOFF15", Type = CouponType.Percentage,  Value = 15,  MinAmount = 3000,  MaxDiscount = 1500, UsageLimit = 300,  ExpiresAt = DateTime.UtcNow.AddMonths(6),  IsActive = true },
+            new Coupon { Id = Guid.NewGuid(), Code = "STAYMORE",   Type = CouponType.Fixed,       Value = 750, MinAmount = 5000,  UsageLimit = 200,   ExpiresAt = DateTime.UtcNow.AddMonths(4),  IsActive = true },
+            new Coupon { Id = Guid.NewGuid(), Code = "HOTELDEAL",  Type = CouponType.Percentage,  Value = 12,  MinAmount = 2000,  MaxDiscount = 1000, UsageLimit = 500,  ExpiresAt = DateTime.UtcNow.AddMonths(5),  IsActive = true },
+        };
 
-        context.Coupons.AddRange(
-            new Coupon { Id = Guid.NewGuid(), Code = "SAVE100",  Type = CouponType.Fixed,      Value = 100, MinAmount = 1000,  UsageLimit = 1000, ExpiresAt = DateTime.UtcNow.AddMonths(3),  IsActive = true },
-            new Coupon { Id = Guid.NewGuid(), Code = "FIRST10",  Type = CouponType.Percentage,  Value = 10,  MinAmount = 500,   MaxDiscount = 500,  UsageLimit = 500,  ExpiresAt = DateTime.UtcNow.AddMonths(6),  IsActive = true },
-            new Coupon { Id = Guid.NewGuid(), Code = "SUMMER20", Type = CouponType.Percentage,  Value = 20,  MinAmount = 2000,  MaxDiscount = 1000, UsageLimit = 200,  ExpiresAt = DateTime.UtcNow.AddMonths(2),  IsActive = true },
-            new Coupon { Id = Guid.NewGuid(), Code = "HOTEL500", Type = CouponType.Fixed,       Value = 500, MinAmount = 3000,  UsageLimit = 300,   ExpiresAt = DateTime.UtcNow.AddMonths(4),  IsActive = true },
-            new Coupon { Id = Guid.NewGuid(), Code = "FLAT15",   Type = CouponType.Percentage,  Value = 15,  MinAmount = 1500,  MaxDiscount = 750,  UsageLimit = 400,  ExpiresAt = DateTime.UtcNow.AddMonths(5),  IsActive = true }
-        );
+        var existing = await context.Coupons.Select(c => c.Code).ToListAsync();
+        var toAdd = all.Where(c => !existing.Contains(c.Code)).ToList();
+        if (toAdd.Count > 0)
+            context.Coupons.AddRange(toAdd);
     }
 
     // ── Bookings ─────────────────────────────────────────────────────────────
@@ -949,10 +952,8 @@ public static class DataSeeder
         var room = hotel.Rooms.FirstOrDefault();
         if (room == null) return;
 
-        // Always refresh john's bookings — flights are re-seeded every restart so old ReferenceIds become stale
-        var staleBookings = await context.Bookings.Where(b => b.UserId == john.Id).ToListAsync();
-        context.Bookings.RemoveRange(staleBookings);
-        await context.SaveChangesAsync();
+        // Only seed sample bookings when John has none — preserves real bookings created during testing
+        if (await context.Bookings.AnyAsync(b => b.UserId == john.Id)) return;
 
         context.Bookings.AddRange(
             new Booking

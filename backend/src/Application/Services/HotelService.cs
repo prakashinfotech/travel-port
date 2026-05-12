@@ -16,10 +16,13 @@ public class HotelService : IHotelService
     private readonly ICacheService _cache;
     private readonly IUnitOfWork _uow;
     private readonly ICouponRepository _coupons;
+    private readonly IUserRepository _users;
+    private readonly IEmailService _email;
     private readonly IExternalHotelProvider? _externalProvider;
 
     public HotelService(IHotelRepository hotels, IBookingRepository bookings,
         IWalletService wallet, ICacheService cache, IUnitOfWork uow, ICouponRepository coupons,
+        IUserRepository users, IEmailService email,
         IExternalHotelProvider? externalProvider = null)
     {
         _hotels = hotels;
@@ -28,6 +31,8 @@ public class HotelService : IHotelService
         _cache = cache;
         _uow = uow;
         _coupons = coupons;
+        _users = users;
+        _email = email;
         _externalProvider = externalProvider;
     }
 
@@ -121,7 +126,7 @@ public class HotelService : IHotelService
             referenceId = req.HotelId;
         }
 
-        var bookingRef = await _bookings.GenerateBookingRefAsync(ct);
+        var bookingRef = await _bookings.GenerateBookingRefAsync("HT", ct);
 
         // Apply coupon discount
         decimal discount = 0;
@@ -161,13 +166,45 @@ public class HotelService : IHotelService
             TotalAmount    = total,
             DiscountAmount = discount,
             FinalAmount    = finalAmount,
-            Status         = BookingStatus.Confirmed
+            Status         = BookingStatus.Confirmed,
+            GuestName      = req.GuestName,
+            GuestEmail     = req.GuestEmail,
+            GuestPhone     = req.GuestPhone,
         };
 
         await _bookings.AddAsync(booking, ct);
         await _uow.SaveChangesAsync(ct);
 
+        var user = await _users.GetByIdAsync(userId, ct);
+        if (user is not null)
+        {
+            var guestName  = req.GuestName ?? user.Name;
+            var guestEmail = req.GuestEmail ?? user.Email;
+            var details    = BuildConfirmationDetails(req, hotel, nights, total, discount, finalAmount);
+            await _email.SendBookingConfirmationAsync(guestEmail, guestName, booking.BookingRef, details, ct);
+        }
+
         return new BookingCreatedResponse(booking.Id, booking.BookingRef, booking.TotalAmount, booking.Status);
+    }
+
+    private static string BuildConfirmationDetails(
+        DTOs.Hotels.BookHotelRequest req, Domain.Entities.Hotel? hotel,
+        int nights, decimal total, decimal discount, decimal finalAmount)
+    {
+        var hotelName = hotel?.Name ?? req.HotelId.ToString();
+        var roomType  = hotel?.Rooms.FirstOrDefault(r => r.Id == req.RoomId)?.RoomType ?? "Room";
+        var lines = new System.Text.StringBuilder();
+        lines.AppendLine($"Hotel    : {hotelName}");
+        lines.AppendLine($"Room     : {roomType}");
+        lines.AppendLine($"Check-in : {req.CheckIn}");
+        lines.AppendLine($"Check-out: {req.CheckOut}");
+        lines.AppendLine($"Nights   : {nights}");
+        lines.AppendLine($"Guests   : {req.Guests}");
+        lines.AppendLine();
+        lines.AppendLine($"Room Total : Rs.{total:0}");
+        if (discount > 0) lines.AppendLine($"Discount   : -Rs.{discount:0}");
+        lines.AppendLine($"Amount Paid: Rs.{finalAmount:0}");
+        return lines.ToString();
     }
 
     private async Task<List<HotelDto>> SearchDbAsync(HotelSearchRequest req, CancellationToken ct)

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Plane, Hotel, Car, Train, Bus, Search, ArrowLeftRight,
+  Plane, Hotel, Search, ArrowLeftRight,
   ChevronDown, ChevronUp, Clock, MapPin, TrendingUp,
   Shield, HeadphonesIcon, Tag, BadgePercent, Zap, X
 } from 'lucide-react'
@@ -9,7 +9,6 @@ import { AirportSearch } from '@/components/search/AirportSearch'
 import { TravellerSelector, type TravellerConfig } from '@/components/search/TravellerSelector'
 import { AuthModal } from '@/components/home/AuthModal'
 
-type MainTab = 'flights' | 'hotels' | 'cabs' | 'trains' | 'buses'
 type TripType = 'oneway' | 'roundtrip' | 'multicity'
 type OfferFilter = 'All' | 'Bank Offers' | 'Flights' | 'Hotels' | 'Cabs' | 'Trains'
 
@@ -68,17 +67,10 @@ function removeRecentSearch(label: string) {
   localStorage.setItem(RECENT_KEY, JSON.stringify(updated))
 }
 
-const HERO_THEME: Record<MainTab, { from: string; to: string; accent: string }> = {
-  flights: { from: '#1a56db', to: '#1e3a8a', accent: '#f97316' },
-  hotels:  { from: '#ea580c', to: '#9a3412', accent: '#fbbf24' },
-  cabs:    { from: '#059669', to: '#064e3b', accent: '#34d399' },
-  trains:  { from: '#7c3aed', to: '#4c1d95', accent: '#a78bfa' },
-  buses:   { from: '#0891b2', to: '#0c4a6e', accent: '#38bdf8' },
-}
+const HERO_THEME = { from: '#1a56db', to: '#1e3a8a', accent: '#f97316' }
 
 export default function HomePage() {
   const navigate = useNavigate()
-  const [mainTab, setMainTab] = useState<MainTab>('flights')
   const [tripType, setTripType] = useState<TripType>('oneway')
   const [offerFilter, setOfferFilter] = useState<OfferFilter>('All')
   const [openFaq, setOpenFaq] = useState<number | null>(null)
@@ -93,32 +85,8 @@ export default function HomePage() {
   const [returnDate, setReturnDate] = useState('')
   const [travellers, setTravellers] = useState<TravellerConfig>({ adults: 1, children: 0, infants: 0, cabinClass: 'Economy' })
 
-  // Hotel state
-  const [city, setCity] = useState('')
-  const [checkIn, setCheckIn] = useState('')
-  const [checkOut, setCheckOut] = useState('')
-  const [guests, setGuests] = useState(1)
-  const [rooms, setRooms] = useState(1)
 
-  // Bus state
-  const [busOrigin, setBusOrigin] = useState('')
-  const [busDestination, setBusDestination] = useState('')
-  const [busDate, setBusDate] = useState('')
-  const [busSeats, setBusSeats] = useState(1)
-
-  // Train state
-  const [trainOrigin, setTrainOrigin] = useState('')
-  const [trainDestination, setTrainDestination] = useState('')
-  const [trainDate, setTrainDate] = useState('')
-  const [trainPassengers, setTrainPassengers] = useState(1)
-
-  // Cab state
-  const [cabOrigin, setCabOrigin] = useState('')
-  const [cabDestination, setCabDestination] = useState('')
-  const [cabPickup, setCabPickup] = useState('')
-  const [cabTripType, setCabTripType] = useState('OneWay')
-
-  const theme = HERO_THEME[mainTab]
+  const theme = HERO_THEME
 
   const swapCities = () => {
     setOrigin(destination); setOriginCity(destinationCity)
@@ -142,18 +110,7 @@ export default function HomePage() {
     navigate(href)
   }
 
-  const handleHotelSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!city || !checkIn || !checkOut) return
-    const href = `/hotels?${new URLSearchParams({ city, checkIn, checkOut, guests: String(guests), rooms: String(rooms) })}`
-    saveRecentSearch({ type: 'hotel', label: city, sub: `${checkIn} – ${checkOut} · ${guests} Guest${guests !== 1 ? 's' : ''} · ${rooms} Room${rooms !== 1 ? 's' : ''}`, href })
-    setRecentSearches(getRecentSearches())
-    navigate(href)
-  }
-
   const filteredOffers = offerFilter === 'All' ? OFFERS : OFFERS.filter(o => o.category === offerFilter)
-
-  const TabIcon: Record<MainTab, React.ElementType> = { flights: Plane, hotels: Hotel, cabs: Car, trains: Train, buses: Bus }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -166,28 +123,9 @@ export default function HomePage() {
       >
         <div className="mx-auto max-w-7xl px-4 pt-10 pb-20 sm:px-6 lg:px-8">
 
-          {/* Main mode tabs */}
-          <div className="flex gap-1 mb-8 overflow-x-auto pb-1">
-            {(Object.keys(HERO_THEME) as MainTab[]).map(t => {
-              const Icon = TabIcon[t]
-              return (
-                <button
-                  key={t}
-                  onClick={() => setMainTab(t)}
-                  className={[
-                    'flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold whitespace-nowrap transition-all capitalize',
-                    mainTab === t ? 'bg-white text-gray-900 shadow-lg' : 'text-white/80 hover:text-white hover:bg-white/10',
-                  ].join(' ')}
-                >
-                  <Icon className="h-4 w-4" /> {t}
-                </button>
-              )
-            })}
-          </div>
 
           {/* ── FLIGHT SEARCH ── */}
-          {mainTab === 'flights' && (
-            <div>
+          <div>
               {/* Trip type */}
               <div className="flex gap-4 mb-4">
                 {([['oneway', 'One Way'], ['roundtrip', 'Round Trip'], ['multicity', 'Multi City']] as [TripType, string][]).map(([v, lbl]) => (
@@ -283,201 +221,7 @@ export default function HomePage() {
                 </div>
               </form>
             </div>
-          )}
 
-          {/* ── HOTEL SEARCH ── */}
-          {mainTab === 'hotels' && (
-            <form onSubmit={handleHotelSearch}>
-              <div className="bg-white rounded-2xl shadow-2xl p-4">
-                <div className="flex flex-wrap gap-0 divide-x divide-gray-200">
-                  <div className="flex-1 min-w-[180px] px-4 py-2">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">City / Destination</label>
-                    <div className="flex items-center gap-2 border-b-2 border-gray-300 focus-within:border-orange-500 pb-1">
-                      <MapPin className="h-4 w-4 text-gray-400" />
-                      <input
-                        type="text"
-                        value={city}
-                        onChange={e => setCity(e.target.value)}
-                        placeholder="Where do you want to stay?"
-                        className="w-full bg-transparent text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-[130px] px-4 py-2">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Check-in</label>
-                    <input type="date" value={checkIn} min={TODAY} onChange={e => setCheckIn(e.target.value)}
-                      className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none border-b-2 border-gray-300 focus:border-orange-500 pb-1" required />
-                  </div>
-                  <div className="flex-1 min-w-[130px] px-4 py-2">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Check-out</label>
-                    <input type="date" value={checkOut} min={checkIn || TODAY} onChange={e => setCheckOut(e.target.value)}
-                      className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none border-b-2 border-gray-300 focus:border-orange-500 pb-1" required />
-                  </div>
-                  <div className="flex-1 min-w-[130px] px-4 py-2">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Rooms & Guests</label>
-                    <div className="flex items-center gap-3 border-b-2 border-gray-300 focus-within:border-orange-500 pb-1">
-                      <div className="flex items-center gap-1 text-sm">
-                        <span className="text-gray-500 text-xs">Rooms:</span>
-                        <button type="button" onClick={() => setRooms(Math.max(1, rooms - 1))} className="text-gray-500 hover:text-orange-600 font-bold px-1">−</button>
-                        <span className="font-semibold text-gray-900 w-4 text-center">{rooms}</span>
-                        <button type="button" onClick={() => setRooms(rooms + 1)} className="text-gray-500 hover:text-orange-600 font-bold px-1">+</button>
-                      </div>
-                      <div className="flex items-center gap-1 text-sm">
-                        <span className="text-gray-500 text-xs">Guests:</span>
-                        <button type="button" onClick={() => setGuests(Math.max(1, guests - 1))} className="text-gray-500 hover:text-orange-600 font-bold px-1">−</button>
-                        <span className="font-semibold text-gray-900 w-4 text-center">{guests}</span>
-                        <button type="button" onClick={() => setGuests(guests + 1)} className="text-gray-500 hover:text-orange-600 font-bold px-1">+</button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 flex justify-center">
-                  <button type="submit" className="flex items-center gap-2 rounded-full bg-orange-500 hover:bg-orange-600 px-10 py-3 font-bold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-100">
-                    <Search className="h-5 w-5" /> Search Hotels
-                  </button>
-                </div>
-              </div>
-            </form>
-          )}
-
-          {/* ── BUS SEARCH ── */}
-          {mainTab === 'buses' && (
-            <form onSubmit={e => {
-              e.preventDefault()
-              if (!busOrigin || !busDestination || !busDate) return
-              const href = `/buses?${new URLSearchParams({ origin: busOrigin, destination: busDestination, date: busDate, seats: String(busSeats) })}`
-              saveRecentSearch({ type: 'bus', label: `${busOrigin} → ${busDestination}`, sub: `${busDate} · ${busSeats} Seat${busSeats !== 1 ? 's' : ''}`, href })
-              setRecentSearches(getRecentSearches())
-              navigate(href)
-            }}>
-              <div className="bg-white rounded-2xl shadow-2xl p-4">
-                <div className="flex flex-wrap gap-0 divide-x divide-gray-200">
-                  <div className="flex-1 min-w-[160px] px-4 py-2">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">From</label>
-                    <input value={busOrigin} onChange={e => setBusOrigin(e.target.value)} placeholder="Departure city"
-                      className="w-full bg-transparent text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none border-b-2 border-gray-300 focus:border-cyan-600 pb-1" required />
-                  </div>
-                  <div className="flex-1 min-w-[160px] px-4 py-2">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">To</label>
-                    <input value={busDestination} onChange={e => setBusDestination(e.target.value)} placeholder="Arrival city"
-                      className="w-full bg-transparent text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none border-b-2 border-gray-300 focus:border-cyan-600 pb-1" required />
-                  </div>
-                  <div className="flex-1 min-w-[130px] px-4 py-2">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Date of Journey</label>
-                    <input type="date" value={busDate} min={TODAY} onChange={e => setBusDate(e.target.value)}
-                      className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none border-b-2 border-gray-300 focus:border-cyan-600 pb-1" required />
-                  </div>
-                  <div className="flex-1 min-w-[130px] px-4 py-2">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Seats</label>
-                    <div className="flex items-center gap-2 border-b-2 border-gray-300 focus-within:border-cyan-600 pb-1">
-                      <button type="button" onClick={() => setBusSeats(Math.max(1, busSeats - 1))} className="text-gray-500 hover:text-cyan-600 font-bold px-1">−</button>
-                      <span className="font-semibold text-gray-900 w-4 text-center">{busSeats}</span>
-                      <button type="button" onClick={() => setBusSeats(Math.min(10, busSeats + 1))} className="text-gray-500 hover:text-cyan-600 font-bold px-1">+</button>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 flex justify-center">
-                  <button type="submit" className="flex items-center gap-2 rounded-full px-10 py-3 font-bold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-100"
-                    style={{ background: `linear-gradient(90deg, ${theme.from}, ${theme.accent})` }}>
-                    <Search className="h-5 w-5" /> Search Buses
-                  </button>
-                </div>
-              </div>
-            </form>
-          )}
-
-          {/* ── TRAIN SEARCH ── */}
-          {mainTab === 'trains' && (
-            <form onSubmit={e => {
-              e.preventDefault()
-              if (!trainOrigin || !trainDestination || !trainDate) return
-              const href = `/trains?${new URLSearchParams({ origin: trainOrigin, destination: trainDestination, date: trainDate, passengers: String(trainPassengers) })}`
-              saveRecentSearch({ type: 'train', label: `${trainOrigin} → ${trainDestination}`, sub: `${trainDate} · ${trainPassengers} Passenger${trainPassengers !== 1 ? 's' : ''}`, href })
-              setRecentSearches(getRecentSearches())
-              navigate(href)
-            }}>
-              <div className="bg-white rounded-2xl shadow-2xl p-4">
-                <div className="flex flex-wrap gap-0 divide-x divide-gray-200">
-                  <div className="flex-1 min-w-[160px] px-4 py-2">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">From Station</label>
-                    <input value={trainOrigin} onChange={e => setTrainOrigin(e.target.value)} placeholder="Departure city"
-                      className="w-full bg-transparent text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none border-b-2 border-gray-300 focus:border-purple-600 pb-1" required />
-                  </div>
-                  <div className="flex-1 min-w-[160px] px-4 py-2">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">To Station</label>
-                    <input value={trainDestination} onChange={e => setTrainDestination(e.target.value)} placeholder="Arrival city"
-                      className="w-full bg-transparent text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none border-b-2 border-gray-300 focus:border-purple-600 pb-1" required />
-                  </div>
-                  <div className="flex-1 min-w-[130px] px-4 py-2">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Date of Journey</label>
-                    <input type="date" value={trainDate} min={TODAY} onChange={e => setTrainDate(e.target.value)}
-                      className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none border-b-2 border-gray-300 focus:border-purple-600 pb-1" required />
-                  </div>
-                  <div className="flex-1 min-w-[130px] px-4 py-2">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Passengers</label>
-                    <div className="flex items-center gap-2 border-b-2 border-gray-300 focus-within:border-purple-600 pb-1">
-                      <button type="button" onClick={() => setTrainPassengers(Math.max(1, trainPassengers - 1))} className="text-gray-500 hover:text-purple-600 font-bold px-1">−</button>
-                      <span className="font-semibold text-gray-900 w-4 text-center">{trainPassengers}</span>
-                      <button type="button" onClick={() => setTrainPassengers(Math.min(6, trainPassengers + 1))} className="text-gray-500 hover:text-purple-600 font-bold px-1">+</button>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 flex justify-center">
-                  <button type="submit" className="flex items-center gap-2 rounded-full px-10 py-3 font-bold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-100"
-                    style={{ background: `linear-gradient(90deg, ${theme.from}, ${theme.accent})` }}>
-                    <Search className="h-5 w-5" /> Search Trains
-                  </button>
-                </div>
-              </div>
-            </form>
-          )}
-
-          {/* ── CAB SEARCH ── */}
-          {mainTab === 'cabs' && (
-            <form onSubmit={e => {
-              e.preventDefault()
-              if (!cabOrigin || !cabDestination || !cabPickup) return
-              const href = `/cabs?${new URLSearchParams({ origin: cabOrigin, destination: cabDestination, pickup: cabPickup, tripType: cabTripType })}`
-              saveRecentSearch({ type: 'cab', label: `${cabOrigin} → ${cabDestination}`, sub: `${cabTripType} · ${new Date(cabPickup).toLocaleDateString('en-IN')}`, href })
-              setRecentSearches(getRecentSearches())
-              navigate(href)
-            }}>
-              <div className="bg-white rounded-2xl shadow-2xl p-4">
-                <div className="flex gap-3 mb-4">
-                  {['OneWay', 'RoundTrip', 'Outstation', 'Local'].map(t => (
-                    <label key={t} className="flex items-center gap-2 cursor-pointer text-sm font-medium text-white">
-                      <input type="radio" name="cabTripType" value={t} checked={cabTripType === t} onChange={() => setCabTripType(t)} className="accent-white" />
-                      {t === 'OneWay' ? 'One Way' : t === 'RoundTrip' ? 'Round Trip' : t}
-                    </label>
-                  ))}
-                </div>
-                <div className="flex flex-wrap gap-0 divide-x divide-gray-200">
-                  <div className="flex-1 min-w-[160px] px-4 py-2">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Pickup Location</label>
-                    <input value={cabOrigin} onChange={e => setCabOrigin(e.target.value)} placeholder="City or area"
-                      className="w-full bg-transparent text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none border-b-2 border-gray-300 focus:border-green-600 pb-1" required />
-                  </div>
-                  <div className="flex-1 min-w-[160px] px-4 py-2">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Drop Location</label>
-                    <input value={cabDestination} onChange={e => setCabDestination(e.target.value)} placeholder="City or area"
-                      className="w-full bg-transparent text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none border-b-2 border-gray-300 focus:border-green-600 pb-1" required />
-                  </div>
-                  <div className="flex-1 min-w-[180px] px-4 py-2">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Pickup Date & Time</label>
-                    <input type="datetime-local" value={cabPickup} onChange={e => setCabPickup(e.target.value)}
-                      className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none border-b-2 border-gray-300 focus:border-green-600 pb-1" required />
-                  </div>
-                </div>
-                <div className="mt-4 flex justify-center">
-                  <button type="submit" className="flex items-center gap-2 rounded-full px-10 py-3 font-bold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-100"
-                    style={{ background: `linear-gradient(90deg, ${theme.from}, ${theme.accent})` }}>
-                    <Search className="h-5 w-5" /> Search Cabs
-                  </button>
-                </div>
-              </div>
-            </form>
-          )}
         </div>
       </section>
 

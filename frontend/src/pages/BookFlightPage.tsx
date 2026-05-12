@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { AlertCircle, ArrowLeft, BriefcaseBusiness, ChevronRight, Luggage, Mail, Phone, Plane, ShieldAlert, Tag, TicketPercent, UserRound } from 'lucide-react'
+import { AlertCircle, ArrowLeft, BriefcaseBusiness, ChevronRight, Luggage, Mail, Phone, Plane, ShieldAlert, Tag, TicketPercent, UserRound, X } from 'lucide-react'
 import type { FlightDto } from '@/types'
 import { flightService } from '@/services/flightService'
 import { api } from '@/api/axios'
@@ -127,12 +127,15 @@ export default function BookFlightPage() {
   const [couponApplied, setCouponApplied] = useState(false)
   const [couponError, setCouponError] = useState('')
   const [couponLoading, setCouponLoading] = useState(false)
+  const [includeContribution, setIncludeContribution] = useState(false)
   const [mobile, setMobile] = useState('')
   const [email, setEmail] = useState(authUser?.email ?? '')
   const [countryCode, setCountryCode] = useState('India (+91)')
   const [gstNumber, setGstNumber] = useState('')
   const [hasGst, setHasGst] = useState(false)
   const [travellers, setTravellers] = useState<TravellerForm[]>(createTravellers(requestedPassengers))
+  const [showFareRules, setShowFareRules] = useState(false)
+  const [showContributionInfo, setShowContributionInfo] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -156,7 +159,10 @@ export default function BookFlightPage() {
   const farePerAdult = flight ? Math.round(flight.price * selectedFare.multiplier) : 0
   const baseFare = flight ? Math.round(flight.price * 0.61) : 0
   const taxesAndSurcharges = Math.max(0, farePerAdult - baseFare)
-  const totalAmount = Math.max(0, farePerAdult * seatCount - couponDiscount)
+  const contributionAmount = includeContribution ? 10 : 0
+  const discountedFareAmount = Math.max(0, farePerAdult * seatCount - couponDiscount)
+  const totalAmount = discountedFareAmount + contributionAmount
+  const cancellationPenaltyAmount = discountedFareAmount
 
   const dep = flight ? new Date(flight.departureTime) : null
   const arr = flight ? new Date(flight.arrivalTime) : null
@@ -199,6 +205,13 @@ export default function BookFlightPage() {
     } finally {
       setCouponLoading(false)
     }
+  }
+
+  const removeCoupon = () => {
+    setCouponCode('')
+    setCouponDiscount(0)
+    setCouponApplied(false)
+    setCouponError('')
   }
 
   const validateForm = () => {
@@ -302,7 +315,7 @@ export default function BookFlightPage() {
                   <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${selectedFare.id === 'max' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
                     {selectedFare.refundableLabel}
                   </span>
-                  <button className="mt-3 block text-sm font-medium text-blue-600 hover:underline">View Fare Rules</button>
+                  <button type="button" onClick={() => setShowFareRules(true)} className="mt-3 block text-sm font-medium text-blue-600 hover:underline">View Fare Rules</button>
                 </div>
               </div>
 
@@ -364,7 +377,6 @@ export default function BookFlightPage() {
 
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm">
                   <span className="font-medium text-emerald-800">Got excess baggage? Add check-in baggage allowance for {routeCode} at fab rates!</span>
-                  <button className="font-bold text-blue-600 hover:underline">+ ADD BAGGAGE</button>
                 </div>
               </div>
             </section>
@@ -375,7 +387,7 @@ export default function BookFlightPage() {
                   <h2 className="text-2xl font-extrabold text-gray-900">{selectedFare.policyTitle}</h2>
                   <p className="mt-1 text-sm text-gray-500">{selectedFare.policyDescription}</p>
                 </div>
-                <button className="text-sm font-medium text-blue-600 hover:underline">View Policy</button>
+                <button type="button" onClick={() => setShowFareRules(true)} className="text-sm font-medium text-blue-600 hover:underline">View Policy</button>
               </div>
 
               <div className="mt-5 rounded-2xl bg-slate-50 p-5">
@@ -389,7 +401,7 @@ export default function BookFlightPage() {
                   </div>
                 </div>
                 <div className="mt-6 text-center">
-                  <p className="text-4xl font-black text-gray-900">{formatCurrency(farePerAdult)}</p>
+                  <p className="text-4xl font-black text-gray-900">{formatCurrency(cancellationPenaltyAmount)}</p>
                   <div className="mt-4 h-1 rounded-full bg-rose-400" />
                   <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
                     <span>Cancel Between (IST): Now</span>
@@ -495,7 +507,26 @@ export default function BookFlightPage() {
                       <Tag className="h-4 w-4" />
                       <span>Coupon ({couponCode})</span>
                     </div>
-                    <span className="font-semibold">- {formatCurrency(couponDiscount)}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">- {formatCurrency(couponDiscount)}</span>
+                      <button
+                        type="button"
+                        onClick={removeCoupon}
+                        className="rounded-full p-0.5 text-emerald-700 transition hover:bg-emerald-100"
+                        aria-label="Remove coupon"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {includeContribution && (
+                  <div className="flex items-center justify-between gap-3 text-gray-700">
+                    <div className="flex items-center gap-2">
+                      <BriefcaseBusiness className="h-4 w-4 text-emerald-700" />
+                      <span>Green Contribution</span>
+                    </div>
+                    <span className="font-semibold text-gray-900">{formatCurrency(contributionAmount)}</span>
                   </div>
                 )}
                 <div className="border-t border-gray-200 pt-4">
@@ -508,16 +539,32 @@ export default function BookFlightPage() {
             </section>
 
             <section className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-              <div className="flex items-start gap-3">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={includeContribution}
+                  onChange={e => setIncludeContribution(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-gray-300 accent-emerald-600"
+                />
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
                   <BriefcaseBusiness className="h-5 w-5" />
                 </div>
                 <div>
                   <p className="font-bold text-gray-900">Tap to contribute ₹ 10</p>
                   <p className="text-sm text-gray-500">towards plantation of 4 million trees</p>
-                  <button className="mt-2 text-sm font-semibold text-blue-600 hover:underline">Know More</button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setShowContributionInfo(true)
+                    }}
+                    className="mt-2 text-sm font-semibold text-blue-600 hover:underline"
+                  >
+                    Know More
+                  </button>
                 </div>
-              </div>
+              </label>
             </section>
 
             <section className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -546,31 +593,44 @@ export default function BookFlightPage() {
                 </Button>
               </div>
               {couponApplied && (
-                <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-emerald-700">
-                  <Tag className="h-4 w-4" /> {formatCurrency(couponDiscount)} discount applied!
+                <div className="mt-2 flex items-center justify-between gap-2 text-sm font-semibold text-emerald-700">
+                  <span className="flex items-center gap-2">
+                    <Tag className="h-4 w-4" /> {formatCurrency(couponDiscount)} discount applied!
+                  </span>
+                  <button
+                    type="button"
+                    onClick={removeCoupon}
+                    className="rounded-full p-0.5 text-emerald-700 transition hover:bg-emerald-100"
+                    aria-label="Remove coupon"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
               )}
               {couponError && (
                 <p className="mt-2 text-sm text-red-600">{couponError}</p>
               )}
 
-              <div className="mt-5 grid grid-cols-3 gap-2 text-sm">
-                <button className="rounded-lg border border-blue-500 bg-blue-50 px-3 py-2 font-semibold text-blue-600">All</button>
-                <button className="rounded-lg border border-gray-200 px-3 py-2 text-gray-600">Bank</button>
-                <button className="rounded-lg border border-gray-200 px-3 py-2 text-gray-600">Add-ons</button>
-              </div>
-
-              <div className="mt-5 rounded-2xl border border-gray-200 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-bold text-gray-900">DEALPANTI</p>
-                    <p className="mt-1 text-sm text-gray-500">Get ₹ 484 Instant Discount on your flight booking</p>
+              <div className="mt-4 space-y-3">
+                {[
+                  { code: 'FLYSAVER',  label: '10% off flights',       desc: '10% instant discount. Min booking Rs.500. Max Rs.800 off.' },
+                  { code: 'FLYOFF200', label: 'Rs.200 flat off',        desc: 'Flat Rs.200 off on flight bookings above Rs.2000.' },
+                  { code: 'FLYDEAL15', label: '15% off on big fares',   desc: '15% off on fares above Rs.3000. Max Rs.1500 discount.' },
+                ].map(offer => (
+                  <div key={offer.code} className="flex items-center justify-between rounded-xl border border-dashed border-orange-200 bg-orange-50 px-4 py-3">
+                    <div>
+                      <p className="font-bold text-gray-900 text-sm">{offer.code}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{offer.desc}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { setCouponCode(offer.code); setCouponApplied(false); setCouponDiscount(0); setCouponError('') }}
+                      className="ml-3 flex-shrink-0 text-xs font-bold text-orange-600 hover:underline"
+                    >
+                      Apply
+                    </button>
                   </div>
-                  <span className="font-bold text-emerald-600">₹ 484 off</span>
-                </div>
-                <button type="button" onClick={() => { setCouponCode('DEALPANTI'); setCouponApplied(false); setCouponDiscount(0); setCouponError('') }} className="mt-4 text-sm font-bold text-blue-600 hover:underline">
-                  Apply
-                </button>
+                ))}
               </div>
             </section>
 
@@ -604,6 +664,57 @@ export default function BookFlightPage() {
           </aside>
         </div>
       </div>
+
+      {showFareRules && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4">
+          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-xl font-extrabold text-gray-900">View Fare Rules</h3>
+                <p className="mt-1 text-sm text-gray-500">{selectedFare.fareClassLabel}</p>
+              </div>
+              <button type="button" onClick={() => setShowFareRules(false)} className="rounded-full p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="mt-5 space-y-4 text-sm text-gray-600">
+              <div className="rounded-2xl bg-gray-50 p-4">
+                <p className="font-semibold text-gray-900">Cancellation</p>
+                <p className="mt-1">Cancellation charges can go up to the paid fare shown on this page, depending on when the booking is cancelled.</p>
+              </div>
+              <div className="rounded-2xl bg-gray-50 p-4">
+                <p className="font-semibold text-gray-900">Date Changes</p>
+                <p className="mt-1">Airline reschedule and date-change penalties vary by fare plan and are applied along with any fare difference.</p>
+              </div>
+              <div className="rounded-2xl bg-gray-50 p-4">
+                <p className="font-semibold text-gray-900">Baggage & Benefits</p>
+                <p className="mt-1">Baggage allowance and flexibility benefits are based on the selected fare plan and airline rules at the time of travel.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showContributionInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-xl font-extrabold text-gray-900">About This Contribution</h3>
+                <p className="mt-1 text-sm text-gray-500">Optional green contribution</p>
+              </div>
+              <button type="button" onClick={() => setShowContributionInfo(false)} className="rounded-full p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="mt-5 space-y-3 text-sm text-gray-600">
+              <p>Your optional ₹ 10 contribution is added to the booking total and is shown separately in the fare summary.</p>
+              <p>This amount is intended for sustainability initiatives such as tree plantation and related environmental programs.</p>
+              <p>The contribution is optional and can be turned on or off before booking.</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -110,6 +110,15 @@ namespace TravelPort.Persistence.Migrations
                     b.Property<decimal>("FinalAmount")
                         .HasColumnType("decimal(10,2)");
 
+                    b.Property<string>("GuestEmail")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("GuestName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("GuestPhone")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int?>("Passengers")
                         .HasColumnType("int");
 

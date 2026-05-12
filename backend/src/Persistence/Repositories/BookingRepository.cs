@@ -27,10 +27,10 @@ public class BookingRepository : BaseRepository<Booking>, IBookingRepository
             .Where(b => b.Status == status)
             .ToListAsync(cancellationToken);
 
-    public async Task<string> GenerateBookingRefAsync(CancellationToken cancellationToken = default)
+    public async Task<string> GenerateBookingRefAsync(string prefix = "TP", CancellationToken cancellationToken = default)
     {
         var year = DateTime.UtcNow.Year;
         var count = await _dbSet.CountAsync(cancellationToken);
-        return $"TP{year}{(count + 1):D6}";
+        return $"{prefix}{year}{(count + 1):D6}";
     }
 }
