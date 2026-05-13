@@ -11,6 +11,7 @@
 
 TravelPort is a comprehensive travel booking portal inspired by Goibibo, offering:
 - ✈️ Flight Search & Booking
+- 📅 Lowest-price flight date strip and monthly fare calendar
 - 🏨 Hotel Search & Booking
 - 🚌 Bus Booking
 - 🚂 Train Booking
