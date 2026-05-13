@@ -229,23 +229,52 @@
 | 7.6 | `ConfirmDialog` component (`frontend/src/components/ui/ConfirmDialog.tsx`) | ✅ | Branded modal replaces native `confirm()`; supports `danger`/`warning` variants, loading state, Escape + backdrop dismiss |
 | 7.7 | `tailwind.config.js` — `animate-fade-in` keyframe | ✅ | Scale + translateY entrance for ConfirmDialog |
 | 7.8 | `BookingCard` — cancel flow uses ConfirmDialog | ✅ | `handleCancelClick` shows dialog; `handleConfirmCancel` calls API; `statusVariant` updated for `Completed` |
-| 7.9 | `ResetPasswordPage` — password hint & error fix | ✅ | Hint now mentions special chars; error shows actual server validation message; "1 hour" TTL text |
-| 7.10 | `ForgotPasswordPage` — TTL text fix | ✅ | "30 minutes" → "1 hour" to match backend `IMemoryCache` TTL |
-| 7.11 | Admin DTOs — 4 new files | ✅ | `AdminDashboardDto`, `AdminUserDto`, `CouponDto`/`CreateCouponRequest`/`UpdateCouponRequest`, `AdminAnalyticsDto` |
-| 7.12 | `IUserRepository.GetPagedAsync` | ✅ | Paged + search by name/email, ordered by `CreatedAt` desc |
-| 7.13 | `IBookingRepository.GetAllPagedAsync` + `GetAllForAnalyticsAsync` | ✅ | Status/type filter, date-range analytics query |
-| 7.14 | `ICouponRepository.GetAllCouponsAsync` + `CodeExistsAsync` | ✅ | Ordered by `CreatedAt` desc; uniqueness check for create |
-| 7.15 | `IAdminService` + `AdminService` | ✅ | 9-method service: dashboard, analytics, users (paged+search), block/unblock, bookings (paged+filter), coupons CRUD |
-| 7.16 | `AdminController` — replaced placeholder with real endpoints | ✅ | 9 endpoints under `/api/v1/admin`, all `[Authorize(Roles = "Admin")]` |
-| 7.17 | `AdminService` registered in DI | ✅ | `services.AddScoped<IAdminService, AdminService>()` in `DependencyInjection.cs` |
-| 7.18 | `frontend/src/types/index.ts` — admin types added | ✅ | `AdminDashboardDto`, `AdminUserDto`, `CouponDto`, `CreateCouponRequest`, `UpdateCouponRequest`, `AdminAnalyticsDto` + related sub-types |
-| 7.19 | `endpoints.ts` — admin section updated | ✅ | Added `analytics` endpoint and `coupon(id)` factory for PUT/DELETE |
-| 7.20 | `adminService.ts` (new) | ✅ | 9 typed methods wrapping all admin API calls |
-| 7.21 | `AdminPage.tsx` — full 4-tab dashboard | ✅ | Dashboard (stat cards + bar chart + type/status breakdown), Users (search + block/unblock), Bookings (status+type filter, paginated), Coupons (create/edit/deactivate with `CouponModal`) |
-| 7.22 | `CouponModal` — inline create/edit modal | ✅ | All coupon fields with validation; code forced uppercase; disabled on edit |
-| 7.23 | `AdminPage` — `ConfirmDialog` for block/deactivate | ✅ | Confirm before blocking user or deactivating coupon; danger/warning variants |
-| 7.24 | `AdminPage` — skeleton loading rows | ✅ | Animated pulse placeholders during API calls |
-| 7.25 | Backend full solution build — 0 errors | ✅ | Application, Persistence, and API all compile clean; 2 pre-existing warnings in `RazorpayService` |
+| 7.9 | `BookingDetailPage` — cancel uses ConfirmDialog | ✅ | Replaces native `confirm()` on the detail page cancel button |
+| 7.10 | `ResetPasswordPage` — password hint & error fix | ✅ | Hint now mentions special chars; error shows actual server validation message; "1 hour" TTL text |
+| 7.11 | `ForgotPasswordPage` — TTL text fix | ✅ | "30 minutes" → "1 hour" to match backend `IMemoryCache` TTL |
+| 7.12 | Admin DTOs — 4 new files | ✅ | `AdminDashboardDto`, `AdminUserDto`, `CouponDto`/`CreateCouponRequest`/`UpdateCouponRequest`, `AdminAnalyticsDto` |
+| 7.13 | `IUserRepository.GetPagedAsync` | ✅ | Paged + search by name/email, ordered by `CreatedAt` desc |
+| 7.14 | `IBookingRepository.GetAllPagedAsync` + `GetAllForAnalyticsAsync` | ✅ | Status/type filter, date-range analytics query |
+| 7.15 | `ICouponRepository.GetAllCouponsAsync` + `CodeExistsAsync` | ✅ | Ordered by `CreatedAt` desc; uniqueness check for create |
+| 7.16 | `IAdminService` + `AdminService` | ✅ | 9-method service: dashboard, analytics, users (paged+search), block/unblock, bookings (paged+filter), coupons CRUD |
+| 7.17 | `AdminController` — replaced placeholder with real endpoints | ✅ | 9 endpoints under `/api/v1/admin`, all `[Authorize(Roles = "Admin")]` |
+| 7.18 | `AdminService` registered in DI | ✅ | `services.AddScoped<IAdminService, AdminService>()` in `DependencyInjection.cs` |
+| 7.19 | `frontend/src/types/index.ts` — admin types added | ✅ | `AdminDashboardDto`, `AdminUserDto`, `CouponDto`, `CreateCouponRequest`, `UpdateCouponRequest`, `AdminAnalyticsDto` + related sub-types |
+| 7.20 | `endpoints.ts` — admin section updated | ✅ | Added `analytics` endpoint and `coupon(id)` factory for PUT/DELETE |
+| 7.21 | `adminService.ts` (new) | ✅ | 9 typed methods wrapping all admin API calls |
+| 7.22 | `AdminPage.tsx` — full 4-tab dashboard | ✅ | Dashboard (stat cards + bar chart + type/status breakdown), Users (search + block/unblock), Bookings (status+type filter, paginated), Coupons (create/edit/deactivate with `CouponModal`) |
+| 7.23 | `CouponModal` — inline create/edit modal | ✅ | All coupon fields with validation; code forced uppercase; disabled on edit |
+| 7.24 | `AdminPage` — `ConfirmDialog` for block/deactivate | ✅ | Confirm before blocking user or deactivating coupon; danger/warning variants |
+| 7.25 | `AdminPage` — skeleton loading rows | ✅ | Animated pulse placeholders during API calls |
+
+---
+
+## Phase 8 — Docker & CI/CD Pipeline
+**Branch:** `feature/phase8-docker-cicd`
+**Date:** 2026-05-12
+**Scope:** Full containerisation (SQL Server + .NET API + React/Nginx) and GitHub Actions CI/CD deploy pipeline
+
+| # | Feature | Status | Notes |
+|---|---|---|---|
+| 8.1 | `backend/Dockerfile` — multi-stage SDK→runtime build | ✅ | Non-root `appuser`, `ASPNETCORE_URLS=http://+:5000`, Release publish |
+| 8.2 | `backend/.dockerignore` | ✅ | Excludes bin/obj/logs/appsettings.Development.json |
+| 8.3 | `frontend/Dockerfile` — multi-stage Node→Nginx build | ✅ | `VITE_API_BASE_URL=""` build arg → relative `/api/v1` base URL in production |
+| 8.4 | `frontend/nginx.conf` — SPA routing + API proxy | ✅ | `try_files → index.html`, `/api/` → `http://api:5000`, gzip, security headers, asset cache |
+| 8.5 | `frontend/.dockerignore` | ✅ | Excludes node_modules/dist/.env files |
+| 8.6 | `docker-compose.yml` | ✅ | SQL Server (healthcheck) → API (waits healthy) → Web; all config via env vars; `sqldata` volume |
+| 8.7 | `.env.example` | ✅ | Documents all 16 required env vars with example values |
+| 8.8 | `.github/workflows/deploy.yml` — 3-job pipeline | ✅ | build (every push+PR) → docker push to ghcr.io → SSH deploy with `environment: production` |
+| 8.9 | GHA — Docker layer cache via `cache-from/to: type=gha` | ✅ | Separate scopes for api and web; significantly speeds up rebuilds |
+| 8.10 | GHA — `concurrency` group cancels in-flight runs | ✅ | Prevents duplicate deploys on rapid pushes |
+| 8.11 | GHA — `.env` written from secrets at deploy time | ✅ | No secrets stored on server between deploys |
+| 8.12 | `Program.cs` — `db.Database.Migrate()` on startup | ✅ | Idempotent; replaces manual `dotnet ef database update` in containers |
+| 8.13 | `Program.cs` — Swagger enabled in all environments | ✅ | Accessible at `/swagger` in Docker for API testing |
+| 8.14 | `appsettings.json` — localhost origins for Docker | ✅ | `http/https://localhost` added; production domain via `AllowedOrigins__0/1` env var |
+| 8.15 | `vite.config.ts` — fix dev proxy to HTTP :5000 | ✅ | Was pointing to HTTPS :7001; local dev now correctly proxies to HTTP API port |
+| 8.16 | `docs/DEPLOYMENT.md` | ✅ | Architecture diagram, local Docker run, server setup, GitHub Secrets table, rollback, backup, troubleshooting |
+| 8.17 | `HotelsPage` — filter logic fix (star=exact, amenities OR) | ✅ | Filter sidebar hidden during loading; useMemo removed |
+| 8.18 | `FlightsPage` — city name resolved from AIRPORTS on mount | ✅ | Shows "Mumbai" not "BOM" when landing from URL params |
+| 8.19 | `HomePage` — multi-city trip type removed | ✅ | Unimplemented option removed from search form |
 
 ---
 
@@ -253,14 +282,14 @@
 
 | # | Feature | Priority | Phase |
 |---|---|---|---|
-| 8.1 | Mobile filter drawer (slide-over) for FlightsPage | 🔴 High | Phase 8 |
-| 8.2 | Bus / Train / Cab booking — persistence + API | 🔴 High | Phase 8 |
-| 8.3 | Wallet transaction race condition fix | 🟡 Medium | Phase 8 |
-| 8.4 | Saved travellers UI | 🟡 Medium | Phase 8 |
-| 8.5 | Email verification flow (OTP) | 🟡 Medium | Phase 8 |
-| 8.6 | Unit tests for FlightService, HotelService | 🟢 Low | Phase 8 |
-| 8.7 | GitHub Actions CI (build + lint) | 🟢 Low | Phase 8 |
-| 8.8 | Docker containerisation | 🟢 Low | Phase 8 |
+| 9.1 | Mobile filter drawer (slide-over) for FlightsPage | 🔴 High | Phase 9 |
+| 9.2 | Bus / Train / Cab booking — persistence + API | 🔴 High | Phase 9 |
+| 9.3 | Wallet transaction race condition fix | 🟡 Medium | Phase 9 |
+| 9.4 | Saved travellers UI | 🟡 Medium | Phase 9 |
+| 9.5 | Email verification flow (OTP) | 🟡 Medium | Phase 9 |
+| 9.6 | HTTPS with Let's Encrypt (Nginx + Certbot sidecar) | 🟡 Medium | Phase 9 |
+| 9.7 | Unit tests for FlightService, HotelService | 🟢 Low | Phase 9 |
+| 9.8 | Redis cache (replace in-memory IMemoryCache) | 🟢 Low | Phase 9 |
 
 ---
 
@@ -280,8 +309,8 @@ dotnet run --project src/API --launch-profile https
 
 | Metric | Value |
 |---|---|
-| Total phases completed | 7 |
-| Total features delivered | 155+ |
+| Total phases completed | 8 |
+| Total features delivered | 170+ |
 | Flights in seed DB | 900+ (dynamic demand-based pricing) |
 | Hotels in seed DB | 60+ (12 cities) |
 | Coupons | 11 (5 original + 6 new: FLYSAVER, FLYOFF200, FLYDEAL15, HOTELOFF15, STAYMORE, HOTELDEAL) |

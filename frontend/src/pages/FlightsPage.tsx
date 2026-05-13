@@ -7,7 +7,6 @@ import { FlightCard } from '@/components/flights/FlightCard'
 import { FlightCardSkeleton } from '@/components/ui/Skeleton'
 import { AirportSearch } from '@/components/search/AirportSearch'
 import { TravellerSelector, type TravellerConfig } from '@/components/search/TravellerSelector'
-import { Button } from '@/components/ui/Button'
 import { formatCurrency } from '@/utils/formatters'
 import { AIRPORTS } from '@/data/airports'
 
@@ -415,11 +414,13 @@ export default function FlightsPage() {
   const [searchParams] = useSearchParams()
   const navigate        = useNavigate()
 
-  // Search state
-  const [origin,           setOrigin]          = useState(searchParams.get('origin')        ?? '')
-  const [originCity,       setOriginCity]       = useState('')
-  const [destination,      setDestination]      = useState(searchParams.get('destination')   ?? '')
-  const [destinationCity,  setDestinationCity]  = useState('')
+  // Search state — resolve city names from AIRPORTS on initial load
+  const _originCode = searchParams.get('origin') ?? ''
+  const _destCode   = searchParams.get('destination') ?? ''
+  const [origin,           setOrigin]          = useState(_originCode)
+  const [originCity,       setOriginCity]       = useState(AIRPORTS.find(a => a.code === _originCode)?.city ?? '')
+  const [destination,      setDestination]      = useState(_destCode)
+  const [destinationCity,  setDestinationCity]  = useState(AIRPORTS.find(a => a.code === _destCode)?.city ?? '')
   const [departureDate,    setDepartureDate]    = useState(searchParams.get('departureDate') ?? '')
   const [returnDate,       setReturnDate]       = useState(searchParams.get('returnDate')    ?? '')
   const [tripType,         setTripType]         = useState<TripType>(searchParams.get('returnDate') ? 'roundtrip' : 'oneway')
@@ -562,69 +563,81 @@ export default function FlightsPage() {
         </div>
 
         <form onSubmit={handleSearch} className="mx-auto max-w-6xl">
-          <div className="overflow-hidden rounded-2xl bg-white shadow-xl">
-            <div className="flex flex-col divide-y divide-gray-200 lg:flex-row lg:items-stretch lg:divide-x lg:divide-y-0">
-              <div className="flex-1 px-4 py-4 lg:min-w-0">
-              <AirportSearch
-                label="From"
-                value={origin ? `${originCity || origin} (${origin})` : ''}
-                onChange={(code, city) => { setOrigin(code); setOriginCity(city) }}
-              />
+          <div className="bg-white rounded-2xl shadow-2xl p-4">
+            <div className="flex flex-wrap gap-0 divide-x divide-gray-200">
+              {/* From */}
+              <div className="flex-1 min-w-[160px] px-4 py-2">
+                <AirportSearch
+                  label="From"
+                  placeholder="City or Airport"
+                  value={origin ? `${originCity || origin} (${origin})` : ''}
+                  onChange={(code, city) => { setOrigin(code); setOriginCity(city) }}
+                />
               </div>
 
-              <div className="relative flex-1 px-4 py-4 lg:min-w-0">
+              {/* Swap */}
+              <div className="flex items-center px-2">
                 <button
                   type="button"
                   onClick={swap}
-                  className="absolute -top-3 right-4 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-400 shadow-sm transition-colors hover:border-blue-400 hover:text-blue-600 lg:left-0 lg:right-auto lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2"
+                  className="h-8 w-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-blue-300 transition-colors"
                 >
-                  <ArrowLeftRight className="h-3.5 w-3.5" />
+                  <ArrowLeftRight className="h-4 w-4 text-gray-400" />
                 </button>
+              </div>
+
+              {/* To */}
+              <div className="flex-1 min-w-[160px] px-4 py-2">
                 <AirportSearch
                   label="To"
+                  placeholder="City or Airport"
                   value={destination ? `${destinationCity || destination} (${destination})` : ''}
                   onChange={(code, city) => { setDestination(code); setDestinationCity(city) }}
                 />
               </div>
 
-              <div className="px-4 py-4 lg:w-[220px]">
-                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Departure</label>
+              {/* Departure */}
+              <div className="flex-1 min-w-[130px] px-4 py-2">
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Departure</label>
                 <input
                   type="date"
                   value={departureDate}
                   min={TODAY}
                   onChange={e => setDepartureDate(e.target.value)}
-                  className="w-full border-b-2 border-gray-300 bg-transparent pb-1 text-sm font-medium text-gray-900 focus:border-blue-600 focus:outline-none"
+                  className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none border-b-2 border-gray-300 focus:border-blue-600 pb-1"
                 />
               </div>
 
+              {/* Return */}
               {tripType === 'roundtrip' && (
-                <div className="px-4 py-4 lg:w-[220px]">
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Return</label>
+                <div className="flex-1 min-w-[130px] px-4 py-2">
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Return</label>
                   <input
                     type="date"
                     value={returnDate}
                     min={departureDate || TODAY}
                     onChange={e => setReturnDate(e.target.value)}
-                    className="w-full border-b-2 border-gray-300 bg-transparent pb-1 text-sm font-medium text-gray-900 focus:border-blue-600 focus:outline-none"
+                    className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none border-b-2 border-gray-300 focus:border-blue-600 pb-1"
                   />
                 </div>
               )}
 
-              <div className="px-4 py-4 lg:w-[280px]">
+              {/* Travellers & Class */}
+              <div className="flex-1 min-w-[200px] px-4 py-2">
                 <TravellerSelector value={travellers} onChange={setTravellers} />
               </div>
+            </div>
 
-              <div className="px-4 py-4 lg:flex lg:items-center lg:justify-center">
-                <Button
-                  type="submit"
-                  variant="secondary"
-                  loading={loading}
-                  className="w-full rounded-xl px-6 py-3 text-base font-semibold lg:w-auto"
-                >
-                  <Search className="h-4 w-4" /> Search
-                </Button>
-              </div>
+            {/* Search button */}
+            <div className="mt-4 flex justify-center">
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex items-center gap-2 rounded-full px-10 py-3 font-bold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-100 disabled:opacity-70 disabled:cursor-not-allowed"
+                style={{ background: 'linear-gradient(90deg, #1a56db, #f97316)' }}
+              >
+                <Search className="h-5 w-5" /> {loading ? 'Searching...' : 'Search Flights'}
+              </button>
             </div>
           </div>
         </form>

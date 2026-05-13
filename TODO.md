@@ -83,10 +83,13 @@
 
 ## Infrastructure / DevOps
 
-- [ ] 🟡 **Environment-specific Dockerfile** — no containerisation; add `Dockerfile` for API and serve frontend via Nginx.
-- [ ] 🟡 **CI pipeline** — no GitHub Actions workflow; add build + test checks on PR.
+- [x] ✅ **Dockerfile for API + Frontend** — multi-stage Dockerfiles for both; Nginx serves React SPA + proxies `/api` to backend.
+- [x] ✅ **CI/CD pipeline** — GitHub Actions 3-job workflow: build+verify → Docker push to ghcr.io → SSH deploy on merge to Development.
+- [x] ✅ **docker-compose.yml** — orchestrates SQL Server 2022 + .NET API + Nginx/React; healthcheck gates API start.
+- [x] ✅ **Auto EF migrations on startup** — `db.Database.Migrate()` in `Program.cs`; no manual `dotnet ef` needed in containers.
+- [ ] 🟡 **HTTPS with Let's Encrypt** — add Certbot sidecar to docker-compose for automatic SSL certificate management.
 - [ ] 🟢 **Redis for caching** — replace in-memory `IMemoryCache` with Redis for multi-instance support.
-- [ ] 🟢 **Database migrations CI** — auto-run `dotnet ef database update` in deployment pipeline.
+- [ ] 🟢 **Database backup automation** — scheduled `sqlcmd BACKUP DATABASE` inside the container.
 
 ---
 
@@ -122,3 +125,10 @@
 - [x] AirportSearch — popular cities on focus; city name pre-populated from URL params
 - [x] TravellerSelector — fixed popup clipping caused by `overflow-hidden` on form container
 - [x] Background workers — graceful shutdown (no more crash on API stop)
+- [x] **Enum serialization fix** — `JsonStringEnumConverter`; status now shows as `"Confirmed"` not `1`
+- [x] **Wallet refund on cancellation** — `BookingService.CancelAsync` now actually credits wallet
+- [x] **Email HTML rewrite** — all emails render correctly in Gmail/Outlook (table layouts, solid colors)
+- [x] **ConfirmDialog** — themed modal replaces native `confirm()` on BookingCard and BookingDetailPage
+- [x] **Full admin dashboard** — 4-tab React page with real API; `IAdminService`/`AdminService` Clean Architecture
+- [x] **Docker containerisation** — multi-stage Dockerfiles, Nginx reverse proxy, docker-compose with SQL Server
+- [x] **GitHub Actions CI/CD** — build+test → Docker push to ghcr.io → SSH deploy on merge to Development

@@ -9,7 +9,7 @@ import { AirportSearch } from '@/components/search/AirportSearch'
 import { TravellerSelector, type TravellerConfig } from '@/components/search/TravellerSelector'
 import { AuthModal } from '@/components/home/AuthModal'
 
-type TripType = 'oneway' | 'roundtrip' | 'multicity'
+type TripType = 'oneway' | 'roundtrip'
 type OfferFilter = 'All' | 'Bank Offers' | 'Flights' | 'Hotels' | 'Cabs' | 'Trains'
 
 const TODAY = new Date().toISOString().split('T')[0]
@@ -128,7 +128,7 @@ export default function HomePage() {
           <div>
               {/* Trip type */}
               <div className="flex gap-4 mb-4">
-                {([['oneway', 'One Way'], ['roundtrip', 'Round Trip'], ['multicity', 'Multi City']] as [TripType, string][]).map(([v, lbl]) => (
+                {([['oneway', 'One Way'], ['roundtrip', 'Round Trip']] as [TripType, string][]).map(([v, lbl]) => (
                   <label key={v} className="flex items-center gap-2 cursor-pointer text-sm font-medium text-white">
                     <input
                       type="radio"

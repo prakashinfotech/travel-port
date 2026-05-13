@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import {
   Search, Home, ChevronRight, MapPin, ChevronDown, ChevronUp,
@@ -54,7 +54,7 @@ interface Filters {
 }
 
 const INIT_FILTERS: Filters = { minStars: 0, maxPrice: 0, minRating: 0, amenities: [], popularFilters: [] }
-const AMENITY_OPTS = ['Pool', 'Spa', 'Gym', 'Restaurant', 'WiFi', 'Parking', 'Bar', 'Beach']
+const AMENITY_OPTS = ['Pool', 'Spa', 'Gym', 'Restaurant', 'WiFi', 'Parking', 'Business Center', 'Room Service']
 const POPULAR_OPTS = ['Swimming Pool', 'Parking', 'Spa', 'Gym']
 const RATING_LABELS: Record<number, string> = { 4.5: 'Exceptional', 4.0: 'Very Good', 3.5: 'Good', 3.0: 'Pleasant' }
 
@@ -420,48 +420,58 @@ export default function HotelsPage() {
 
   useEffect(() => { if (city) fetchHotels() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const filtered = useMemo(() => {
-    let list = [...hotels]
-    if (filters.minStars) list = list.filter(h => h.starRating >= filters.minStars)
-    if (filters.maxPrice) {
-      list = list.filter(h => {
-        const min = h.rooms.length ? Math.min(...h.rooms.map(r => r.pricePerNight)) : Infinity
-        return min <= filters.maxPrice
-      })
-    }
-    if (filters.minRating) list = list.filter(h => h.reviewScore >= filters.minRating)
-    if (filters.amenities.length) {
-      list = list.filter(h => {
-        const ams = parseAmenities(h.amenities)
-        return filters.amenities.every(a => ams.some(ha => ha.toLowerCase().includes(a.toLowerCase())))
-      })
-    }
-    if (filters.popularFilters.length) {
-      list = list.filter(h => {
-        const ams = parseAmenities(h.amenities).map(a => a.toLowerCase())
-        return filters.popularFilters.every(f => {
-          const fl = f.toLowerCase()
-          if (fl === 'swimming pool') return ams.some(a => a.includes('pool'))
-          if (fl === 'parking')       return ams.some(a => a.includes('parking'))
-          if (fl === 'spa')           return ams.some(a => a.includes('spa'))
-          if (fl === 'gym')           return ams.some(a => a.includes('gym'))
-          return true
-        })
-      })
-    }
-    list.sort((a, b) => {
-      const aMin = a.rooms.length ? Math.min(...a.rooms.map(r => r.pricePerNight)) : 0
-      const bMin = b.rooms.length ? Math.min(...b.rooms.map(r => r.pricePerNight)) : 0
-      switch (sort) {
-        case 'price_asc':   return aMin - bMin
-        case 'price_desc':  return bMin - aMin
-        case 'rating_desc': return b.reviewScore - a.reviewScore
-        case 'stars_desc':  return b.starRating - a.starRating
-        default:            return 0
-      }
+  // Compute filtered list directly on every render — guarantees filters always reflect current state
+  let filtered = [...hotels]
+
+  // Star: exact match — "3★" shows only 3-star hotels
+  if (filters.minStars > 0)
+    filtered = filtered.filter(h => Math.floor(Number(h.starRating)) === filters.minStars)
+
+  if (filters.maxPrice > 0) {
+    filtered = filtered.filter(h => {
+      const minPrice = h.rooms.length ? Math.min(...h.rooms.map(r => r.pricePerNight)) : Infinity
+      return minPrice <= filters.maxPrice
     })
-    return list
-  }, [hotels, filters, sort])
+  }
+
+  // Rating: minimum score (4.5+ means reviewScore >= 4.5)
+  if (filters.minRating > 0)
+    filtered = filtered.filter(h => Number(h.reviewScore) >= filters.minRating)
+
+  // Amenities: OR logic — hotel must have at least one selected amenity
+  if (filters.amenities.length > 0) {
+    filtered = filtered.filter(h => {
+      const ams = parseAmenities(h.amenities).map(a => a.toLowerCase())
+      return filters.amenities.some(a => ams.some(ha => ha.includes(a.toLowerCase())))
+    })
+  }
+
+  // Popular filters: OR logic — hotel must match at least one checked filter
+  if (filters.popularFilters.length > 0) {
+    filtered = filtered.filter(h => {
+      const ams = parseAmenities(h.amenities).map(a => a.toLowerCase())
+      return filters.popularFilters.some(f => {
+        const fl = f.toLowerCase()
+        if (fl === 'swimming pool') return ams.some(a => a.includes('pool'))
+        if (fl === 'parking')       return ams.some(a => a.includes('parking'))
+        if (fl === 'spa')           return ams.some(a => a.includes('spa'))
+        if (fl === 'gym')           return ams.some(a => a.includes('gym'))
+        return false
+      })
+    })
+  }
+
+  filtered.sort((a, b) => {
+    const aMin = a.rooms.length ? Math.min(...a.rooms.map(r => r.pricePerNight)) : 0
+    const bMin = b.rooms.length ? Math.min(...b.rooms.map(r => r.pricePerNight)) : 0
+    switch (sort) {
+      case 'price_asc':   return aMin - bMin
+      case 'price_desc':  return bMin - aMin
+      case 'rating_desc': return b.reviewScore - a.reviewScore
+      case 'stars_desc':  return b.starRating - a.starRating
+      default:            return 0
+    }
+  })
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -546,9 +556,11 @@ export default function HotelsPage() {
         </nav>
 
         <div className="flex gap-5">
-          <aside className="hidden lg:block w-60 flex-shrink-0">
-            <FilterSidebar filters={filters} setFilters={setFilters} hotels={hotels} />
-          </aside>
+          {!loading && hotels.length > 0 && (
+            <aside className="hidden lg:block w-60 flex-shrink-0">
+              <FilterSidebar filters={filters} setFilters={setFilters} hotels={hotels} />
+            </aside>
+          )}
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-3 flex-wrap gap-2">

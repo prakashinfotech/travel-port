@@ -3,6 +3,7 @@ using System.Threading.RateLimiting;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
@@ -136,20 +137,20 @@ try
     // ── Pipeline ─────────────────────────────────────────────────────────────
     var app = builder.Build();
 
-    // Seed database
+    // Apply pending EF Core migrations and seed data
+    // db.Database.Migrate() is idempotent — safe to run on every startup
     using (var scope = app.Services.CreateScope())
     {
         var db = scope.ServiceProvider.GetRequiredService<TravelPortDbContext>();
+        db.Database.Migrate();
         await DataSeeder.SeedAsync(db);
     }
 
     app.UseMiddleware<ExceptionMiddleware>();
 
-    if (app.Environment.IsDevelopment())
-    {
-        app.UseSwagger();
-        app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "TravelPort API v1"));
-    }
+    // Swagger available in all environments — restrict via network/auth in production as needed
+    app.UseSwagger();
+    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "TravelPort API v1"));
 
     if (!app.Environment.IsDevelopment())
         app.UseHttpsRedirection();

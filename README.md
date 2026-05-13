@@ -54,31 +54,38 @@ TravelPort covers:
 
 ## Quick Start
 
-### Prerequisites
-- Node.js 20+
-- .NET 8 SDK
-- SQL Server Express (`localhost\SQLEXPRESS`)
+### Option A — Docker (recommended, no local installs needed)
 
-### Backend
 ```bash
+cp .env.example .env          # fill in DB_SA_PASSWORD, JWT_SECRET at minimum
+docker compose build
+docker compose up -d
+```
+
+App at `http://localhost` | API Swagger at `http://localhost/api/swagger`
+
+> SQL Server starts first (~45 s), then the API applies migrations + seeds data automatically.
+
+### Option B — Local development
+
+**Prerequisites:** Node.js 20+, .NET 8 SDK, SQL Server Express (`localhost\SQLEXPRESS`)
+
+```bash
+# Backend
 cd backend
 dotnet restore
 dotnet ef database update --project src/Persistence --startup-project src/API
 dotnet run --project src/API --launch-profile https
 ```
-API runs at `http://localhost:5000` (HTTP) and `https://localhost:7001` (HTTPS) | Swagger at `https://localhost:7001/swagger`
+API at `http://localhost:5000` | Swagger at `http://localhost:5000/swagger`
 
-> **Frontend connects via HTTP (`http://localhost:5000`)** to avoid browser SSL certificate rejections on the dev self-signed cert.
-
-The database is **auto-seeded** on first startup — no manual SQL needed.
-
-### Frontend
 ```bash
+# Frontend (separate terminal)
 cd frontend
 npm install
 npm run dev
 ```
-Frontend runs at `http://localhost:5173`
+Frontend at `http://localhost:5173` (Vite proxies `/api` → `http://localhost:5000`)
 
 ---
 
@@ -141,7 +148,32 @@ Frontend runs at `http://localhost:5173`
 | PUT | /api/v1/admin/coupons/{id} | Yes (Admin) |
 | DELETE | /api/v1/admin/coupons/{id} | Yes (Admin) |
 
+| GET | /api/v1/admin/dashboard | Yes (Admin) |
+| GET | /api/v1/admin/analytics | Yes (Admin) |
+| GET | /api/v1/admin/users | Yes (Admin) |
+| POST | /api/v1/admin/users/{id}/block | Yes (Admin) |
+| GET | /api/v1/admin/bookings | Yes (Admin) |
+| GET | /api/v1/admin/coupons | Yes (Admin) |
+| POST | /api/v1/admin/coupons | Yes (Admin) |
+| PUT | /api/v1/admin/coupons/{id} | Yes (Admin) |
+| DELETE | /api/v1/admin/coupons/{id} | Yes (Admin) |
+
 Full reference: [API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md)
+
+---
+
+## CI/CD & Deployment
+
+| Item | Detail |
+|---|---|
+| Pipeline | GitHub Actions — triggers on push/merge to `Development` |
+| Registry | GitHub Container Registry (`ghcr.io`) |
+| Images | `travelport-api` (.NET 8), `travelport-web` (Nginx+React) |
+| Deploy | SSH into server → `docker compose pull && up -d` |
+| DB migrations | Auto-applied on API startup (`db.Database.Migrate()`) |
+| Secrets | Written to server `.env` from GitHub Secrets at deploy time |
+
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for full setup guide including server provisioning, GitHub Secrets configuration, rollback, and troubleshooting.
 
 ---
 

@@ -23,7 +23,18 @@
       "WebFetch(domain:duffel.com)",
       "Bash(xargs cat)",
       "WebFetch(domain:www.postman.com)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git checkout *)",
+      "Bash(grep -v \"^$\")",
+      "Bash(Get-Process -Name \"TravelPort.API\" -ErrorAction SilentlyContinue)",
+      "Bash(Stop-Process -Force)",
+      "Bash(Start-Sleep -Seconds 2)",
+      "Bash(Write-Host \"Done\")",
+      "Bash(dotnet run *)",
+      "PowerShell(Get-ChildItem \"c:\\\\Goibibo-AI-Assignment\\\\backend\\\\src\\\\Application\\\\DTOs\" -Recurse | ForEach-Object { $_.FullName })",
+      "PowerShell(Get-ChildItem \"c:\\\\Goibibo-AI-Assignment\\\\backend\\\\src\\\\API\\\\Controllers\\\\\" | ForEach-Object { $_.FullName })",
+      "PowerShell(Get-ChildItem \"c:\\\\Goibibo-AI-Assignment\" | ForEach-Object { $_.Name })",
+      "PowerShell(Get-ChildItem \"c:\\\\Goibibo-AI-Assignment\\\\.github\" -Recurse | ForEach-Object { $_.FullName })"
     ]
   }
 }

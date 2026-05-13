@@ -12,10 +12,11 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
+      // In local dev, /api is proxied to the .NET API running on HTTP port 5000.
+      // In Docker, Nginx handles this proxy — this block is dev-only.
       '/api': {
-        target: 'https://localhost:7001',
+        target: 'http://localhost:5000',
         changeOrigin: true,
-        secure: false,
       },
     },
   },

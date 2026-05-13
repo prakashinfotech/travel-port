@@ -2,6 +2,8 @@ import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { store } from '@/store'
 import { setTokens, logout } from '@/features/auth/authSlice'
 
+// Docker build sets VITE_API_BASE_URL="" → baseURL="/api/v1" (Nginx proxies /api → api:5000)
+// Local dev leaves it unset → falls back to http://localhost:5000 via Vite proxy
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000'
 
 export const api = axios.create({

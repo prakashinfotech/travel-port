@@ -6,6 +6,7 @@ import { bookingService } from '@/services/bookingService'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { formatCurrency, formatDateTime, formatDuration } from '@/utils/formatters'
 
 const statusVariant: Record<BookingStatus, 'info' | 'success' | 'danger' | 'warning' | 'default'> = {
@@ -101,6 +102,7 @@ export default function BookingDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [cancelling, setCancelling] = useState(false)
+  const [showCancelDialog, setShowCancelDialog] = useState(false)
   const [downloading, setDownloading] = useState(false)
 
   useEffect(() => {
@@ -153,14 +155,15 @@ export default function BookingDetailPage() {
 
   const canCancel = mergedBooking?.status === 'Pending' || mergedBooking?.status === 'Confirmed'
 
-  const handleCancel = async () => {
-    if (!mergedBooking || !confirm('Cancel this booking? 90% will be refunded to your wallet.')) return
+  const handleConfirmCancel = async () => {
+    if (!mergedBooking) return
     setCancelling(true)
     try {
       await bookingService.cancel(mergedBooking.id)
       setBooking(prev => prev ? { ...prev, status: 'Cancelled' } : prev)
+      setShowCancelDialog(false)
     } catch {
-      alert('Cancellation failed. Please try again.')
+      setShowCancelDialog(false)
     } finally {
       setCancelling(false)
     }
@@ -254,6 +257,17 @@ export default function BookingDetailPage() {
 
   return (
     <div className="min-h-screen bg-[#eef4fa]">
+      <ConfirmDialog
+        open={showCancelDialog}
+        title="Cancel Booking?"
+        message="Are you sure you want to cancel this booking? 90% of the fare will be refunded to your wallet."
+        confirmLabel="Yes, Cancel Booking"
+        cancelLabel="Keep Booking"
+        variant="danger"
+        loading={cancelling}
+        onConfirm={handleConfirmCancel}
+        onCancel={() => setShowCancelDialog(false)}
+      />
       <div className="bg-gradient-to-r from-orange-500 via-orange-500 to-orange-400 pb-24" />
 
       <div className="mx-auto -mt-20 max-w-7xl px-4 pb-10 sm:px-6">
@@ -465,7 +479,7 @@ export default function BookingDetailPage() {
                   Download E-Ticket
                 </Button>
                 {canCancel && (
-                  <Button type="button" variant="danger" size="lg" loading={cancelling} className="w-full" onClick={handleCancel}>
+                  <Button type="button" variant="danger" size="lg" className="w-full" onClick={() => setShowCancelDialog(true)}>
                     Cancel Booking
                   </Button>
                 )}
