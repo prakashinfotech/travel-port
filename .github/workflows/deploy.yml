@@ -79,6 +79,16 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Pre-pull MCR base images (retry on 403)
+        run: |
+          for image in mcr.microsoft.com/dotnet/sdk:8.0 mcr.microsoft.com/dotnet/aspnet:8.0; do
+            for i in 1 2 3 4 5; do
+              docker pull "$image" && break
+              echo "Pull attempt $i failed for $image, retrying in 15s..."
+              sleep 15
+            done
+          done
+
       - name: Lowercase repository owner
         id: lower
         run: echo "owner=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
