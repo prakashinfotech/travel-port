@@ -66,7 +66,7 @@
 - [x] ✅ **HomePage buses/trains/cabs search** — Added full search forms for each mode; replaced "Coming soon" block; each form navigates with URL params and auto-triggers search.
 - [x] ✅ **Recent searches** — clickable chips navigate to saved results; ✕ button removes entry.
 - [ ] 🔴 **Mobile-responsive filter drawer** — slide-over panel for filters on screens < 1024px.
-- [ ] 🔴 **Hotel search filter sidebar** — HotelsPage has no filter sidebar yet; add star rating, price range, amenities filters matching Goibibo style.
+- [x] ✅ **Hotel search filter sidebar** — HotelsPage FilterSidebar implemented: star rating (exact match), price range, amenities (OR logic), popular filters (OR logic).
 - [ ] 🟡 **Trains page booking flow** — TrainsPage shows results but the BOOK button is not wired to a booking endpoint (no train booking API yet).
 - [ ] 🟡 **Buses page booking flow** — same as trains.
 - [ ] 🟡 **Cabs page booking flow** — same as trains.
@@ -95,12 +95,6 @@
 
 ## Recently Completed ✅
 
-- [x] **Enum serialization fix** — `JsonStringEnumConverter` added; `BookingStatus` now serializes as `"Confirmed"` not `1`; cancel button now visible
-- [x] **Wallet refund on cancellation** — `BookingService.CancelAsync` now calls `_wallet.RefundAsync`; amount actually credited
-- [x] **Email HTML compatibility** — complete rewrite of `SmtpEmailService`; all emails now render correctly in Gmail and Outlook (solid colors, table layouts, table-based buttons)
-- [x] **Password reset UX fixes** — correct TTL text (1 hour), special-char requirement in hint, actual server error shown on validation failure
-- [x] **`ConfirmDialog` component** — themed modal replacing native `confirm()`; danger/warning variants, loading state, keyboard-accessible
-- [x] **Full admin dashboard** — 4-tab React page (Dashboard stats + charts, Users with block/unblock, Bookings with filters, Coupons CRUD); `IAdminService` / `AdminService` Clean Architecture implementation; `AdminController` with 9 real endpoints
 - [x] Duffel API integration (external flight provider, sandboxed)
 - [x] Disable Duffel, switch to rich DB seed data (900+ flights, 60+ hotels, 12 cities)
 - [x] BusSearchProvider — route-specific durations, 14 operators, realistic pricing
@@ -125,10 +119,12 @@
 - [x] AirportSearch — popular cities on focus; city name pre-populated from URL params
 - [x] TravellerSelector — fixed popup clipping caused by `overflow-hidden` on form container
 - [x] Background workers — graceful shutdown (no more crash on API stop)
-- [x] **Enum serialization fix** — `JsonStringEnumConverter`; status now shows as `"Confirmed"` not `1`
-- [x] **Wallet refund on cancellation** — `BookingService.CancelAsync` now actually credits wallet
-- [x] **Email HTML rewrite** — all emails render correctly in Gmail/Outlook (table layouts, solid colors)
+- [x] **Enum serialization fix** — `JsonStringEnumConverter`; status shows as `"Confirmed"` not `1`; cancel button now visible
+- [x] **Wallet refund on cancellation** — `BookingService.CancelAsync` now credits wallet on cancellation
+- [x] **Email HTML rewrite** — all emails render correctly in Gmail/Outlook (table layouts, solid colors, table-based buttons)
 - [x] **ConfirmDialog** — themed modal replaces native `confirm()` on BookingCard and BookingDetailPage
-- [x] **Full admin dashboard** — 4-tab React page with real API; `IAdminService`/`AdminService` Clean Architecture
+- [x] **Full admin dashboard** — 4-tab React page with real API; `IAdminService`/`AdminService` Clean Architecture; `AdminController` with 9 real endpoints
+- [x] **Hotel filter sidebar** — star rating (exact match), price, amenities + popular filters (OR logic)
+- [x] **FlightsPage city names** — city resolved from AIRPORTS on mount so URL params show "Mumbai" not "BOM"
 - [x] **Docker containerisation** — multi-stage Dockerfiles, Nginx reverse proxy, docker-compose with SQL Server
-- [x] **GitHub Actions CI/CD** — build+test → Docker push to ghcr.io → SSH deploy on merge to Development
+- [x] **GitHub Actions CI/CD** — build+verify → Docker push to ghcr.io → SSH deploy on merge to Development

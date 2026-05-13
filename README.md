@@ -148,16 +148,6 @@ Frontend at `http://localhost:5173` (Vite proxies `/api` → `http://localhost:5
 | PUT | /api/v1/admin/coupons/{id} | Yes (Admin) |
 | DELETE | /api/v1/admin/coupons/{id} | Yes (Admin) |
 
-| GET | /api/v1/admin/dashboard | Yes (Admin) |
-| GET | /api/v1/admin/analytics | Yes (Admin) |
-| GET | /api/v1/admin/users | Yes (Admin) |
-| POST | /api/v1/admin/users/{id}/block | Yes (Admin) |
-| GET | /api/v1/admin/bookings | Yes (Admin) |
-| GET | /api/v1/admin/coupons | Yes (Admin) |
-| POST | /api/v1/admin/coupons | Yes (Admin) |
-| PUT | /api/v1/admin/coupons/{id} | Yes (Admin) |
-| DELETE | /api/v1/admin/coupons/{id} | Yes (Admin) |
-
 Full reference: [API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md)
 
 ---
@@ -181,8 +171,8 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for full setup guide including serv
 
 Credentials go in `backend/src/API/appsettings.Development.json` (gitignored — never commit secrets to `appsettings.json`).
 
-### Duffel (Real Flights) — **Active in dev**
-> Amadeus for Developers shut down new signups in 2025. Duffel is the replacement.
+### Duffel (Real Flights) — **Disabled by default; DB seed data used instead**
+> Set `Enabled: true` in `appsettings.Development.json` only — never in `appsettings.json`.
 1. Sign up at [app.duffel.com/join](https://app.duffel.com/join)
 2. **Developers → Access tokens** → create a **Test** token
 3. Set in `appsettings.Development.json`:
@@ -235,9 +225,9 @@ Goibibo-AI-Assignment/
 │       └── API/             # Controllers, Middleware, Program.cs
 ├── frontend/
 │   └── src/
-│       ├── pages/           # FlightsPage, HotelsPage, BookingsPage, ProfilePage ...
-│       ├── components/      # FlightCard, HotelCard, BookingCard, UI primitives
-│       ├── services/        # flightService, hotelService, bookingService, userService
+│       ├── pages/           # FlightsPage, HotelsPage, BookingsPage, AdminPage, ProfilePage ...
+│       ├── components/      # FlightCard, HotelCard, BookingCard, ConfirmDialog, UI primitives
+│       ├── services/        # flightService, hotelService, bookingService, adminService, userService
 │       ├── features/auth/   # Redux slice, LoginForm, RegisterForm
 │       └── routes/          # AppRouter, PrivateRoute
 ├── docs/                    # Architecture, API docs, DB design, Security guide

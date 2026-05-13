@@ -16,7 +16,8 @@
 | Database | SQL Server Express (localhost\SQLEXPRESS) |
 | Auth | JWT (15 min) + Refresh Tokens (7 days), BCrypt cost 12 |
 | Caching | In-memory (IMemoryCache via ICacheService) |
-| External | Duffel (flights, off by default), Razorpay (payments), SendGrid (email) |
+| Deployment | Docker (multi-stage Dockerfiles, Nginx, docker-compose), GitHub Actions CI/CD |
+| External | Duffel (flights, off by default), Razorpay (payments), SMTP/Office365 (email) |
 
 ---
 
@@ -31,9 +32,9 @@ Goibibo-AI-Assignment/
 │   ├── Persistence/     # EF Core DbContext, Repositories, Migrations, Seeds
 │   └── API/             # Controllers, Middleware, Program.cs
 ├── frontend/src/
-│   ├── pages/           # FlightsPage, HotelsPage, BusesPage, TrainsPage, CabsPage …
-│   ├── components/      # FlightCard, HotelCard, shared UI (Button, Select, Skeleton)
-│   ├── services/        # flightService, hotelService, bookingService, userService
+│   ├── pages/           # FlightsPage, HotelsPage, BusesPage, TrainsPage, CabsPage, AdminPage …
+│   ├── components/      # FlightCard, HotelCard, ConfirmDialog, shared UI (Button, Select, Skeleton)
+│   ├── services/        # flightService, hotelService, bookingService, adminService, userService
 │   ├── features/auth/   # Redux slice, LoginForm, RegisterForm
 │   └── routes/          # AppRouter, PrivateRoute
 ├── docs/                # ARCHITECTURE.md, API_DOCUMENTATION.md, DATABASE_DESIGN.md …
@@ -115,14 +116,20 @@ dotnet run --project src/API --launch-profile https
 
 | File | Purpose |
 |---|---|
-| `backend/src/API/Program.cs` | DI registration, middleware pipeline |
-| `backend/src/Infrastructure/DependencyInjection.cs` | Service registrations |
-| `backend/src/Persistence/Seeds/DataSeeder.cs` | All seed data (900+ flights, 40+ hotels) |
+| `backend/src/API/Program.cs` | DI registration, middleware pipeline, auto-migrate on startup |
+| `backend/src/Application/DependencyInjection.cs` | Service registrations |
+| `backend/src/Persistence/Seeds/DataSeeder.cs` | All seed data (900+ flights, 60+ hotels, 11 coupons) |
 | `backend/src/Application/Services/FlightService.cs` | Flight search + booking logic |
+| `backend/src/Application/Services/AdminService.cs` | Admin dashboard, analytics, user/coupon management |
+| `backend/src/Infrastructure/ExternalProviders/Email/SmtpEmailService.cs` | Email templates (table-based HTML for Gmail/Outlook compat) |
+| `docker-compose.yml` | SQL Server + API + Nginx/React orchestration |
+| `.github/workflows/deploy.yml` | 3-job CI/CD pipeline |
 | `frontend/src/api/axios.ts` | Axios instance + JWT interceptor |
 | `frontend/src/api/endpoints.ts` | All API endpoint constants |
 | `frontend/src/types/index.ts` | All shared TypeScript types |
 | `frontend/src/pages/FlightsPage.tsx` | Main flight search + filter UI |
+| `frontend/src/pages/AdminPage.tsx` | 4-tab admin dashboard (Dashboard, Users, Bookings, Coupons) |
+| `frontend/src/components/ui/ConfirmDialog.tsx` | Branded confirm modal (danger/warning variants) |
 
 ---
 
@@ -139,6 +146,14 @@ dotnet run --project src/API --launch-profile https
 
 ## Quick Start
 
+### Docker (recommended)
+```bash
+cp .env.example .env   # fill DB_SA_PASSWORD and JWT_SECRET
+docker compose up -d
+```
+App → `http://localhost` | Swagger → `http://localhost/api/swagger`
+
+### Local development
 ```bash
 # Backend
 cd backend
@@ -151,5 +166,4 @@ cd frontend
 npm install
 npm run dev
 ```
-
 API → `http://localhost:5000` | Frontend → `http://localhost:5173`

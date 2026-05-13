@@ -4,8 +4,8 @@
 
 ```
 main
- └── Development   ← all work happens here
-       └── feature/your-feature   (optional, for larger features)
+ └── Development   ← integration branch; all PRs merge here
+       └── feature/your-feature   ← ALL work happens on feature branches
 ```
 
 ### Rules
@@ -13,43 +13,35 @@ main
 | Rule | Detail |
 |---|---|
 | **Never commit directly to `main`** | `main` is protected — direct pushes are blocked |
-| **`Development` is the base branch** | Always branch from `Development`, merge back to `Development` |
+| **Never commit directly to `Development`** | All work goes on a feature branch; merge via PR |
+| **Always branch from `Development`** | `git checkout Development && git pull` before creating a branch |
+| **Merge to `Development` via PR only** | Open a Pull Request: `feature/x` → `Development` |
 | **Merge to `main` via PR only** | Raise a Pull Request from `Development` → `main` when ready to release |
-| **No force pushes** | Force pushes to `main` are disabled |
+| **No force pushes** | Force pushes to `main` and `Development` are disabled |
 
 ---
 
 ## Workflow
 
-### Day-to-day development
+### Every change — feature branch required
 ```bash
-# Make sure you're on Development and up to date
+# Start from up-to-date Development
 git checkout Development
 git pull origin Development
 
-# Make your changes, then commit
-git add <files>
-git commit -m "feat: describe your change"
-
-# Push to remote Development
-git push origin Development
-```
-
-### Feature branches (required for multi-file or significant changes)
-```bash
-# Create a feature branch from Development
-git checkout Development
-git pull origin Development
+# Create your feature branch
 git checkout -b feature/your-feature-name
 
 # ... do work, commit ...
+git add <specific-files>
+git commit -m "feat: describe your change"
 
 # Push the feature branch
-git push origin feature/your-feature-name
+git push -u origin feature/your-feature-name
 
 # Open a PR on GitHub: feature/your-feature-name → Development
-# Wait for approval before merging
-# After merge, delete the feature branch
+# After merge, delete the branch locally and remotely
+git checkout Development
 git branch -d feature/your-feature-name
 git push origin --delete feature/your-feature-name
 ```

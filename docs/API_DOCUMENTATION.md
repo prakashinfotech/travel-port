@@ -1,7 +1,9 @@
 # 📡 API Documentation — TravelPort
 
 **Base URL (local):** `http://localhost:5000/api/v1`  
-**Swagger UI:** `https://localhost:7001/swagger` (HTTPS profile only)  
+**Base URL (Docker):** `http://localhost/api/v1`  
+**Swagger UI (local):** `http://localhost:5000/swagger`  
+**Swagger UI (Docker):** `http://localhost/api/swagger`  
 **Auth:** `Authorization: Bearer <jwt_token>`
 
 ---

@@ -7,22 +7,29 @@
 │                         CLIENT LAYER                            │
 │   React 18 + TypeScript + Vite + Tailwind + Redux Toolkit       │
 └─────────────────────────┬───────────────────────────────────────┘
-                          │ HTTPS / REST
+                          │ HTTP / REST (via Nginx in Docker)
+┌─────────────────────────▼───────────────────────────────────────┐
+│                     NGINX (Docker only)                         │
+│        Serves React SPA  |  /api/* → api:5000 proxy            │
+└─────────────────────────┬───────────────────────────────────────┘
+                          │
 ┌─────────────────────────▼───────────────────────────────────────┐
 │                         API GATEWAY                             │
-│           .NET 8 Web API  |  JWT Auth  |  Rate Limiting         │
-└──────┬──────────┬─────────┬────────────┬────────────────────────┘
-       │          │         │            │
-  ┌────▼──┐  ┌───▼───┐ ┌───▼───┐  ┌────▼────┐
-  │ Auth  │  │Flight │ │ Hotel │  │Booking  │
-  │Service│  │Service│ │Service│  │ Service │
-  └────┬──┘  └───┬───┘ └───┬───┘  └────┬────┘
-       │          │         │            │
-┌──────▼──────────▼─────────▼────────────▼────────────────────────┐
+│           .NET 8 Web API  |  JWT Auth  |  Serilog               │
+└──────┬──────────┬─────────┬────────────┬───────────┬────────────┘
+       │          │         │            │           │
+  ┌────▼──┐  ┌───▼───┐ ┌───▼───┐  ┌────▼────┐ ┌────▼────┐
+  │ Auth  │  │Flight │ │ Hotel │  │Booking  │ │ Admin   │
+  │Service│  │Service│ │Service│  │ Service │ │ Service │
+  └────┬──┘  └───┬───┘ └───┬───┘  └────┬────┘ └────┬────┘
+       │          │         │            │           │
+┌──────▼──────────▼─────────▼────────────▼───────────▼────────────┐
 │                    PERSISTENCE LAYER                             │
-│              SQL Server (EF Core)  |  Redis Cache               │
+│              SQL Server (EF Core)  |  IMemoryCache              │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+**Docker deployment:** `docker compose up` starts SQL Server → .NET API → Nginx/React. Port 80 only is exposed externally; API and DB are internal.
 
 ---
 
@@ -38,7 +45,7 @@ backend/src/
 │   └── Program.cs              ← DI composition root
 │
 ├── Application/                ← Business Logic Layer
-│   ├── Services/               ← Business services (Auth, Flight, Hotel, Booking, Wallet)
+│   ├── Services/               ← Business services (Auth, Flight, Hotel, Booking, Wallet, Admin)
 │   ├── Common/
 │   │   ├── Exceptions/
 │   │   ├── Interfaces/         ← ICacheService, IWalletRepository, IWalletService, etc.
