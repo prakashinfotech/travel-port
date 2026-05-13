@@ -35,10 +35,10 @@
 - [ ] 🔴 **Cab booking persistence** — same as buses/trains.
 - [ ] 🟡 **Email verification on registration** — OTP flow documented but `IsVerified` is set to `true` in seed; registration sets it `false` with no verification path yet.
 - [x] ✅ **Admin analytics endpoint** — `GET /admin/analytics` now returns real monthly revenue, bookings-by-type and bookings-by-status aggregations.
-- [ ] 🟡 **Paginated flight search response** — backend returns all matching flights in one call (up to `pageSize=100`); add proper server-side pagination with `total` and `page` in response.
+- [ ] 🟡 **Server-side paginated flight search response** — frontend now paginates filtered results locally; move pagination and filter metadata fully into the API response for larger datasets.
 - [x] ✅ **Persist individual flight traveller details** — `BookFlightRequest` now includes `GuestName/Email/Phone`; stored in `Booking` entity; PDF and email use correct traveller name.
 - [ ] 🟢 **Real Razorpay webhook handler** — for production, handle `payment.failed` and `order.paid` webhooks to update booking status asynchronously.
-- [ ] 🟢 **Rate limiting** — `429` is documented but no rate-limiting middleware is active.
+- [x] ✅ **Rate limiting** — fixed: API rate-limiting middleware is active in `Program.cs`.
 - [ ] 🟢 **Refresh token rotation** — currently refresh tokens are single-use but rotation isn't enforced; expired tokens should be revoked from DB.
 
 ### Technical Debt
@@ -71,12 +71,12 @@
 - [ ] 🟡 **Trains page booking flow** — TrainsPage shows results but the BOOK button is not wired to a booking endpoint (no train booking API yet).
 - [ ] 🟡 **Buses page booking flow** — same as trains.
 - [ ] 🟡 **Cabs page booking flow** — same as trains.
-- [ ] 🟡 **Profile page** — `GET /users/profile` and `PUT /users/profile` exist; profile page UI is basic.
-- [ ] 🟡 **Saved travellers management** — API endpoints exist (`GET/POST/DELETE /users/travellers`) but no UI.
+- [x] ✅ **Profile page improvements** — upgraded with account overview, wallet feedback, safer delete confirmation, and better status handling.
+- [x] ✅ **Saved travellers management** — profile UI now supports add/delete flows with inline form validation and confirmation.
 - [x] ✅ **Admin panel UI** — full 4-tab dashboard (Dashboard, Users, Bookings, Coupons) with real API integration; `CouponModal`, block/unblock users, `ConfirmDialog` for destructive actions.
-- [ ] 🟡 **Error boundary** — no React error boundary; unhandled component errors crash the whole app.
-- [ ] 🟢 **Toast notifications** — success/error toasts for booking, payment, coupon apply actions.
-- [ ] 🟢 **Skeleton loaders for Hotels, Buses, Trains, Cabs** — only FlightCardSkeleton exists.
+- [x] ✅ **Error boundary** — route-level React error boundary added with recovery UI.
+- [x] ✅ **Toast notifications** — shared success/error/info toasts added for profile and payment-card flows.
+- [x] ✅ **Skeleton loaders for Hotels, Buses, Trains, Cabs** — shared non-flight skeleton components now cover transport search pages, while hotels already used dedicated skeleton cards.
 - [ ] 🟢 **Dark mode** — Tailwind config supports it; no dark-mode classes applied.
 - [ ] 🟢 **PWA / offline support** — Vite PWA plugin not configured.
 

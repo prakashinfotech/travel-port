@@ -36,6 +36,8 @@ const DEFAULT_FILTERS: Filters = {
   arrSlots: [], refundable: false, hideNearby: false, priceMax: 0,
 }
 
+const RESULTS_PER_PAGE = 10
+
 const TIME_SLOTS: { key: TimeSlot; label: string; sub: string; icon: string; range: [number, number] }[] = [
   { key: 'early',     label: 'Before 6 am',  sub: '12am - 6am',  icon: '🌙', range: [0,  6]  },
   { key: 'morning',   label: '6 am - 12 pm', sub: '6am - 12pm',  icon: '🌅', range: [6,  12] },
@@ -432,6 +434,7 @@ export default function FlightsPage() {
   const [flights,  setFlights]  = useState<FlightDto[]>([])
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
 
   // Filters & sort
   const [filters,  setFilters]  = useState<Filters>(DEFAULT_FILTERS)
@@ -458,6 +461,7 @@ export default function FlightsPage() {
         pageSize: 100,
       })
       setFlights(res.data ?? [])
+      setCurrentPage(1)
       if (res.data?.length) {
         const minP = Math.min(...res.data.map(f => f.price))
         setDatePriceMap(p => ({ ...p, [date]: minP }))
@@ -529,6 +533,22 @@ export default function FlightsPage() {
 
     return list
   }, [flights, filters, sortKey])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filters, sortKey, flights])
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / RESULTS_PER_PAGE))
+  const paginatedFlights = useMemo(() => {
+    const start = (currentPage - 1) * RESULTS_PER_PAGE
+    return filtered.slice(start, start + RESULTS_PER_PAGE)
+  }, [currentPage, filtered])
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages)
+    }
+  }, [currentPage, totalPages])
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
@@ -668,9 +688,16 @@ export default function FlightsPage() {
           <div className="flex-1 min-w-0">
             <SortTabs sortKey={sortKey} onSort={setSortKey} flights={flights} />
             <div className="flex items-center justify-between mb-3">
-              <p className="text-sm text-gray-500">
-                {loading ? 'Searching...' : `${filtered.length} flight${filtered.length !== 1 ? 's' : ''} found`}
-              </p>
+              <div>
+                <p className="text-sm text-gray-500">
+                  {loading ? 'Searching...' : `${filtered.length} flight${filtered.length !== 1 ? 's' : ''} found`}
+                </p>
+                {!loading && filtered.length > 0 && (
+                  <p className="text-xs text-gray-400">
+                    Showing {(currentPage - 1) * RESULTS_PER_PAGE + 1}-{Math.min(currentPage * RESULTS_PER_PAGE, filtered.length)} of {filtered.length}
+                  </p>
+                )}
+              </div>
             </div>
 
             {error && (
@@ -687,9 +714,59 @@ export default function FlightsPage() {
                       <p className="text-sm mt-1">Try different dates, airports, or adjust filters</p>
                     </div>
                   )
-                  : filtered.map(f => <FlightCard key={f.id} flight={f} passengerCount={travellers.adults + travellers.children + travellers.infants} />)
+                  : paginatedFlights.map(f => <FlightCard key={f.id} flight={f} passengerCount={travellers.adults + travellers.children + travellers.infants} />)
               }
             </div>
+
+            {!loading && filtered.length > RESULTS_PER_PAGE && (
+              <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3">
+                <p className="text-sm text-gray-500">Page {currentPage} of {totalPages}</p>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(page => Math.max(1, page - 1))}
+                    disabled={currentPage === 1}
+                    className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:border-blue-300 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+
+                  {Array.from({ length: totalPages }, (_, index) => index + 1)
+                    .filter(page => Math.abs(page - currentPage) <= 1 || page === 1 || page === totalPages)
+                    .map((page, index, pages) => {
+                      const previousPage = pages[index - 1]
+                      const showGap = previousPage && page - previousPage > 1
+
+                      return (
+                        <div key={page} className="flex items-center gap-2">
+                          {showGap && <span className="text-sm text-gray-400">...</span>}
+                          <button
+                            type="button"
+                            onClick={() => setCurrentPage(page)}
+                            className={`h-9 w-9 rounded-lg border text-sm font-semibold transition-colors ${
+                              page === currentPage
+                                ? 'border-blue-600 bg-blue-600 text-white'
+                                : 'border-gray-200 text-gray-600 hover:border-blue-300 hover:text-blue-600'
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        </div>
+                      )
+                    })}
+
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))}
+                    disabled={currentPage === totalPages}
+                    className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:border-blue-300 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

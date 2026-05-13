@@ -14,7 +14,7 @@
 |---|---|---|---|
 | 6.1 | Backend validator test project | ✅ | Added `backend/tests/TravelPort.Application.Tests` with auth and flight-booking validator coverage |
 | 6.2 | Frontend unit test runner | ✅ | Added `vitest` and formatter tests in `frontend/src/utils/formatters.test.ts` |
-| 6.3 | Shared repository test scripts | ✅ | Added `scripts/test-all.sh` and `scripts/test-all.ps1` |
+| 6.3 | Shared repository test scripts | ✅ | Added `scripts/test-all.sh`, `scripts/test-all.ps1`, and `scripts/test-all.cmd` |
 | 6.4 | Pre-commit enforcement | ✅ | Added versioned hook at `.githooks/pre-commit`; enable with `git config core.hooksPath .githooks` |
 | 6.5 | CI test enforcement | ✅ | GitHub Actions now runs backend and frontend tests before build/push |
 | 6.6 | Documentation refresh | ✅ | Updated README, contributing workflow, deployment guide, testing guide, and PR template |
@@ -346,17 +346,34 @@
 
 ---
 
+## Phase 11 — Frontend Reliability & UX Polish
+**Branch:** `feature/test-gate-and-docker-auto-update`
+**Date:** 2026-05-13
+**Scope:** Toast feedback, crash recovery, skeleton loading polish, profile UX improvements, safe flight result pagination
+
+| # | Feature | Status | Notes |
+|---|---|---|---|
+| 11.1 | Shared toast provider | ✅ | Added `ToastProvider` + `useToast()` helpers for success/error/info feedback |
+| 11.2 | App-wide error boundary | ✅ | `ErrorBoundary` now wraps routed UI and provides recovery actions on render crashes |
+| 11.3 | Transport skeleton loaders | ✅ | Added reusable bus/train/cab skeleton cards and wired them into search pages |
+| 11.4 | Profile page overview refresh | ✅ | Added account summary hero, wallet highlights, and cleaner saved-card/traveller sections |
+| 11.5 | Profile feedback hardening | ✅ | Wallet top-up, saved cards, and add-card flows now use toasts plus safer confirm dialogs |
+| 11.6 | Saved travellers management polish | ✅ | Replaced native confirm with themed dialog and added success/error feedback |
+| 11.7 | Flight result pagination | ✅ | Paginated filtered flights locally at 10 results per page without changing backend contracts |
+| 11.8 | Verification pass | ✅ | Frontend tests, frontend production build, and backend tests all passed after the changes |
+
+---
+
 ## Upcoming / Planned
 
 | # | Feature | Priority | Phase |
 |---|---|---|---|
-| 11.1 | Mobile filter drawer (slide-over) for FlightsPage | 🔴 High | Phase 11 |
-| 11.2 | Bus / Train / Cab booking — persistence + API | 🔴 High | Phase 11 |
-| 11.3 | Email verification flow (OTP) | 🟡 Medium | Phase 11 |
-| 11.4 | HTTPS with Let's Encrypt (Nginx + Certbot sidecar) | 🟡 Medium | Phase 11 |
-| 11.5 | Unit tests for FlightService, HotelService, WalletService | 🟢 Low | Phase 11 |
-| 11.6 | Redis cache (replace in-memory IMemoryCache) | 🟢 Low | Phase 11 |
-| 11.7 | Real Razorpay webhook handler for production | 🟢 Low | Phase 11 |
+| 12.1 | Bus / Train / Cab booking — persistence + API | 🔴 High | Phase 12 |
+| 12.2 | Email verification flow (OTP) | 🟡 Medium | Phase 12 |
+| 12.3 | HTTPS with Let's Encrypt (Nginx + Certbot sidecar) | 🟡 Medium | Phase 12 |
+| 12.4 | Unit tests for FlightService, HotelService, WalletService | 🟢 Low | Phase 12 |
+| 12.5 | Redis cache (replace in-memory IMemoryCache) | 🟢 Low | Phase 12 |
+| 12.6 | Real Razorpay webhook handler for production | 🟢 Low | Phase 12 |
 
 ---
 

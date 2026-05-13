@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { userService } from '@/services/userService'
 import type { SavedCardDto } from '@/types'
+import { useToast } from '@/components/ui/ToastProvider'
 
 interface Props {
   onClose: () => void
@@ -29,6 +30,7 @@ function formatExpiry(value: string) {
 }
 
 export function AddCardModal({ onClose, onSaved }: Props) {
+  const toast = useToast()
   const [form, setForm] = useState({
     cardNumber: '',
     cardHolderName: '',
@@ -86,8 +88,10 @@ export function AddCardModal({ onClose, onSaved }: Props) {
         nickName: form.nickName.trim() || undefined,
         setAsDefault: form.setAsDefault,
       })
+      toast.success('Card saved', 'Your payment card is now available for future bookings.')
       onSaved(res.data)
     } catch {
+      toast.error('Card not saved', 'We could not save this card. Please verify the details and try again.')
       setError('Failed to save card. Please try again.')
     } finally {
       setSaving(false)

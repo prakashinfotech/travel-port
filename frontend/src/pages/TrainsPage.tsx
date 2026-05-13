@@ -4,6 +4,7 @@ import { Train, Clock, Filter, AlertCircle, Users } from 'lucide-react'
 import { api } from '@/api/axios'
 import { endpoints } from '@/api/endpoints'
 import type { TrainDto, ApiResponse } from '@/types'
+import { TrainCardSkeleton } from '@/components/ui/Skeleton'
 
 const CITIES = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Hyderabad', 'Ahmedabad', 'Goa', 'Pune', 'Jaipur', 'Kolkata']
 const CLASSES = [
@@ -158,13 +159,7 @@ export default function TrainsPage() {
         <div className="flex-1">
           {loading && (
             <div className="space-y-4">
-              {[1,2,3].map(i => (
-                <div key={i} className="bg-white rounded-xl p-5 animate-pulse">
-                  <div className="h-5 bg-gray-200 rounded w-1/3 mb-3" />
-                  <div className="h-4 bg-gray-100 rounded w-1/2 mb-2" />
-                  <div className="h-12 bg-gray-100 rounded w-full" />
-                </div>
-              ))}
+              {[1, 2, 3].map(i => <TrainCardSkeleton key={i} />)}
             </div>
           )}
 

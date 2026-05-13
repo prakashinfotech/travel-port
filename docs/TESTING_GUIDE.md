@@ -66,4 +66,4 @@ The pipeline runs tests before Docker image build and push, so failed tests stop
 When adding features:
 - Add backend tests under `backend/tests`
 - Add frontend unit tests next to the code as `*.test.ts` or `*.test.tsx`
-- Keep `scripts/test-all.sh` and `scripts/test-all.ps1` as the single entrypoint for the repo test gate
+- Keep `scripts/test-all.sh`, `scripts/test-all.ps1`, and `scripts/test-all.cmd` as the supported entrypoints for the repo test gate
