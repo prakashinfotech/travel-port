@@ -135,6 +135,8 @@ When opening a PR to `Development` or `main`:
 
 Before every commit, verify:
 
+- [ ] Repo hook enabled once per clone: `git config core.hooksPath .githooks`
+- [ ] Shared test gate passes: `./scripts/test-all.sh` or `.\scripts\test-all.cmd`
 - [ ] TypeScript compiles: `cd frontend && npx tsc --noEmit`
 - [ ] Backend builds: `cd backend && dotnet build src/API -v q`
 - [ ] No secrets in `appsettings.json` (use `appsettings.Development.json`)

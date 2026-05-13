@@ -47,7 +47,9 @@ Browser
 | `frontend/.dockerignore` | Excludes node_modules, dist from Docker context |
 | `docker-compose.yml` | Orchestrates db + api + web containers |
 | `.env.example` | Template for all required environment variables |
-| `.github/workflows/deploy.yml` | CI/CD pipeline — build → Docker Hub push → image verification |
+| `.github/workflows/deploy.yml` | CI/CD pipeline — tests + builds → Docker Hub push → image verification |
+| `.githooks/pre-commit` | Local commit gate — runs the shared test command before commit |
+| `scripts/test-all.sh` | Cross-platform CI/local test entrypoint for backend + frontend |
 
 ---
 
@@ -88,9 +90,23 @@ Pushes and merged PRs to the `Development` branch automatically run the pipeline
 
 | Job | Trigger | What it does |
 |---|---|---|
-| `build` | Every push + PR | `dotnet build` + `npm run build` — fails fast on compile errors |
+| `build` | Every push + PR | `dotnet test` + frontend `vitest` + `dotnet build` + `npm run build` — fails fast on regressions and compile errors |
 | `docker` | Push only (not PRs) | **Pauses for owner approval**, then builds & pushes images to Docker Hub |
 | `verify` | Push only, after `docker` | Pulls both images from Docker Hub to confirm availability, prints local pull instructions |
+
+### Local Commit Gate
+
+Enable the versioned git hook once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+The hook runs:
+
+```bash
+./scripts/test-all.sh
+```
 
 ### Deployment Approval Gate
 
@@ -112,30 +128,31 @@ To set this up (one-time):
 Each push produces two tags on Docker Hub:
 - `<dockerhub-username>/travelport-api:latest` — always points to the newest build
 - `<dockerhub-username>/travelport-api:<git-sha>` — pinned to exact commit (for rollback)
+- `docker-compose.yml` uses `pull_policy: always` for `api` and `web`, so `docker compose up -d` fetches the newest `latest` image automatically before start
 
 ---
 
 ## Local Docker Desktop Run (pull from Docker Hub)
 
-After CI pushes images to Docker Hub, pull and run them locally:
+After CI pushes images to Docker Hub, Docker Desktop / Compose can pick up the newest image automatically:
 
 ```bash
 # 1. Copy and fill the env file
 cp .env.example .env
 # Edit .env — set DOCKERHUB_USERNAME, DB_SA_PASSWORD, JWT_SECRET
 
-# 2. Pull latest images from Docker Hub
-docker compose pull
-
-# 3. Start all containers
+# 2. Start or restart all containers
+# pull_policy: always makes Compose fetch the newest :latest image for api/web
 docker compose up -d
 
-# 4. Tail logs
+# 3. Tail logs
 docker compose logs -f
 
 # App is at http://localhost
 # Swagger is at http://localhost/api/swagger
 ```
+
+If containers are already running in Docker Desktop, restart them with `docker compose up -d` after the CI push completes. Compose will pull the newer image first and then recreate the containers with the latest code.
 
 To stop:
 ```bash

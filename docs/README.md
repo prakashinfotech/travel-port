@@ -130,6 +130,24 @@ See [.env.example](.env.example) for all required variables.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 
+## ✅ Test Gate
+
+Before every commit, run the shared test command:
+
+```bash
+./scripts/test-all.sh
+```
+
+```powershell
+.\scripts\test-all.cmd
+```
+
+Enable the versioned hook once per clone so commits are blocked when tests fail:
+
+```bash
+git config core.hooksPath .githooks
+```
+
 ---
 
 ## 📄 License

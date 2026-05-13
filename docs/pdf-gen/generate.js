@@ -452,7 +452,7 @@ function srsHTML() {
         <div class="info-card">
           <div class="label">CI/CD</div>
           <div class="value">GitHub Actions</div>
-          <div class="sub">ghcr.io container registry · SSH deploy</div>
+          <div class="sub">pre-commit test gate · Docker Hub registry · approval-gated image publish</div>
         </div>
       </div>
     </div>
@@ -609,7 +609,7 @@ function srsHTML() {
       ${[
         ['Performance', 'badge-blue', 'Flight/hotel search responds in < 500 ms (cache hit < 50 ms). API supports 100 concurrent users on a single 2-core server.'],
         ['Security', 'badge-red', 'JWT (15 min) + Refresh Tokens (7 days). BCrypt cost 12. Secrets in env vars only. HTTPS enforced in production. SQL injection prevention via EF Core parameterization.'],
-        ['Reliability', 'badge-green', 'Background workers (BookingExpiryWorker, RefreshTokenCleanupWorker) recover gracefully on shutdown. DataSeeder is idempotent — existing data preserved on restart.'],
+        ['Reliability', 'badge-green', 'Background workers (BookingExpiryWorker, RefreshTokenCleanupWorker) recover gracefully on shutdown. DataSeeder is idempotent — existing data preserved on restart. Commits and CI are gated by automated backend and frontend tests.'],
         ['Usability', 'badge-pink', 'Goibibo-style UI with skeleton loaders, responsive layout (lg breakpoint), accessible form controls and keyboard navigation. Mobile filter drawer planned (Phase 9).'],
       ].map(([title, badge, desc]) => `
         <div class="card">
@@ -1034,7 +1034,7 @@ function deploymentHTML() {
       <div class="cover-meta-item"><div class="label">Version</div><div class="value">v1.0.0</div></div>
       <div class="cover-meta-item"><div class="label">Platform</div><div class="value">Docker + Linux VPS</div></div>
       <div class="cover-meta-item"><div class="label">CI/CD</div><div class="value">GitHub Actions</div></div>
-      <div class="cover-meta-item"><div class="label">Registry</div><div class="value">ghcr.io</div></div>
+      <div class="cover-meta-item"><div class="label">Registry</div><div class="value">Docker Hub</div></div>
     </div>
     <div class="cover-footer">TravelPort · Deployment Guide · © 2026</div>
   </div>
@@ -1132,8 +1132,8 @@ function deploymentHTML() {
           <thead><tr><th>Service</th><th>Image</th><th>Port</th><th>Health Check</th></tr></thead>
           <tbody>
             <tr><td><code>sqlserver</code></td><td>mcr.microsoft.com/mssql/server:2022-latest</td><td>1433 (internal)</td><td>sqlcmd SELECT 1</td></tr>
-            <tr><td><code>api</code></td><td>ghcr.io/{owner}/travelport-api</td><td>8080 (internal)</td><td>GET /health → 200</td></tr>
-            <tr><td><code>web</code></td><td>ghcr.io/{owner}/travelport-web</td><td>80 → host</td><td>HTTP 200 on /</td></tr>
+            <tr><td><code>api</code></td><td>docker.io/{owner}/travelport-api</td><td>8080 (internal)</td><td>GET /health → 200</td></tr>
+            <tr><td><code>web</code></td><td>docker.io/{owner}/travelport-web</td><td>80 → host</td><td>HTTP 200 on /</td></tr>
           </tbody>
         </table>
       </div>
@@ -1169,6 +1169,10 @@ RAZORPAY_KEY_SECRET=<span class="string">your-secret</span></pre>
 cp .env.example .env
 <span class="comment"># Edit .env with your values</span>
 docker compose build
+docker compose up -d
+
+<span class="comment"># Later runs — api/web use pull_policy: always, so docker compose up -d</span>
+<span class="comment"># fetches the newest :latest images from Docker Hub before restart</span>
 docker compose up -d
 
 <span class="comment"># Verify services</span>
@@ -1210,9 +1214,9 @@ docker compose logs api --tail=50
       <h3>3.1 Workflow Jobs</h3>
       <div class="flow">
         ${[
-          ['1', 'build-and-verify', 'Triggered on push to Development or PR. Runs dotnet build + dotnet test (backend) and npm run build (frontend). Both must pass before proceeding.'],
-          ['2', 'docker-build-push', 'Runs only on push to Development (not on PRs). Builds multi-stage Docker images for API and Web. Pushes tagged images to ghcr.io.'],
-          ['3', 'deploy', 'Requires manual approval via GitHub Environment protection rules. SSHes into production server, pulls latest images and runs docker compose up -d.'],
+          ['1', 'build-and-verify', 'Triggered on push to Development or PR. Runs dotnet test + dotnet build for the backend and vitest + npm run build for the frontend. All checks must pass before proceeding.'],
+          ['2', 'docker-build-push', 'Runs only on push to Development (not on PRs). Requires manual approval, then builds multi-stage Docker images for API and Web and pushes tagged images to Docker Hub.'],
+          ['3', 'verify-images', 'Pulls the newly published API and Web images from Docker Hub to confirm they are available for downstream docker compose deployments.'],
         ].map(([n, t, d]) => `
           <div class="flow-step">
             <div class="flow-line"></div>
@@ -1220,6 +1224,13 @@ docker compose logs api --tail=50
             <div class="flow-body"><h4>${t}</h4><p>${d}</p></div>
           </div>
         `).join('')}
+      </div>
+      <div class="callout callout-info">
+        <div class="callout-icon">â„¹</div>
+        <div class="callout-content">
+          <div class="callout-title">Local Commit Rule</div>
+          <div class="callout-text">Developers enable <code>git config core.hooksPath .githooks</code> once per clone so the shared repository test gate runs before every commit.</div>
+        </div>
       </div>
     </div>
 
@@ -1230,9 +1241,8 @@ docker compose logs api --tail=50
           <thead><tr><th>Secret Name</th><th>Value</th></tr></thead>
           <tbody>
             ${[
-              ['DEPLOY_HOST', 'Production server IP or hostname'],
-              ['DEPLOY_USER', 'SSH username (e.g., ubuntu)'],
-              ['DEPLOY_KEY', 'SSH private key (PEM format, no passphrase)'],
+              ['DOCKERHUB_USERNAME', 'Docker Hub namespace used for API and Web images'],
+              ['DOCKERHUB_TOKEN', 'Docker Hub access token with push permission'],
               ['DB_SA_PASSWORD', 'SQL Server SA password (strong, 16+ chars)'],
               ['JWT_SECRET', 'Minimum 32-character random string'],
               ['EMAIL_USERNAME', 'SMTP sender email address'],
@@ -1298,8 +1308,8 @@ JWT_SECRET=...
 <span class="comment"># ... all other vars</span>
 EOF
 
-<span class="comment"># 4. Pull pre-built images and start</span>
-docker compose pull
+<span class="comment"># 4. Start or restart pre-built images</span>
+<span class="comment"># docker-compose.yml uses pull_policy: always for api/web</span>
 docker compose up -d</pre>
     </div>
 
@@ -1335,7 +1345,7 @@ dotnet ef database update --project src/Persistence --startup-project src/API</p
             ['Email not sent', 'SMTP FromEmail ≠ Username', 'Set FromEmail = Username in config (Office365 enforces this)'],
             ['docker compose build fails', 'Node/dotnet version mismatch in Dockerfile', 'Check Dockerfile FROM versions match project requirements'],
             ['Bookings disappear on restart', 'DataSeeder not idempotent', 'Already fixed — seeder skips if data exists'],
-            ['ghcr.io push 403', 'Missing GITHUB_TOKEN write:packages permission', 'Set package write permission in workflow YAML'],
+            ['Docker Hub push 401/403', 'Invalid DOCKERHUB credentials or token scope', 'Regenerate the Docker Hub access token and update the GitHub Actions secrets'],
           ].map(([s, c, f]) => `<tr><td>${s}</td><td>${c}</td><td>${f}</td></tr>`).join('')}
         </tbody>
       </table>

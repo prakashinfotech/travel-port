@@ -25,6 +25,7 @@ services:
   # ── .NET 8 API ───────────────────────────────────────────────────────────────
   api:
     image: ${DOCKERHUB_USERNAME}/travelport-api:${IMAGE_TAG:-latest}
+    pull_policy: always
     depends_on:
       db:
         condition: service_healthy
@@ -58,6 +59,7 @@ services:
   # ── React Frontend (Nginx) ───────────────────────────────────────────────────
   web:
     image: ${DOCKERHUB_USERNAME}/travelport-web:${IMAGE_TAG:-latest}
+    pull_policy: always
     ports:
       - "${WEB_PORT:-80}:80"
     depends_on:

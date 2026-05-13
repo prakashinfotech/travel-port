@@ -32,7 +32,11 @@ git pull origin Development
 # Create your feature branch
 git checkout -b feature/your-feature-name
 
-# ... do work, commit ...
+# Enable the repository hook once per clone
+git config core.hooksPath .githooks
+
+# ... do work, run tests, commit ...
+./scripts/test-all.sh
 git add <specific-files>
 git commit -m "feat: describe your change"
 
@@ -67,6 +71,27 @@ Examples:
 - `fix: correct flight search parameter name`
 - `docs: update API endpoint table in README`
 - `chore: bump EF Core to 8.0.12`
+
+---
+
+## Test Rule
+
+Every commit must pass the shared repository test gate before it is created.
+
+Commands:
+
+```bash
+./scripts/test-all.sh
+```
+
+```powershell
+.\scripts\test-all.cmd
+```
+
+What is enforced:
+- The versioned pre-commit hook at `.githooks/pre-commit` runs the shared test command.
+- Contributors should enable the hook once per clone with `git config core.hooksPath .githooks`.
+- GitHub Actions runs the same backend and frontend tests again on every push and pull request to `Development`.
 
 ---
 

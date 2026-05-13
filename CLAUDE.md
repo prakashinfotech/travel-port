@@ -52,6 +52,7 @@ Goibibo-AI-Assignment/
 After any code or config change, update the relevant documentation:
 - `README.md` — seed data counts, stack changes, new endpoints
 - `docs/API_DOCUMENTATION.md` — any new or modified API endpoints
+- `docs/TESTING_GUIDE.md` — whenever test coverage, hook behavior, or CI verification changes
 - `TASK-TRACKER.md` — mark features as done, add new entries
 - `TODO.md` — move completed items, add new ones found during work
 
@@ -65,6 +66,8 @@ After any code or config change, update the relevant documentation:
 - Follow the commit convention in `GIT.md` exactly
 - Always stage specific files — never `git add -A` blindly
 - All commits go to a feature branch, never directly to `main` or `Development`
+- Before a commit, run the shared test gate: `./scripts/test-all.sh` or `.\scripts\test-all.cmd`
+- Keep `git config core.hooksPath .githooks` enabled in the working clone so the pre-commit hook enforces tests
 
 ### 4. Duffel / external providers
 - Duffel is disabled by default (`Enabled: false` in `appsettings.json`)

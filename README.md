@@ -93,6 +93,29 @@ Frontend at `http://localhost:5173` (Vite proxies `/api` → `http://localhost:5
 
 ---
 
+## Testing
+
+Run the shared test gate before every commit:
+
+```bash
+./scripts/test-all.sh
+```
+
+```powershell
+.\scripts\test-all.cmd
+```
+
+Enable the versioned hook once per clone so commits automatically run tests:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Current automated coverage includes backend validator tests and frontend formatter unit tests.
+See [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md) for the full workflow.
+
+---
+
 ## Test Credentials
 
 | Role | Email | Password |
@@ -163,12 +186,13 @@ Full reference: [API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md)
 | Pipeline | GitHub Actions — triggers on push/merge to `Development` |
 | Registry | Docker Hub (`docker.io`) |
 | Images | `travelport-api` (.NET 8), `travelport-web` (Nginx+React) |
-| Job 1 | Build & Verify — `dotnet build` + `npm run build`, fails fast on compile errors |
+| Local gate | `.githooks/pre-commit` runs `./scripts/test-all.sh` before every commit once hooks are enabled |
+| Job 1 | Build & Verify — `dotnet test` + frontend `vitest` + `dotnet build` + `npm run build` |
 | Job 2 | **Requires owner approval** → builds & pushes `:latest` + `:<git-sha>` tags to Docker Hub |
 | Job 3 | Verify Images — pulls both images from Docker Hub, confirms availability |
 | Approval gate | `environment: production` on Job 2 — GitHub notifies you and waits before any image is pushed |
 | DB migrations | Auto-applied on API startup (`db.Database.Migrate()`) |
-| Local run | Set `DOCKERHUB_USERNAME` in `.env`, then `docker compose pull && docker compose up -d` |
+| Local run | Set `DOCKERHUB_USERNAME` in `.env`, then run `docker compose up -d` — `pull_policy: always` makes Compose fetch the newest `latest` image for `api` and `web` |
 
 See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for full setup guide including Docker Hub secrets configuration, rollback, and troubleshooting.
 

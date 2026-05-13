@@ -35,6 +35,9 @@ jobs:
       - name: Restore backend dependencies
         run: dotnet restore backend/TravelPort.sln
 
+      - name: Run backend tests
+        run: dotnet test backend/TravelPort.sln -c Release --no-restore
+
       - name: Build backend (Release)
         run: dotnet build backend/TravelPort.sln -c Release --no-restore
 
@@ -48,6 +51,9 @@ jobs:
 
       - name: Install frontend dependencies
         run: npm ci --prefix frontend
+
+      - name: Run frontend tests
+        run: npm run test --prefix frontend -- --run
 
       - name: Build frontend
         run: npm run build --prefix frontend

@@ -6,6 +6,21 @@
 
 ---
 
+## Phase 6 — Test Gate & CI Enforcement
+**Branch:** `feature/pdf-linux-font-support`
+**Scope:** Baseline automated tests, commit hook, CI policy, documentation
+
+| # | Feature | Status | Notes |
+|---|---|---|---|
+| 6.1 | Backend validator test project | ✅ | Added `backend/tests/TravelPort.Application.Tests` with auth and flight-booking validator coverage |
+| 6.2 | Frontend unit test runner | ✅ | Added `vitest` and formatter tests in `frontend/src/utils/formatters.test.ts` |
+| 6.3 | Shared repository test scripts | ✅ | Added `scripts/test-all.sh` and `scripts/test-all.ps1` |
+| 6.4 | Pre-commit enforcement | ✅ | Added versioned hook at `.githooks/pre-commit`; enable with `git config core.hooksPath .githooks` |
+| 6.5 | CI test enforcement | ✅ | GitHub Actions now runs backend and frontend tests before build/push |
+| 6.6 | Documentation refresh | ✅ | Updated README, contributing workflow, deployment guide, testing guide, and PR template |
+
+---
+
 ## Phase 1 — Initial Full-Stack Implementation
 **Branch:** `main` → initial commit `d2468bc`
 **Scope:** Complete foundation — domain, backend, frontend, auth, DB

@@ -44,8 +44,8 @@
 ### Technical Debt
 - [ ] 🟡 **`RazorpayService._logger` warning** — `_logger` field is declared but never used. Either inject and use `ILogger`, or remove the field.
 - [ ] 🟡 **`FlightService.ExtractAmadeusPrice`** — Amadeus support was replaced by Duffel but the extraction helper and fallback code path still exist. Clean up once Amadeus is fully retired.
-- [ ] 🟢 **No unit tests** — core services (`FlightService`, `HotelService`, `WalletService`) have zero test coverage.
-- [ ] 🟢 **No integration tests** — no test project exists. At minimum, auth and booking flows should be covered.
+- [ ] 🟡 **Expand unit coverage beyond validators/helpers** — add tests for core services (`FlightService`, `HotelService`, `WalletService`) and richer booking scenarios.
+- [ ] 🟢 **Add integration tests** — the repository now has a test project and commit/CI gate, but auth and booking flows still need end-to-end API coverage.
 
 ---
 

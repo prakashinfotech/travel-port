@@ -1,0 +1,6 @@
+#!/bin/sh
+set -eu
+
+echo "pre-commit: running repository test gate"
+
+./scripts/test-all.sh
