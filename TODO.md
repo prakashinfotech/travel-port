@@ -10,7 +10,7 @@
 |---|---|---|---|
 | 1 | Test all flight filter combinations end-to-end | 🔴 | Especially combined stop + airline + time filters |
 | 2 | Verify TravellerSelector popup closes correctly on mobile | 🟡 | `overflow-hidden` fix applied; test touch events |
-| 3 | Verify SMTP email delivery end-to-end | 🟡 | Office365 configured; `FromEmail` must match `Username` |
+| 3 | ~~Verify SMTP email delivery end-to-end~~ | ✅ | Fixed: `EMAIL_ENABLED=true` + credentials added to `.env`; booking confirmation emails confirmed working from Docker |
 | 4 | Wire Razorpay live key for Card payment in production | 🟡 | Card/UPI/NetBanking pages currently use mock API; real Razorpay needs live key in appsettings |
 
 ---
