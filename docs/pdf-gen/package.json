@@ -1,0 +1,12 @@
+{
+  "name": "travelport-pdf-gen",
+  "version": "1.0.0",
+  "description": "PDF documentation generator for TravelPort",
+  "main": "generate.js",
+  "scripts": {
+    "generate": "node generate.js"
+  },
+  "dependencies": {
+    "puppeteer": "^22.0.0"
+  }
+}

@@ -34,7 +34,16 @@
       "PowerShell(Get-ChildItem \"c:\\\\Goibibo-AI-Assignment\\\\backend\\\\src\\\\Application\\\\DTOs\" -Recurse | ForEach-Object { $_.FullName })",
       "PowerShell(Get-ChildItem \"c:\\\\Goibibo-AI-Assignment\\\\backend\\\\src\\\\API\\\\Controllers\\\\\" | ForEach-Object { $_.FullName })",
       "PowerShell(Get-ChildItem \"c:\\\\Goibibo-AI-Assignment\" | ForEach-Object { $_.Name })",
-      "PowerShell(Get-ChildItem \"c:\\\\Goibibo-AI-Assignment\\\\.github\" -Recurse | ForEach-Object { $_.FullName })"
+      "PowerShell(Get-ChildItem \"c:\\\\Goibibo-AI-Assignment\\\\.github\" -Recurse | ForEach-Object { $_.FullName })",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(docker build *)",
+      "Bash(docker login *)",
+      "Bash(docker compose *)",
+      "Bash(git fetch *)",
+      "Bash(git merge *)",
+      "Bash(docker run *)",
+      "Bash(docker exec *)"
     ]
   }
 }

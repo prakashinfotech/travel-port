@@ -23,6 +23,11 @@ RUN dotnet publish src/API/TravelPort.API.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 
+# Install Liberation fonts (Arial-compatible) so PdfSharpCore renders PDFs correctly on Linux
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    fonts-liberation \
+    && rm -rf /var/lib/apt/lists/*
+
 # Create a non-root user for security
 RUN adduser --disabled-password --gecos "" appuser && chown -R appuser /app
 USER appuser

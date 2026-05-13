@@ -12,8 +12,13 @@ using TravelPort.Infrastructure;
 using TravelPort.Persistence;
 using TravelPort.API.Middleware;
 using TravelPort.Infrastructure.Auth;
+using TravelPort.Infrastructure.Services;
 using TravelPort.Persistence.Context;
 using TravelPort.Persistence.Seeds;
+
+// PdfSharpCore has no GDI font discovery on Linux — register Liberation Sans as Arial substitute
+if (!OperatingSystem.IsWindows())
+    PdfSharpCore.Fonts.GlobalFontSettings.FontResolver = new LinuxFontResolver();
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
