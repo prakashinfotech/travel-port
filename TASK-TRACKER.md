@@ -311,17 +311,34 @@
 
 ---
 
+## Phase 10 — CI/CD Registry Migration & Docker Desktop Local Run
+**Branch:** `fix/ci-remove-ssh-deploy`
+**Date:** 2026-05-13
+**Scope:** Migrate image registry from GHCR to Docker Hub; replace SSH server deploy with local Docker Desktop workflow
+
+| # | Feature | Status | Notes |
+|---|---|---|---|
+| 10.1 | Migrate CI registry from `ghcr.io` → Docker Hub (`docker.io`) | ✅ | `deploy.yml` Job 2 now logs in with `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN` secrets |
+| 10.2 | Remove SSH server deploy job (Job 3) | ✅ | `appleboy/scp-action` and `appleboy/ssh-action` steps removed; no `SERVER_SSH_KEY` required |
+| 10.3 | Add Docker Hub image verify job (new Job 3) | ✅ | Pulls both images after push to confirm accessibility; prints local pull instructions |
+| 10.4 | `docker-compose.yml` — update image refs from `ghcr.io` to Docker Hub | ✅ | Both `api` and `web` services now use `${DOCKERHUB_USERNAME}/travelport-api/web:${IMAGE_TAG:-latest}` |
+| 10.5 | `.env.example` — replace `GITHUB_REPOSITORY_LOWER` with `DOCKERHUB_USERNAME` | ✅ | Aligns with new docker-compose image references |
+| 10.6 | `docs/DEPLOYMENT.md` — reflect Docker Hub pipeline & local Docker Desktop run | ✅ | CI/CD jobs table updated; server setup section replaced with local pull instructions; rollback & troubleshooting updated |
+| 10.7 | `README.md` — update CI/CD table to Docker Hub | ✅ | Registry, deploy method, and local run instructions updated |
+
+---
+
 ## Upcoming / Planned
 
 | # | Feature | Priority | Phase |
 |---|---|---|---|
-| 10.1 | Mobile filter drawer (slide-over) for FlightsPage | 🔴 High | Phase 10 |
-| 10.2 | Bus / Train / Cab booking — persistence + API | 🔴 High | Phase 10 |
-| 10.3 | Email verification flow (OTP) | 🟡 Medium | Phase 10 |
-| 10.4 | HTTPS with Let's Encrypt (Nginx + Certbot sidecar) | 🟡 Medium | Phase 10 |
-| 10.5 | Unit tests for FlightService, HotelService, WalletService | 🟢 Low | Phase 10 |
-| 10.6 | Redis cache (replace in-memory IMemoryCache) | 🟢 Low | Phase 10 |
-| 10.7 | Real Razorpay webhook handler for production | 🟢 Low | Phase 10 |
+| 11.1 | Mobile filter drawer (slide-over) for FlightsPage | 🔴 High | Phase 11 |
+| 11.2 | Bus / Train / Cab booking — persistence + API | 🔴 High | Phase 11 |
+| 11.3 | Email verification flow (OTP) | 🟡 Medium | Phase 11 |
+| 11.4 | HTTPS with Let's Encrypt (Nginx + Certbot sidecar) | 🟡 Medium | Phase 11 |
+| 11.5 | Unit tests for FlightService, HotelService, WalletService | 🟢 Low | Phase 11 |
+| 11.6 | Redis cache (replace in-memory IMemoryCache) | 🟢 Low | Phase 11 |
+| 11.7 | Real Razorpay webhook handler for production | 🟢 Low | Phase 11 |
 
 ---
 
@@ -341,8 +358,8 @@ dotnet run --project src/API --launch-profile https
 
 | Metric | Value |
 |---|---|
-| Total phases completed | 9 |
-| Total features delivered | 193+ |
+| Total phases completed | 10 |
+| Total features delivered | 200+ |
 | Flights in seed DB | 900+ (dynamic demand-based pricing) |
 | Hotels in seed DB | 60+ (12 cities) |
 | Coupons | 11 (5 original + 6 new: FLYSAVER, FLYOFF200, FLYDEAL15, HOTELOFF15, STAYMORE, HOTELDEAL) |

@@ -47,7 +47,7 @@ Browser
 | `frontend/.dockerignore` | Excludes node_modules, dist from Docker context |
 | `docker-compose.yml` | Orchestrates db + api + web containers |
 | `.env.example` | Template for all required environment variables |
-| `.github/workflows/deploy.yml` | CI/CD pipeline — build → Docker push → SSH deploy |
+| `.github/workflows/deploy.yml` | CI/CD pipeline — build → Docker Hub push → image verification |
 
 ---
 
@@ -89,43 +89,42 @@ Pushes and merged PRs to the `Development` branch automatically run the pipeline
 | Job | Trigger | What it does |
 |---|---|---|
 | `build` | Every push + PR | `dotnet build` + `npm run build` — fails fast on compile errors |
-| `docker` | Push only (not PRs) | Builds API + Web Docker images, pushes to `ghcr.io` |
-| `deploy` | Push only, after `docker` | SSHs into server, pulls new images, `docker compose up -d` |
+| `docker` | Push only (not PRs) | Builds API + Web Docker images, pushes to Docker Hub |
+| `verify` | Push only, after `docker` | Pulls both images from Docker Hub to confirm availability, prints local pull instructions |
 
 ### Image tags
-Each deploy produces two tags:
-- `ghcr.io/<owner>/travelport-api:latest` — always points to the newest build
-- `ghcr.io/<owner>/travelport-api:<git-sha>` — pinned to exact commit (for rollback)
+Each push produces two tags on Docker Hub:
+- `<dockerhub-username>/travelport-api:latest` — always points to the newest build
+- `<dockerhub-username>/travelport-api:<git-sha>` — pinned to exact commit (for rollback)
 
 ---
 
-## Server Setup (one-time)
+## Local Docker Desktop Run (pull from Docker Hub)
 
-Provision any Linux server (Ubuntu 22.04 recommended — DigitalOcean, AWS EC2, Hetzner, etc.) and run:
+After CI pushes images to Docker Hub, pull and run them locally:
 
 ```bash
-# Install Docker (includes Compose v2)
-curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker $USER
-newgrp docker
+# 1. Copy and fill the env file
+cp .env.example .env
+# Edit .env — set DOCKERHUB_USERNAME, DB_SA_PASSWORD, JWT_SECRET
 
-# Create deployment directory
-sudo mkdir -p /opt/travelport
-sudo chown $USER:$USER /opt/travelport
+# 2. Pull latest images from Docker Hub
+docker compose pull
 
-# Verify Docker works
-docker run --rm hello-world
+# 3. Start all containers
+docker compose up -d
+
+# 4. Tail logs
+docker compose logs -f
+
+# App is at http://localhost
+# Swagger is at http://localhost/api/swagger
 ```
 
-Generate an SSH key pair for GitHub Actions:
+To stop:
 ```bash
-ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/github_deploy
-
-# Add public key to server's authorized_keys
-cat ~/.ssh/github_deploy.pub >> ~/.ssh/authorized_keys
-
-# Copy private key — paste this into the SERVER_SSH_KEY GitHub secret
-cat ~/.ssh/github_deploy
+docker compose down          # stops containers, keeps DB volume
+docker compose down -v       # stops + deletes DB volume (full reset)
 ```
 
 ---
@@ -134,13 +133,11 @@ cat ~/.ssh/github_deploy
 
 Go to **GitHub repo → Settings → Secrets and variables → Actions** and add:
 
-### Server access
-| Secret | Example value |
+### Docker Hub
+| Secret | Notes |
 |---|---|
-| `SERVER_HOST` | `123.45.67.89` |
-| `SERVER_USER` | `ubuntu` |
-| `SERVER_SSH_KEY` | Contents of `~/.ssh/github_deploy` (the private key) |
-| `SERVER_PORT` | `22` (optional, default is 22) |
+| `DOCKERHUB_USERNAME` | Your Docker Hub username (e.g. `nayanparmar`) |
+| `DOCKERHUB_TOKEN` | Docker Hub Access Token — create at hub.docker.com → Account Settings → Security |
 
 ### Database
 | Secret | Notes |
@@ -181,32 +178,25 @@ Go to **GitHub repo → Settings → Secrets and variables → Actions** and add
 
 ---
 
-## GitHub Environment Protection (optional but recommended)
-
-To require manual approval before each production deploy:
-
-1. Go to **Settings → Environments → New environment** → name it `production`
-2. Add **Required reviewers** (yourself)
-3. The `deploy` job in `deploy.yml` targets `environment: production` — it will pause and wait for approval
-
 ---
 
 ## Rollback
 
-To roll back to a specific commit:
+To roll back to a specific commit, set `IMAGE_TAG` in your `.env` to the target git SHA:
 
 ```bash
-# SSH into server
-cd /opt/travelport
+# Edit .env
+IMAGE_TAG=abc1234
 
-# Replace IMAGE_TAG with the git SHA of a known-good build
-IMAGE_TAG=abc1234 GITHUB_REPOSITORY_LOWER=yourname docker compose up -d
+# Pull and restart with that specific tag
+docker compose pull
+docker compose up -d
 ```
 
-Or in docker-compose.yml, pin the image tag temporarily:
+Or pin the image tag temporarily in `docker-compose.yml`:
 ```yaml
 api:
-  image: ghcr.io/yourname/travelport-api:abc1234
+  image: nayanparmar/travelport-api:abc1234
 ```
 
 ---
@@ -260,5 +250,5 @@ docker images | grep travelport
 | `Login failed for user 'sa'` | Wrong `DB_SA_PASSWORD` | Verify secret matches the one used when DB volume was first created |
 | Nginx returns 502 Bad Gateway | API container not running | `docker compose logs api` to see the error |
 | Frontend calls fail with CORS error | `AllowedOrigins` mismatch | Set `ALLOWED_ORIGIN_0/1` secrets to your exact domain (no trailing slash) |
-| Images not found on pull | GHCR auth failed | Ensure `GITHUB_TOKEN` has `packages:read` permission and the repo is public or token has access |
+| Images not found on pull | Docker Hub auth failed | Ensure `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` secrets are set correctly in the repo |
 | Migrations fail on startup | Connection string wrong | Check `ConnectionStrings__DefaultConnection` env var in docker-compose |

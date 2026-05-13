@@ -161,13 +161,15 @@ Full reference: [API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md)
 | Item | Detail |
 |---|---|
 | Pipeline | GitHub Actions — triggers on push/merge to `Development` |
-| Registry | GitHub Container Registry (`ghcr.io`) |
+| Registry | Docker Hub (`docker.io`) |
 | Images | `travelport-api` (.NET 8), `travelport-web` (Nginx+React) |
-| Deploy | SSH into server → `docker compose pull && up -d` |
+| Job 1 | Build & Verify — `dotnet build` + `npm run build`, fails fast on compile errors |
+| Job 2 | Build & Push Docker Images — pushes `:latest` + `:<git-sha>` tags to Docker Hub |
+| Job 3 | Verify Images — pulls both images from Docker Hub, confirms availability |
 | DB migrations | Auto-applied on API startup (`db.Database.Migrate()`) |
-| Secrets | Written to server `.env` from GitHub Secrets at deploy time |
+| Local run | Set `DOCKERHUB_USERNAME` in `.env`, then `docker compose pull && docker compose up -d` |
 
-See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for full setup guide including server provisioning, GitHub Secrets configuration, rollback, and troubleshooting.
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for full setup guide including Docker Hub secrets configuration, rollback, and troubleshooting.
 
 ---
 
