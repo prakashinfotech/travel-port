@@ -89,8 +89,24 @@ Pushes and merged PRs to the `Development` branch automatically run the pipeline
 | Job | Trigger | What it does |
 |---|---|---|
 | `build` | Every push + PR | `dotnet build` + `npm run build` — fails fast on compile errors |
-| `docker` | Push only (not PRs) | Builds API + Web Docker images, pushes to Docker Hub |
+| `docker` | Push only (not PRs) | **Pauses for owner approval**, then builds & pushes images to Docker Hub |
 | `verify` | Push only, after `docker` | Pulls both images from Docker Hub to confirm availability, prints local pull instructions |
+
+### Deployment Approval Gate
+
+Job 2 (`docker`) targets the `production` environment which has a **Required Reviewer** set to the repo owner. This means:
+
+1. A PR is merged to `Development`
+2. `build` runs automatically — compiles and validates code
+3. **Pipeline pauses** — GitHub sends you an email + notification asking for approval
+4. You review and click **Approve** (or **Reject**) in the GitHub Actions UI
+5. On approval → images are built and pushed to Docker Hub
+6. `verify` confirms the images are accessible
+
+To set this up (one-time):
+1. Go to **GitHub repo → Settings → Environments → New environment** → name it `production`
+2. Under **Deployment protection rules** → enable **Required reviewers**
+3. Add yourself as a reviewer → **Save protection rules**
 
 ### Image tags
 Each push produces two tags on Docker Hub:

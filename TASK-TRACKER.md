@@ -325,6 +325,9 @@
 | 10.5 | `.env.example` — replace `GITHUB_REPOSITORY_LOWER` with `DOCKERHUB_USERNAME` | ✅ | Aligns with new docker-compose image references |
 | 10.6 | `docs/DEPLOYMENT.md` — reflect Docker Hub pipeline & local Docker Desktop run | ✅ | CI/CD jobs table updated; server setup section replaced with local pull instructions; rollback & troubleshooting updated |
 | 10.7 | `README.md` — update CI/CD table to Docker Hub | ✅ | Registry, deploy method, and local run instructions updated |
+| 10.8 | `docker-compose.yml` — fix healthcheck password var (`$$DB_SA_PASSWORD` → `$$SA_PASSWORD`) | ✅ | Container env var is `SA_PASSWORD`; healthcheck was connecting with empty string causing DB unhealthy |
+| 10.9 | `deploy.yml` — add `environment: production` approval gate to docker job | ✅ | Pipeline pauses after build and waits for owner approval before pushing images to Docker Hub |
+| 10.10 | `docs/DEPLOYMENT.md` — document approval gate setup and flow | ✅ | Step-by-step GitHub Environment setup instructions added |
 
 ---
 

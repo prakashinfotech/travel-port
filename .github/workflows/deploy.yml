@@ -61,6 +61,7 @@ jobs:
     needs: build
     # Only push images on direct push to Development (not on PRs)
     if: github.event_name == 'push'
+    environment: production   # ← pauses here and waits for your approval
     permissions:
       contents: read
 

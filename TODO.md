@@ -85,7 +85,7 @@
 ## Infrastructure / DevOps
 
 - [x] ✅ **Dockerfile for API + Frontend** — multi-stage Dockerfiles for both; Nginx serves React SPA + proxies `/api` to backend.
-- [x] ✅ **CI/CD pipeline** — GitHub Actions 3-job workflow: build+verify → Docker push to Docker Hub → image verify on Docker Hub; no SSH server required.
+- [x] ✅ **CI/CD pipeline** — GitHub Actions 3-job workflow: build → owner approval gate → Docker push to Docker Hub → image verify; `environment: production` requires manual approval before any image is pushed.
 - [x] ✅ **docker-compose.yml** — orchestrates SQL Server 2022 + .NET API + Nginx/React; healthcheck gates API start; images pulled from Docker Hub via `DOCKERHUB_USERNAME` env var.
 - [x] ✅ **Auto EF migrations on startup** — `db.Database.Migrate()` in `Program.cs`; no manual `dotnet ef` needed in containers.
 - [ ] 🟡 **HTTPS with Let's Encrypt** — add Certbot sidecar to docker-compose for automatic SSL certificate management.
