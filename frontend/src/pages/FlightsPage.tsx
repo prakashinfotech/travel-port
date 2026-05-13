@@ -1,6 +1,6 @@
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
-import { Search, Home, ChevronRight, ArrowLeftRight, ChevronDown, X } from 'lucide-react'
+import { Search, Home, ChevronRight, ArrowLeftRight, ChevronDown, ChevronLeft, CalendarDays, X } from 'lucide-react'
 import type { FlightDto } from '@/types'
 import { flightService } from '@/services/flightService'
 import { FlightCard } from '@/components/flights/FlightCard'
@@ -76,6 +76,42 @@ function addDays(dateStr: string, n: number): string {
   return d.toISOString().split('T')[0]
 }
 
+function monthStart(dateStr: string): string {
+  const d = new Date(dateStr)
+  d.setDate(1)
+  return d.toISOString().split('T')[0]
+}
+
+function monthLabel(dateStr: string): string {
+  return new Intl.DateTimeFormat('en-IN', { month: 'long', year: 'numeric' }).format(new Date(dateStr))
+}
+
+function dayLabel(dateStr: string): string {
+  return new Intl.DateTimeFormat('en-IN', { weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(dateStr))
+}
+
+function shortPrice(amount: number | null | undefined): string {
+  if (amount == null) return '--'
+  return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(amount)
+}
+
+function getMonthGrid(monthDate: string): Array<string | null> {
+  const firstDay = new Date(monthDate)
+  const startWeekday = firstDay.getDay()
+  const year = firstDay.getFullYear()
+  const month = firstDay.getMonth()
+  const lastDate = new Date(year, month + 1, 0).getDate()
+  const cells: Array<string | null> = []
+
+  for (let i = 0; i < startWeekday; i += 1) cells.push(null)
+  for (let day = 1; day <= lastDate; day += 1) {
+    const date = new Date(year, month, day)
+    cells.push(date.toISOString().split('T')[0])
+  }
+
+  while (cells.length < 35) cells.push(null)
+  return cells
+}
 
 function flightHour(f: FlightDto, field: 'dep' | 'arr'): number {
   return new Date(field === 'dep' ? f.departureTime : f.arrivalTime).getHours()
@@ -208,6 +244,218 @@ function SortTabs({
           )}
         </button>
       ))}
+    </div>
+  )
+}
+
+function DatePriceStrip({
+  departureDate,
+  datePriceMap,
+  onSelectDate,
+  onOpenCalendar,
+}: {
+  departureDate: string
+  datePriceMap: Record<string, number | null>
+  onSelectDate: (date: string) => void
+  onOpenCalendar: () => void
+}) {
+  const dates = useMemo(() => {
+    if (!departureDate) return []
+    return Array.from({ length: 8 }, (_, index) => addDays(departureDate, index - 1)).filter(date => date >= TODAY)
+  }, [departureDate])
+
+  if (!departureDate || dates.length === 0) return null
+
+  return (
+    <div className="mb-4 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <div className="flex items-stretch">
+        <button
+          type="button"
+          onClick={() => onSelectDate(addDays(departureDate, -1))}
+          disabled={departureDate <= TODAY}
+          className="flex w-12 items-center justify-center border-r border-gray-100 text-gray-400 transition-colors hover:bg-gray-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
+          aria-label="Previous day"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+
+        <div className="grid min-w-0 flex-1 grid-cols-2 sm:grid-cols-4 lg:grid-cols-8">
+          {dates.map(date => {
+            const active = date === departureDate
+            const price = datePriceMap[date]
+
+            return (
+              <button
+                key={date}
+                type="button"
+                onClick={() => onSelectDate(date)}
+                className={`border-r border-gray-100 px-3 py-3 text-left transition-colors last:border-r-0 ${
+                  active ? 'bg-blue-50 text-blue-700 shadow-[inset_0_-3px_0_0_#2563eb]' : 'hover:bg-gray-50'
+                }`}
+              >
+                <p className={`text-xs font-semibold ${active ? 'text-blue-700' : 'text-gray-700'}`}>
+                  {dayLabel(date)}
+                </p>
+                <p className={`mt-1 text-lg font-bold ${active ? 'text-blue-700' : 'text-gray-900'}`}>
+                  {price != null ? formatCurrency(price) : 'Fetching'}
+                </p>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 bg-slate-50 px-4 py-2 text-xs text-gray-500">
+        <p>Showing our lowest fares for nearby dates.</p>
+        <button
+          type="button"
+          onClick={onOpenCalendar}
+          className="inline-flex items-center gap-2 font-semibold text-blue-600 transition-colors hover:text-blue-700"
+        >
+          <CalendarDays className="h-4 w-4" /> View monthly calendar
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function PriceCalendar({
+  open,
+  departureDate,
+  datePriceMap,
+  onClose,
+  onSelectDate,
+  onMonthChange,
+}: {
+  open: boolean
+  departureDate: string
+  datePriceMap: Record<string, number | null>
+  onClose: () => void
+  onSelectDate: (date: string) => void
+  onMonthChange: (monthStartDate: string) => void
+}) {
+  const [baseMonth, setBaseMonth] = useState(() => monthStart(departureDate || TODAY))
+
+  useEffect(() => {
+    if (!open) return
+    const nextBaseMonth = monthStart(departureDate || TODAY)
+    setBaseMonth(nextBaseMonth)
+    onMonthChange(nextBaseMonth)
+    onMonthChange(addDays(nextBaseMonth, 31))
+  }, [departureDate, onMonthChange, open])
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [onClose, open])
+
+  if (!open) return null
+
+  const nextMonth = monthStart(addDays(baseMonth, 31))
+  const weekdayLabels = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+
+  const shiftMonths = (direction: number) => {
+    const next = monthStart(new Date(new Date(baseMonth).getFullYear(), new Date(baseMonth).getMonth() + direction, 1).toISOString())
+    setBaseMonth(next)
+    onMonthChange(next)
+    onMonthChange(monthStart(addDays(next, 31)))
+  }
+
+  const renderMonth = (monthDate: string) => (
+    <div className="flex-1">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-2xl font-bold text-gray-900">{monthLabel(monthDate)}</h3>
+      </div>
+
+      <div className="grid grid-cols-7 gap-y-2 text-center text-xs font-semibold uppercase tracking-wide text-gray-400">
+        {weekdayLabels.map(label => <span key={label}>{label}</span>)}
+      </div>
+
+      <div className="mt-3 grid grid-cols-7 gap-2">
+        {getMonthGrid(monthDate).map((date, index) => {
+          if (!date) {
+            return <div key={`empty-${monthDate}-${index}`} className="h-16 rounded-xl" />
+          }
+
+          const active = date === departureDate
+          const disabled = date < TODAY
+          const price = datePriceMap[date]
+
+          return (
+            <button
+              key={date}
+              type="button"
+              disabled={disabled}
+              onClick={() => onSelectDate(date)}
+              className={`flex h-16 flex-col items-center justify-center rounded-xl border text-center transition-colors ${
+                active
+                  ? 'border-blue-600 bg-blue-600 text-white shadow-lg'
+                  : disabled
+                    ? 'border-transparent text-gray-300'
+                    : 'border-transparent text-gray-800 hover:border-blue-200 hover:bg-blue-50'
+              }`}
+            >
+              <span className={`text-lg font-semibold ${active ? 'text-white' : disabled ? 'text-gray-300' : 'text-gray-900'}`}>
+                {new Date(date).getDate()}
+              </span>
+              <span className={`mt-1 text-xs ${active ? 'text-blue-100' : disabled ? 'text-gray-200' : 'text-gray-600'}`}>
+                {price != null ? shortPrice(price) : ''}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+      <div className="relative w-full max-w-6xl rounded-3xl bg-white shadow-2xl">
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-4 top-4 rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+          aria-label="Close calendar"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
+        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+          <button
+            type="button"
+            onClick={() => shiftMonths(-1)}
+            className="rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-blue-600"
+            aria-label="Previous month"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <div className="text-center">
+            <p className="text-sm font-semibold text-gray-800">Lowest prices by departure date</p>
+            <p className="text-xs text-gray-400">Pick a date to refresh the flight results</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => shiftMonths(1)}
+            className="rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-blue-600"
+            aria-label="Next month"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="grid gap-8 p-6 lg:grid-cols-2">
+          {renderMonth(baseMonth)}
+          {renderMonth(nextMonth)}
+        </div>
+
+        <div className="rounded-b-3xl bg-blue-50 px-6 py-3 text-sm text-blue-700">
+          Showing our lowest prices in Rs.
+        </div>
+      </div>
     </div>
   )
 }
@@ -415,6 +663,7 @@ function FilterSidebar({
 export default function FlightsPage() {
   const [searchParams] = useSearchParams()
   const navigate        = useNavigate()
+  const fetchedPriceDates = useRef(new Set<string>())
 
   // Search state — resolve city names from AIRPORTS on initial load
   const _originCode = searchParams.get('origin') ?? ''
@@ -435,6 +684,7 @@ export default function FlightsPage() {
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
+  const [calendarOpen, setCalendarOpen] = useState(false)
 
   // Filters & sort
   const [filters,  setFilters]  = useState<Filters>(DEFAULT_FILTERS)
@@ -442,6 +692,30 @@ export default function FlightsPage() {
 
   // Date bar prices
   const [datePriceMap, setDatePriceMap] = useState<Record<string, number | null>>({})
+
+  const fetchLowestPriceForDates = useCallback(async (dates: string[]) => {
+    const uniqueDates = dates.filter(date => date >= TODAY && !fetchedPriceDates.current.has(date))
+    if (!origin || !destination || uniqueDates.length === 0) return
+
+    uniqueDates.forEach(date => fetchedPriceDates.current.add(date))
+
+    await Promise.all(uniqueDates.map(async date => {
+      try {
+        const response = await flightService.search({
+          origin,
+          destination,
+          departureDate: date,
+          passengers: 1,
+          cabinClass: travellers.cabinClass,
+          pageSize: 1,
+        })
+        const price = response.data?.length ? Math.min(...response.data.map(flight => flight.price)) : null
+        setDatePriceMap(prev => ({ ...prev, [date]: price }))
+      } catch {
+        setDatePriceMap(prev => ({ ...prev, [date]: null }))
+      }
+    }))
+  }, [destination, origin, travellers.cabinClass])
 
   // ── Fetch flights ────────────────────────────────────────────────────────
 
@@ -462,9 +736,12 @@ export default function FlightsPage() {
       })
       setFlights(res.data ?? [])
       setCurrentPage(1)
+      fetchedPriceDates.current.add(date)
       if (res.data?.length) {
         const minP = Math.min(...res.data.map(f => f.price))
         setDatePriceMap(p => ({ ...p, [date]: minP }))
+      } else {
+        setDatePriceMap(p => ({ ...p, [date]: null }))
       }
     } catch {
       setError('Failed to fetch flights. Please check your connection and try again.')
@@ -479,23 +756,9 @@ export default function FlightsPage() {
 
   useEffect(() => {
     if (!origin || !destination || !departureDate) return
-    const adjacentDates: string[] = []
-    for (let i = -3; i <= 4; i++) {
-      const d = addDays(departureDate, i)
-      if (d >= TODAY && !(d in datePriceMap)) adjacentDates.push(d)
-    }
-    if (!adjacentDates.length) return
-
-    adjacentDates.forEach(async (d) => {
-      try {
-        const res = await flightService.search({ origin, destination, departureDate: d, passengers: 1, pageSize: 1 })
-        const p = res.data?.length ? Math.min(...res.data.map(f => f.price)) : null
-        setDatePriceMap(prev => ({ ...prev, [d]: p }))
-      } catch {
-        setDatePriceMap(prev => ({ ...prev, [d]: null }))
-      }
-    })
-  }, [origin, destination, departureDate]) // eslint-disable-line react-hooks/exhaustive-deps
+    const adjacentDates = Array.from({ length: 8 }, (_, index) => addDays(departureDate, index - 1))
+    void fetchLowestPriceForDates(adjacentDates)
+  }, [departureDate, fetchLowestPriceForDates, origin, destination])
 
   // ── Filtered + sorted results ────────────────────────────────────────────
 
@@ -560,6 +823,28 @@ export default function FlightsPage() {
     navigate(`/flights?${p}`, { replace: true })
     fetchFlights(origin, destination, departureDate)
   }
+
+  const handleDateSelect = (date: string) => {
+    if (date < TODAY) return
+    setDepartureDate(date)
+    setCalendarOpen(false)
+    const total = travellers.adults + travellers.children + travellers.infants
+    const params = new URLSearchParams({
+      origin,
+      destination,
+      departureDate: date,
+      passengers: String(total),
+      cabinClass: travellers.cabinClass,
+    })
+    if (tripType === 'roundtrip' && returnDate) params.set('returnDate', returnDate)
+    navigate(`/flights?${params}`, { replace: true })
+    fetchFlights(origin, destination, date)
+  }
+
+  const handleCalendarMonthChange = useCallback((monthDate: string) => {
+    const visibleDates = getMonthGrid(monthDate).filter((date): date is string => Boolean(date))
+    void fetchLowestPriceForDates(visibleDates)
+  }, [fetchLowestPriceForDates])
 
   const swap = () => {
     setOrigin(destination);      setOriginCity(destinationCity)
@@ -686,6 +971,12 @@ export default function FlightsPage() {
 
           {/* Results */}
           <div className="flex-1 min-w-0">
+            <DatePriceStrip
+              departureDate={departureDate}
+              datePriceMap={datePriceMap}
+              onSelectDate={handleDateSelect}
+              onOpenCalendar={() => setCalendarOpen(true)}
+            />
             <SortTabs sortKey={sortKey} onSort={setSortKey} flights={flights} />
             <div className="flex items-center justify-between mb-3">
               <div>
@@ -770,6 +1061,15 @@ export default function FlightsPage() {
           </div>
         </div>
       </div>
+
+      <PriceCalendar
+        open={calendarOpen}
+        departureDate={departureDate}
+        datePriceMap={datePriceMap}
+        onClose={() => setCalendarOpen(false)}
+        onSelectDate={handleDateSelect}
+        onMonthChange={handleCalendarMonthChange}
+      />
     </div>
   )
 }

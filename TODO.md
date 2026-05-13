@@ -61,7 +61,7 @@
 - [x] Search hero UI consistency across Flights/Hotels — Fixed.
 - [ ] 🔴 **Mobile filter sidebar hidden** — `hidden lg:block`; no access on mobile. Add slide-over drawer.
 - [ ] 🟡 **Calendar popup z-index on mobile** — may render behind search bar on small screens.
-- [ ] 🟡 **Date bar adjacent-date fetches fire on every render** — incomplete `useEffect` deps; debounce or ref-guard needed.
+- [x] ✅ **Date bar adjacent-date fetches fire on every render** — fixed: nearby-date and visible-calendar fare requests now use a guarded date cache with stable effect dependencies.
 
 ### Features Pending
 - [x] ✅ **HomePage buses/trains/cabs search** — Added full search forms for each mode; replaced "Coming soon" block; each form navigates with URL params and auto-triggers search.
@@ -141,5 +141,6 @@
 - [x] **Full admin dashboard** — 4-tab React page with real API; `IAdminService`/`AdminService` Clean Architecture; `AdminController` with 9 real endpoints
 - [x] **Hotel filter sidebar** — star rating (exact match), price, amenities + popular filters (OR logic)
 - [x] **FlightsPage city names** — city resolved from AIRPORTS on mount so URL params show "Mumbai" not "BOM"
+- [x] **FlightsPage lowest-fare date strip and monthly calendar** — nearby dates and 2-month calendar now show the lowest cached fare per visible date and allow direct date switching
 - [x] **Docker containerisation** — multi-stage Dockerfiles, Nginx reverse proxy, docker-compose with SQL Server
 - [x] **GitHub Actions CI/CD** — build+verify → Docker push to ghcr.io → SSH deploy on merge to Development

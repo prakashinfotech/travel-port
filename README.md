@@ -24,6 +24,7 @@ TravelPort covers:
 - Flight Search & Booking (900+ DB seed flights — IndiGo, SpiceJet, Vistara, Akasa Air, Air India, Air India Express, Go First across 42 routes)
 - Goibibo-style Flight Fare Popup + Fare-family Booking Flow
 - Paginated flight search results with filters and sorting preserved between pages
+- Lowest-fare date strip and monthly fare calendar on flight search
 - Home page recent searches persist and reopen saved result pages
 - Hotel Search & Booking with Guest Details (name/email/phone stored per booking)
 - Bus Search (deterministic mock — realistic Indian operators & routes)

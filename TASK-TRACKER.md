@@ -347,7 +347,7 @@
 ---
 
 ## Phase 11 — Frontend Reliability & UX Polish
-**Branch:** `feature/test-gate-and-docker-auto-update`
+**Branch:** `feature/frontend-reliability-polish`
 **Date:** 2026-05-13
 **Scope:** Toast feedback, crash recovery, skeleton loading polish, profile UX improvements, safe flight result pagination
 
@@ -361,6 +361,8 @@
 | 11.6 | Saved travellers management polish | ✅ | Replaced native confirm with themed dialog and added success/error feedback |
 | 11.7 | Flight result pagination | ✅ | Paginated filtered flights locally at 10 results per page without changing backend contracts |
 | 11.8 | Verification pass | ✅ | Frontend tests, frontend production build, and backend tests all passed after the changes |
+| 11.9 | Flight lowest-fare date strip | ✅ | Added a Goibibo-style nearby-date strip that shows the lowest available fare and supports direct date switching |
+| 11.10 | Flight monthly fare calendar | ✅ | Added a 2-month fare calendar overlay with visible-date price prefetch and cached lowest-price rendering |
 
 ---
 

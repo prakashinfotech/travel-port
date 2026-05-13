@@ -338,7 +338,7 @@ function srsHTML() {
 
     <div class="sub-section">
       <h3>1.2 Scope</h3>
-      <p>TravelPort provides end-to-end travel booking capabilities including flight search and booking, paginated flight discovery, hotel discovery and reservation, bus/train/cab search (deterministic mock), digital wallet, coupon system, toast-based user feedback, resilient error recovery, PDF invoice generation, and a role-based admin panel.</p>
+      <p>TravelPort provides end-to-end travel booking capabilities including flight search and booking, paginated flight discovery, a lowest-fare date strip and fare calendar, hotel discovery and reservation, bus/train/cab search (deterministic mock), digital wallet, coupon system, toast-based user feedback, resilient error recovery, PDF invoice generation, and a role-based admin panel.</p>
       <div class="card-grid-3">
         <div class="stat-card"><div class="num">900+</div><div class="label">Seed Flights</div></div>
         <div class="stat-card"><div class="num">60+</div><div class="label">Hotels</div></div>
