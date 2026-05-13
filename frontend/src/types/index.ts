@@ -261,9 +261,38 @@ export interface UserProfileDto {
   role: string
 }
 
+export interface WalletTransactionDto {
+  type: 'Credit' | 'Debit'
+  amount: number
+  description?: string
+  createdAt: string
+}
+
 export interface WalletDto {
-  id: string
+  walletId: string
   balance: number
+  recentTransactions: WalletTransactionDto[]
+}
+
+export interface SavedCardDto {
+  cardId: string
+  cardHolderName: string
+  lastFourDigits: string
+  expiryMonth: number
+  expiryYear: number
+  cardType: string
+  nickName?: string
+  isDefault: boolean
+}
+
+export interface AddSavedCardRequest {
+  cardHolderName: string
+  cardNumber: string
+  expiryMonth: number
+  expiryYear: number
+  cardType: string
+  nickName?: string
+  setAsDefault?: boolean
 }
 
 export interface SavedTravellerDto {
@@ -281,6 +310,10 @@ export interface BookFlightRequest {
   cabinClass?: string
   couponCode?: string
   useWallet?: boolean
+  savedCardId?: string
+  guestName?: string
+  guestEmail?: string
+  guestPhone?: string
 }
 
 export interface BookHotelRequest {
@@ -291,6 +324,7 @@ export interface BookHotelRequest {
   guests: number
   couponCode?: string
   useWallet?: boolean
+  savedCardId?: string
   guestName?: string
   guestEmail?: string
   guestPhone?: string

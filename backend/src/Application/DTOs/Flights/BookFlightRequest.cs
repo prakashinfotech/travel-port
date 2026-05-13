@@ -5,5 +5,9 @@ public record BookFlightRequest(
     int Passengers,
     string CabinClass = "Economy",
     string? CouponCode = null,
-    bool UseWallet = false
+    bool UseWallet = false,
+    Guid? SavedCardId = null,
+    string? GuestName = null,
+    string? GuestEmail = null,
+    string? GuestPhone = null
 );

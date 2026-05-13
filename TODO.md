@@ -11,6 +11,7 @@
 | 1 | Test all flight filter combinations end-to-end | 🔴 | Especially combined stop + airline + time filters |
 | 2 | Verify TravellerSelector popup closes correctly on mobile | 🟡 | `overflow-hidden` fix applied; test touch events |
 | 3 | Verify SMTP email delivery end-to-end | 🟡 | Office365 configured; `FromEmail` must match `Username` |
+| 4 | Wire Razorpay live key for Card payment in production | 🟡 | Card/UPI/NetBanking pages currently use mock API; real Razorpay needs live key in appsettings |
 
 ---
 
@@ -35,7 +36,7 @@
 - [ ] 🟡 **Email verification on registration** — OTP flow documented but `IsVerified` is set to `true` in seed; registration sets it `false` with no verification path yet.
 - [x] ✅ **Admin analytics endpoint** — `GET /admin/analytics` now returns real monthly revenue, bookings-by-type and bookings-by-status aggregations.
 - [ ] 🟡 **Paginated flight search response** — backend returns all matching flights in one call (up to `pageSize=100`); add proper server-side pagination with `total` and `page` in response.
-- [ ] 🟡 **Persist individual flight traveller details** — the booking UI now collects per-traveller name/age/gender/ID data, but the current flight booking API still stores passenger count only.
+- [x] ✅ **Persist individual flight traveller details** — `BookFlightRequest` now includes `GuestName/Email/Phone`; stored in `Booking` entity; PDF and email use correct traveller name.
 - [ ] 🟢 **Real Razorpay webhook handler** — for production, handle `payment.failed` and `order.paid` webhooks to update booking status asynchronously.
 - [ ] 🟢 **Rate limiting** — `429` is documented but no rate-limiting middleware is active.
 - [ ] 🟢 **Refresh token rotation** — currently refresh tokens are single-use but rotation isn't enforced; expired tokens should be revoked from DB.
@@ -95,6 +96,20 @@
 
 ## Recently Completed ✅
 
+- [x] **Wallet refund persistence fix** — `BookingService.CancelAsync` was missing `_uow.SaveChangesAsync` after `RefundAsync`; wallet balance now correctly persists after cancellation
+- [x] **Saved credit cards** — `SavedCard` entity + EF migration; `GET/POST/DELETE /users/cards` + set-default endpoint; last 4 digits only stored; gradient card UI in profile
+- [x] **Payment method at booking** — `PaymentMethodSelector` component; wallet / saved card / new card choice on `BookFlightPage` + `BookHotelPage`
+- [x] **Payment page overhaul** — Card (live preview), UPI (QR + 20s countdown), Net Banking (bank picker + countdown); circular SVG progress ring during processing
+- [x] **Traveller name in PDF/email** — `BookFlightRequest.GuestName/Email/Phone` stored on `Booking`; PDF now shows booked-for name, not account name; email goes to contact email
+- [x] **PNR in flight confirmation email** — `PNR / Booking Reference` row added to Traveller Details section of SMTP email template
+- [x] **Hide E-ticket button when cancelled** — all three download entry-points in `BookingDetailPage` gated with `status !== 'Cancelled'`
+- [x] **My Bookings filters** — Status (All/Confirmed/Cancelled) + Type (All/Flight/Hotel) pill filters with Clear link
+- [x] **Enum serialization fix** — `JsonStringEnumConverter` added; `BookingStatus` now serializes as `"Confirmed"` not `1`; cancel button now visible
+- [x] **Wallet refund on cancellation** — `BookingService.CancelAsync` now calls `_wallet.RefundAsync`; amount actually credited
+- [x] **Email HTML compatibility** — complete rewrite of `SmtpEmailService`; all emails now render correctly in Gmail and Outlook (solid colors, table layouts, table-based buttons)
+- [x] **Password reset UX fixes** — correct TTL text (1 hour), special-char requirement in hint, actual server error shown on validation failure
+- [x] **`ConfirmDialog` component** — themed modal replacing native `confirm()`; danger/warning variants, loading state, keyboard-accessible
+- [x] **Full admin dashboard** — 4-tab React page (Dashboard stats + charts, Users with block/unblock, Bookings with filters, Coupons CRUD); `IAdminService` / `AdminService` Clean Architecture implementation; `AdminController` with 9 real endpoints
 - [x] Duffel API integration (external flight provider, sandboxed)
 - [x] Disable Duffel, switch to rich DB seed data (900+ flights, 60+ hotels, 12 cities)
 - [x] BusSearchProvider — route-specific durations, 14 operators, realistic pricing

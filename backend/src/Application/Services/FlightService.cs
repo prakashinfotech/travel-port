@@ -197,7 +197,10 @@ public class FlightService : IFlightService
             TotalAmount    = total,
             DiscountAmount = discount,
             FinalAmount    = finalAmount,
-            Status         = BookingStatus.Confirmed
+            Status         = BookingStatus.Confirmed,
+            GuestName      = req.GuestName,
+            GuestEmail     = req.GuestEmail,
+            GuestPhone     = req.GuestPhone,
         };
 
         await _bookings.AddAsync(booking, ct);
@@ -207,11 +210,13 @@ public class FlightService : IFlightService
         var user = await _users.GetByIdAsync(userId, ct);
         if (user is not null && flightEntity is not null)
         {
+            var toEmail = !string.IsNullOrWhiteSpace(req.GuestEmail) ? req.GuestEmail : user.Email;
+            var toName  = !string.IsNullOrWhiteSpace(req.GuestName)  ? req.GuestName  : user.Name;
             var depTime = flightEntity.DepartureTime.ToString("dd MMM yyyy, hh:mm tt");
             var arrTime = flightEntity.ArrivalTime.ToString("dd MMM yyyy, hh:mm tt");
             var dur     = $"{flightEntity.Duration / 60}h {flightEntity.Duration % 60}m";
             await _email.SendFlightBookingConfirmationAsync(
-                user.Email, user.Name, booking.BookingRef,
+                toEmail, toName, booking.BookingRef,
                 flightEntity.Airline, flightEntity.FlightNumber,
                 flightEntity.Source, flightEntity.Source,
                 flightEntity.Destination, flightEntity.Destination,

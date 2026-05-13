@@ -19,6 +19,7 @@ public class TravelPortDbContext : DbContext
     public DbSet<Coupon> Coupons => Set<Coupon>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<SavedCard> SavedCards => Set<SavedCard>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -36,6 +37,7 @@ public class TravelPortDbContext : DbContext
         modelBuilder.Entity<WalletTransaction>().HasQueryFilter(e => e.DeletedAt == null);
         modelBuilder.Entity<SavedTraveller>().HasQueryFilter(e => e.DeletedAt == null);
         modelBuilder.Entity<Coupon>().HasQueryFilter(e => e.DeletedAt == null);
+        modelBuilder.Entity<SavedCard>().HasQueryFilter(e => e.DeletedAt == null);
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

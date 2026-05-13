@@ -1,13 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { AlertCircle, ArrowLeft, BriefcaseBusiness, ChevronRight, Luggage, Mail, Phone, Plane, ShieldAlert, Tag, TicketPercent, UserRound, X } from 'lucide-react'
+import { AlertCircle, ArrowLeft, BriefcaseBusiness, ChevronRight, CreditCard, Luggage, Mail, Phone, Plane, ShieldAlert, Tag, TicketPercent, UserRound, X } from 'lucide-react'
 import type { FlightDto } from '@/types'
 import { flightService } from '@/services/flightService'
+import { userService } from '@/services/userService'
 import { api } from '@/api/axios'
 import { endpoints } from '@/api/endpoints'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { PaymentMethodSelector } from '@/components/common/PaymentMethodSelector'
+import { AddCardModal } from '@/components/common/AddCardModal'
+import type { PaymentChoice } from '@/components/common/PaymentMethodSelector'
 import { formatCurrency, formatDuration } from '@/utils/formatters'
 import { useAppSelector } from '@/hooks/useAppDispatch'
 
@@ -136,6 +140,15 @@ export default function BookFlightPage() {
   const [travellers, setTravellers] = useState<TravellerForm[]>(createTravellers(requestedPassengers))
   const [showFareRules, setShowFareRules] = useState(false)
   const [showContributionInfo, setShowContributionInfo] = useState(false)
+  const [walletBalance, setWalletBalance] = useState(0)
+  const [paymentChoice, setPaymentChoice] = useState<PaymentChoice>({ type: 'new_card' })
+  const [showAddCard, setShowAddCard] = useState(false)
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      userService.getWallet().then(r => setWalletBalance(r.data?.balance ?? 0)).catch(() => {})
+    }
+  }, [isLoggedIn])
 
   useEffect(() => {
     if (!id) return
@@ -240,6 +253,11 @@ export default function BookFlightPage() {
         passengers: seatCount,
         cabinClass: flight.cabinClass,
         couponCode: couponCode || undefined,
+        useWallet: paymentChoice.type === 'wallet',
+        savedCardId: paymentChoice.type === 'saved_card' ? paymentChoice.cardId : undefined,
+        guestName: travellers[0]?.fullName || undefined,
+        guestEmail: email || undefined,
+        guestPhone: mobile || undefined,
       })
 
       const snapshot: BookingUiSnapshot = {
@@ -261,7 +279,11 @@ export default function BookFlightPage() {
       }
       sessionStorage.setItem(`booking-ui:${response.data.id}`, JSON.stringify(snapshot))
 
-      navigate(`/bookings/${response.data.id}?new=true`)
+      if (paymentChoice.type === 'new_card') {
+        navigate(`/payment?bookingId=${response.data.id}&amount=${totalAmount}`)
+      } else {
+        navigate(`/bookings/${response.data.id}?new=true`)
+      }
     } catch (caughtError: unknown) {
       const message = (caughtError as { response?: { data?: { message?: string } } })?.response?.data?.message
       setError(message ?? 'Booking failed. Please try again.')
@@ -641,6 +663,31 @@ export default function BookFlightPage() {
               </div>
             </section>
 
+            {/* Payment Method */}
+            {isLoggedIn && (
+              <section className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5 text-blue-600" />
+                    <h2 className="text-lg font-extrabold text-gray-900">Payment Method</h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddCard(true)}
+                    className="text-xs font-semibold text-blue-600 hover:underline"
+                  >
+                    + Add Card
+                  </button>
+                </div>
+                <PaymentMethodSelector
+                  walletBalance={walletBalance}
+                  requiredAmount={totalAmount}
+                  selected={paymentChoice}
+                  onSelect={setPaymentChoice}
+                />
+              </section>
+            )}
+
             <section className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
               <div className="space-y-3 text-sm text-gray-600">
                 <div className="flex items-center gap-2">
@@ -657,8 +704,19 @@ export default function BookFlightPage() {
                 </div>
               </div>
 
+              {paymentChoice.type === 'wallet' && (
+                <div className="mt-3 flex items-center gap-2 rounded-xl bg-green-50 border border-green-200 px-3 py-2 text-xs text-green-700 font-medium">
+                  <span>👛</span> ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })} will be deducted from your wallet
+                </div>
+              )}
+              {paymentChoice.type === 'saved_card' && (
+                <div className="mt-3 flex items-center gap-2 rounded-xl bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-700 font-medium">
+                  <span>💳</span> Paying with saved card
+                </div>
+              )}
+
               <Button type="button" size="lg" loading={submitting} className="mt-5 w-full bg-orange-500 font-bold hover:bg-orange-600" onClick={onSubmit}>
-                Continue To Book
+                {paymentChoice.type === 'new_card' ? 'Proceed to Payment' : 'Confirm Booking'}
               </Button>
             </section>
           </aside>
@@ -693,6 +751,16 @@ export default function BookFlightPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {showAddCard && (
+        <AddCardModal
+          onClose={() => setShowAddCard(false)}
+          onSaved={card => {
+            setShowAddCard(false)
+            setPaymentChoice({ type: 'saved_card', cardId: card.cardId })
+          }}
+        />
       )}
 
       {showContributionInfo && (

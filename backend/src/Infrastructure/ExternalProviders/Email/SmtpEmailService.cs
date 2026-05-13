@@ -278,9 +278,10 @@ public class SmtpEmailService : IEmailService
                   <table width="100%" cellpadding="0" cellspacing="0" border="0"
                          style="border:1px solid #e5e7eb;border-radius:8px">
                     {InfoRow("Passenger Name", toName)}
-                    {InfoRow("Passengers", $"{passengers} Adult{(passengers > 1 ? "s" : "")}", shaded: true)}
-                    {InfoRow("Cabin Class", cabinClass)}
-                    {InfoRow("Booking Status", "Confirmed", shaded: true)}
+                    {InfoRow("PNR / Booking Reference", bookingRef, shaded: true)}
+                    {InfoRow("Passengers", $"{passengers} Adult{(passengers > 1 ? "s" : "")}")}
+                    {InfoRow("Cabin Class", cabinClass, shaded: true)}
+                    {InfoRow("Booking Status", "Confirmed")}
                   </table>
 
                   {SectionTitle("Fare Summary")}

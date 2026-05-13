@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { BookingDto } from '@/types'
 import { bookingService } from '@/services/bookingService'
 import { BookingCard } from '@/components/bookings/BookingCard'
@@ -9,12 +9,17 @@ import { Link } from 'react-router-dom'
 
 const PAGE_SIZE = 10
 
+type StatusFilter = 'All' | 'Confirmed' | 'Cancelled'
+type TypeFilter   = 'All' | 'Flight' | 'Hotel'
+
 export default function BookingsPage() {
   const [bookings, setBookings] = useState<BookingDto[]>([])
   const [loading,  setLoading]  = useState(true)
   const [error,    setError]    = useState<string | null>(null)
   const [page,     setPage]     = useState(1)
   const [total,    setTotal]    = useState(0)
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('All')
+  const [typeFilter,   setTypeFilter]   = useState<TypeFilter>('All')
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
@@ -25,7 +30,7 @@ export default function BookingsPage() {
       const res = await bookingService.list(p, PAGE_SIZE)
       setBookings(res.data ?? [])
       const meta = res.meta
-      if (meta) setTotal(meta.total ?? meta.totalPages * PAGE_SIZE ?? 0)
+      if (meta) setTotal(meta.total ?? meta.totalPages * PAGE_SIZE)
     } catch {
       setError('Failed to load bookings.')
     } finally {
@@ -34,6 +39,14 @@ export default function BookingsPage() {
   }
 
   useEffect(() => { fetchBookings(page) }, [page])
+
+  const filteredBookings = useMemo(() => {
+    return bookings.filter(b => {
+      if (statusFilter !== 'All' && b.status !== statusFilter) return false
+      if (typeFilter   !== 'All' && b.type   !== typeFilter)   return false
+      return true
+    })
+  }, [bookings, statusFilter, typeFilter])
 
   const handleCancelled = (id: string) => {
     setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'Cancelled' as const } : b))
@@ -67,7 +80,49 @@ export default function BookingsPage() {
           <span className="text-sm text-gray-500">{total} booking{total !== 1 ? 's' : ''}</span>
         )}
       </div>
-      <p className="text-sm text-gray-500 mb-6">Click any booking to view full details or download your invoice.</p>
+      <p className="text-sm text-gray-500 mb-4">Click any booking to view full details or download your invoice.</p>
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3 mb-6">
+        <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
+          {(['All', 'Confirmed', 'Cancelled'] as StatusFilter[]).map(s => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+                statusFilter === s
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
+          {(['All', 'Flight', 'Hotel'] as TypeFilter[]).map(t => (
+            <button
+              key={t}
+              onClick={() => setTypeFilter(t)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+                typeFilter === t
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+        {(statusFilter !== 'All' || typeFilter !== 'All') && (
+          <button
+            onClick={() => { setStatusFilter('All'); setTypeFilter('All') }}
+            className="text-xs text-gray-400 hover:text-gray-600 underline"
+          >
+            Clear filters
+          </button>
+        )}
+      </div>
 
       {error && (
         <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 mb-4">{error}</div>
@@ -76,19 +131,25 @@ export default function BookingsPage() {
       <div className="flex flex-col gap-4">
         {loading
           ? Array.from({ length: 3 }).map((_, i) => <BookingCardSkeleton key={i} />)
-          : bookings.length === 0
+          : filteredBookings.length === 0
             ? (
               <div className="flex flex-col items-center justify-center py-20 text-gray-400">
                 <Plane className="h-12 w-12 mb-4 text-gray-300" />
-                <p className="text-lg font-medium">No bookings yet</p>
-                <p className="text-sm mt-1">Start by searching for flights or hotels</p>
-                <div className="flex gap-3 mt-6">
-                  <Link to="/flights"><Button variant="outline" size="sm">Search Flights</Button></Link>
-                  <Link to="/hotels"><Button size="sm">Search Hotels</Button></Link>
-                </div>
+                <p className="text-lg font-medium">
+                  {bookings.length === 0 ? 'No bookings yet' : 'No bookings match the selected filters'}
+                </p>
+                {bookings.length === 0 && (
+                  <>
+                    <p className="text-sm mt-1">Start by searching for flights or hotels</p>
+                    <div className="flex gap-3 mt-6">
+                      <Link to="/flights"><Button variant="outline" size="sm">Search Flights</Button></Link>
+                      <Link to="/hotels"><Button size="sm">Search Hotels</Button></Link>
+                    </div>
+                  </>
+                )}
               </div>
             )
-            : bookings.map(b => <BookingCard key={b.id} booking={b} onCancelled={handleCancelled} />)
+            : filteredBookings.map(b => <BookingCard key={b.id} booking={b} onCancelled={handleCancelled} />)
         }
       </div>
 

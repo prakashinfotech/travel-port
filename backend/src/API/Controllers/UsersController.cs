@@ -64,6 +64,35 @@ public class UsersController : BaseApiController
         return Ok(ApiResponse<object>.Ok(null!, "Traveller removed."));
     }
 
+    [HttpGet("cards")]
+    public async Task<ActionResult<ApiResponse<List<SavedCardDto>>>> GetCards(CancellationToken ct)
+    {
+        var result = await _users.GetSavedCardsAsync(CurrentUserId, ct);
+        return Ok(ApiResponse<List<SavedCardDto>>.Ok(result));
+    }
+
+    [HttpPost("cards")]
+    public async Task<ActionResult<ApiResponse<SavedCardDto>>> AddCard(
+        [FromBody] AddSavedCardRequest request, CancellationToken ct)
+    {
+        var result = await _users.AddSavedCardAsync(CurrentUserId, request, ct);
+        return StatusCode(201, ApiResponse<SavedCardDto>.Ok(result, "Card saved successfully."));
+    }
+
+    [HttpDelete("cards/{id:guid}")]
+    public async Task<ActionResult<ApiResponse<object>>> DeleteCard(Guid id, CancellationToken ct)
+    {
+        await _users.DeleteSavedCardAsync(CurrentUserId, id, ct);
+        return Ok(ApiResponse<object>.Ok(null!, "Card removed."));
+    }
+
+    [HttpPut("cards/{id:guid}/default")]
+    public async Task<ActionResult<ApiResponse<SavedCardDto>>> SetDefaultCard(Guid id, CancellationToken ct)
+    {
+        var result = await _users.SetDefaultCardAsync(CurrentUserId, id, ct);
+        return Ok(ApiResponse<SavedCardDto>.Ok(result, "Default card updated."));
+    }
+
     [HttpPost("wallet/topup")]
     public async Task<ActionResult<ApiResponse<WalletDto>>> TopUpWallet(
         [FromBody] WalletTopUpRequest request, CancellationToken ct)

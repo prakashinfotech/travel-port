@@ -98,18 +98,17 @@ public class BookingService : IBookingService
 
         // Credit refund to wallet
         if (refund > 0)
+        {
             await _wallet.RefundAsync(userId, refund, $"Refund for cancelled booking {booking.BookingRef}", bookingId, ct);
+            await _uow.SaveChangesAsync(ct);
+        }
 
         var user = await _users.GetByIdAsync(userId, ct);
         if (user is not null)
         {
             var bookingType = booking.BookingType.ToString();
-            var toEmail = booking.BookingType == BookingType.Hotel && !string.IsNullOrWhiteSpace(booking.GuestEmail)
-                ? booking.GuestEmail
-                : user.Email;
-            var toName = booking.BookingType == BookingType.Hotel && !string.IsNullOrWhiteSpace(booking.GuestName)
-                ? booking.GuestName
-                : user.Name;
+            var toEmail = !string.IsNullOrWhiteSpace(booking.GuestEmail) ? booking.GuestEmail : user.Email;
+            var toName  = !string.IsNullOrWhiteSpace(booking.GuestName)  ? booking.GuestName  : user.Name;
             await _email.SendBookingCancellationAsync(toEmail, toName, booking.BookingRef, bookingType, refund, ct);
         }
 

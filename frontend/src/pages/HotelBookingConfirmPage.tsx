@@ -129,6 +129,7 @@ export default function HotelBookingConfirmPage() {
   const [error,       setError]       = useState<string | null>(null)
   const [downloading, setDownloading] = useState(false)
   const [cancelling,  setCancelling]  = useState(false)
+  const [refundAmount, setRefundAmount] = useState<number | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -162,7 +163,9 @@ export default function HotelBookingConfirmPage() {
     if (!booking || !confirm('Cancel this booking? 90% will be refunded to your wallet.')) return
     setCancelling(true)
     try {
-      await bookingService.cancel(booking.id)
+      const res = await bookingService.cancel(booking.id)
+      const refund = res.data?.refundAmount ?? Math.round((booking.finalAmount ?? booking.totalAmount) * 0.9)
+      setRefundAmount(refund)
       setBooking(prev => prev ? { ...prev, status: 'Cancelled' } : prev)
     } catch {
       alert('Cancellation failed. Please try again.')
@@ -240,7 +243,21 @@ export default function HotelBookingConfirmPage() {
         </div>
       )}
 
-      {isCancelled && (
+      {isCancelled && refundAmount !== null && (
+        <div className="bg-green-50 border-b border-green-200 px-4 py-4">
+          <div className="mx-auto max-w-6xl flex items-center gap-3 text-green-800 text-sm">
+            <span className="text-2xl">👛</span>
+            <div>
+              <p className="font-bold">Booking Cancelled — Refund Processed!</p>
+              <p>
+                <strong>₹{refundAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong> (90% of fare) has been credited to your TravelPort Wallet.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isCancelled && refundAmount === null && (
         <div className="bg-red-50 border-b border-red-200 px-4 py-3">
           <div className="mx-auto max-w-6xl flex items-center gap-2 text-red-700 text-sm">
             <Info className="h-4 w-4" /> This booking has been cancelled.

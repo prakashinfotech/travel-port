@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { WalletTopUp } from '@/components/profile/WalletTopUp'
+import { SavedCards } from '@/components/profile/SavedCards'
 import { formatCurrency } from '@/utils/formatters'
 
 const profileSchema = z.object({
@@ -114,6 +115,19 @@ export default function ProfilePage() {
         </h2>
         <p className="text-3xl font-bold text-primary-700">{formatCurrency(wallet?.balance ?? 0)}</p>
         <p className="text-sm text-gray-400 mt-1 mb-4">Refunds from cancelled bookings are credited here.</p>
+        {wallet?.recentTransactions && wallet.recentTransactions.length > 0 && (
+          <div className="mt-3 mb-4 space-y-1.5">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Recent Transactions</p>
+            {wallet.recentTransactions.slice(0, 5).map((tx, i) => (
+              <div key={i} className="flex items-center justify-between text-sm py-1 border-b border-gray-50">
+                <span className="text-gray-600 truncate max-w-[200px]">{tx.description ?? tx.type}</span>
+                <span className={`font-semibold ml-2 ${tx.type === 'Credit' ? 'text-green-600' : 'text-red-500'}`}>
+                  {tx.type === 'Credit' ? '+' : '-'}₹{tx.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
         <WalletTopUp onTopUp={(newBalance) => setWallet(prev => prev ? { ...prev, balance: newBalance } : prev)} />
       </section>
 
@@ -165,6 +179,11 @@ export default function ProfilePage() {
             ))}
           </div>
         )}
+      </section>
+
+      {/* Saved Cards */}
+      <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+        <SavedCards />
       </section>
     </div>
   )

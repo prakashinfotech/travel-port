@@ -278,18 +278,50 @@
 
 ---
 
+## Phase 9 — Wallet Feature, Payment UX Overhaul & Bug Fixes
+**Branch:** `feature/wallet-payment-bugfixes`
+**Date:** 2026-05-13
+**Scope:** Wallet top-up persistence, saved credit cards, payment method selection at booking, payment page with UPI/Card/Net Banking, traveller details bug fixes, booking confirmation email fixes, E-ticket visibility control, My Bookings filters
+
+| # | Feature | Status | Notes |
+|---|---|---|---|
+| 9.1 | `SavedCard` domain entity + EF migration `AddSavedCards` | ✅ | Stores last 4 digits only (never full card number); cascade delete from User |
+| 9.2 | `SavedCard` CRUD API — `GET/POST/DELETE /users/cards` + `PUT /users/cards/{id}/default` | ✅ | `UsersController` 4 new endpoints; full DI wiring |
+| 9.3 | `UserService` — `GetSavedCardsAsync`, `AddSavedCardAsync`, `DeleteSavedCardAsync`, `SetDefaultCardAsync` | ✅ | Only last 4 digits stored; default flag management |
+| 9.4 | `AddCardModal` component — card visual preview, type auto-detection | ✅ | Detects Visa/Mastercard/Amex/RuPay from number; gradient card preview; CVV/expiry validation |
+| 9.5 | `PaymentMethodSelector` component — wallet tile + saved cards + new card | ✅ | Wallet disabled if insufficient balance; shows saved card gradient tiles |
+| 9.6 | `SavedCards` component on ProfilePage | ✅ | Gradient card visuals with Set Default / Remove actions; empty state |
+| 9.7 | `BookFlightPage` — payment method selection (wallet / saved card / new card) | ✅ | `useWallet` and `savedCardId` passed to booking API |
+| 9.8 | `BookHotelPage` — payment method selection (wallet / saved card / new card) | ✅ | Same pattern; routes to PaymentPage for new card |
+| 9.9 | ProfilePage — recent wallet transactions display | ✅ | Last 5 transactions with Credit (green) / Debit (red) colours |
+| 9.10 | Wallet top-up persists to DB | ✅ | `WalletDto` returns `walletId` + `recentTransactions`; frontend type updated |
+| 9.11 | **Bug fix** — Wallet refund not saved after cancellation | ✅ | Root cause: `RefundAsync` does not call `SaveChangesAsync`; `BookingService.CancelAsync` now calls `_uow.SaveChangesAsync` after `RefundAsync` |
+| 9.12 | **Bug fix** — Traveller name not shown on confirm page | ✅ | `BookingDetailPage.mergedBooking` now prioritises sessionStorage snapshot (`bookingUi.userName`) over API `booking.userName` (logged-in user) |
+| 9.13 | **Bug fix** — Traveller name wrong in PDF e-ticket | ✅ | `BookFlightRequest` extended with `GuestName/Email/Phone`; `FlightService.BookAsync` stores them in `Booking.GuestName/Email/Phone`; `BookingDto.UserName` resolves `GuestName ?? user.Name` |
+| 9.14 | **Bug fix** — Confirmation email sent to account email, not contact email | ✅ | `FlightService.BookAsync` uses `req.GuestEmail ?? user.Email`; cancellation email also updated for both flight and hotel |
+| 9.15 | **Bug fix** — PNR not in flight confirmation email | ✅ | Added `PNR / Booking Reference` row to Traveller Details table in `SmtpEmailService.SendFlightBookingConfirmationAsync` |
+| 9.16 | **Bug fix** — Download E-Ticket shown for cancelled bookings | ✅ | All three download entry-points (header button, green bar CTA, sidebar button) gated with `status !== 'Cancelled'` in `BookingDetailPage` |
+| 9.17 | My Bookings page — status filter (All / Confirmed / Cancelled) | ✅ | Pill-style filter group; client-side filter on loaded results |
+| 9.18 | My Bookings page — type filter (All / Flight / Hotel) | ✅ | Second pill-style filter group; combined with status filter |
+| 9.19 | My Bookings page — "Clear filters" link | ✅ | Resets both filters; shown only when a filter is active |
+| 9.20 | PaymentPage — Card tab with live card preview | ✅ | Number / name / expiry mirrored on gradient card visual; format-as-you-type helpers |
+| 9.21 | PaymentPage — UPI tab with QR code + UPI ID input | ✅ | SVG QR graphic + `name@upi` input; 20-second circular countdown on submit, completes at 5 s |
+| 9.22 | PaymentPage — Net Banking tab with bank dropdown | ✅ | 10 major Indian banks; Customer ID field; 20-second countdown on submit |
+| 9.23 | PaymentPage — processing overlay with circular progress ring | ✅ | Animated SVG `stroke-dashoffset` countdown ring; different messages for UPI vs Net Banking |
+
+---
+
 ## Upcoming / Planned
 
 | # | Feature | Priority | Phase |
 |---|---|---|---|
-| 9.1 | Mobile filter drawer (slide-over) for FlightsPage | 🔴 High | Phase 9 |
-| 9.2 | Bus / Train / Cab booking — persistence + API | 🔴 High | Phase 9 |
-| 9.3 | Wallet transaction race condition fix | 🟡 Medium | Phase 9 |
-| 9.4 | Saved travellers UI | 🟡 Medium | Phase 9 |
-| 9.5 | Email verification flow (OTP) | 🟡 Medium | Phase 9 |
-| 9.6 | HTTPS with Let's Encrypt (Nginx + Certbot sidecar) | 🟡 Medium | Phase 9 |
-| 9.7 | Unit tests for FlightService, HotelService | 🟢 Low | Phase 9 |
-| 9.8 | Redis cache (replace in-memory IMemoryCache) | 🟢 Low | Phase 9 |
+| 10.1 | Mobile filter drawer (slide-over) for FlightsPage | 🔴 High | Phase 10 |
+| 10.2 | Bus / Train / Cab booking — persistence + API | 🔴 High | Phase 10 |
+| 10.3 | Email verification flow (OTP) | 🟡 Medium | Phase 10 |
+| 10.4 | HTTPS with Let's Encrypt (Nginx + Certbot sidecar) | 🟡 Medium | Phase 10 |
+| 10.5 | Unit tests for FlightService, HotelService, WalletService | 🟢 Low | Phase 10 |
+| 10.6 | Redis cache (replace in-memory IMemoryCache) | 🟢 Low | Phase 10 |
+| 10.7 | Real Razorpay webhook handler for production | 🟢 Low | Phase 10 |
 
 ---
 
@@ -309,15 +341,17 @@ dotnet run --project src/API --launch-profile https
 
 | Metric | Value |
 |---|---|
-| Total phases completed | 8 |
-| Total features delivered | 170+ |
+| Total phases completed | 9 |
+| Total features delivered | 193+ |
 | Flights in seed DB | 900+ (dynamic demand-based pricing) |
 | Hotels in seed DB | 60+ (12 cities) |
 | Coupons | 11 (5 original + 6 new: FLYSAVER, FLYOFF200, FLYDEAL15, HOTELOFF15, STAYMORE, HOTELDEAL) |
-| API endpoints | 49+ |
-| Frontend pages | 14 |
+| API endpoints | 53+ |
+| Frontend pages | 15 |
 | Airlines covered | 7 |
 | Routes covered | 42 bidirectional |
 | External API integrations | 3 (Duffel, Razorpay, SMTP/Office365) |
 | PDF invoices | 2 types (Flight e-ticket A4, Hotel invoice A4) |
 | Email events covered | 3 (booking confirmed, booking cancelled, password reset) |
+| Payment methods | 3 (Credit/Debit Card, UPI with QR, Net Banking) |
+| Wallet features | Top-up, deduction at booking, 90% refund on cancellation (auto-credited) |

@@ -11,17 +11,20 @@ public class UserService : IUserService
     private readonly IUserRepository _users;
     private readonly IRepository<Wallet> _wallets;
     private readonly IRepository<SavedTraveller> _travellers;
+    private readonly IRepository<SavedCard> _cards;
     private readonly IUnitOfWork _uow;
 
     public UserService(
         IUserRepository users,
         IRepository<Wallet> wallets,
         IRepository<SavedTraveller> travellers,
+        IRepository<SavedCard> cards,
         IUnitOfWork uow)
     {
         _users = users;
         _wallets = wallets;
         _travellers = travellers;
+        _cards = cards;
         _uow = uow;
     }
 
@@ -90,9 +93,89 @@ public class UserService : IUserService
         await _uow.SaveChangesAsync(ct);
     }
 
+    public async Task<List<SavedCardDto>> GetSavedCardsAsync(Guid userId, CancellationToken ct = default)
+    {
+        var cards = await _cards.FindAsync(c => c.UserId == userId, ct);
+        return cards.OrderByDescending(c => c.IsDefault).ThenByDescending(c => c.CreatedAt)
+                    .Select(ToCardDto).ToList();
+    }
+
+    public async Task<SavedCardDto> AddSavedCardAsync(Guid userId, AddSavedCardRequest request, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.CardNumber) || request.CardNumber.Replace(" ", "").Length < 4)
+            throw new BusinessException("Invalid card number.");
+
+        var lastFour = request.CardNumber.Replace(" ", "").Replace("-", "")[^4..];
+
+        // If this card will be default, unset existing defaults first
+        if (request.SetAsDefault)
+        {
+            var existing = await _cards.FindAsync(c => c.UserId == userId && c.IsDefault, ct);
+            foreach (var c in existing)
+            {
+                c.IsDefault = false;
+                await _cards.UpdateAsync(c, ct);
+            }
+        }
+
+        var card = new SavedCard
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            CardHolderName = request.CardHolderName.Trim(),
+            LastFourDigits = lastFour,
+            ExpiryMonth = request.ExpiryMonth,
+            ExpiryYear = request.ExpiryYear,
+            CardType = request.CardType,
+            NickName = request.NickName?.Trim(),
+            IsDefault = request.SetAsDefault
+        };
+
+        await _cards.AddAsync(card, ct);
+        await _uow.SaveChangesAsync(ct);
+        return ToCardDto(card);
+    }
+
+    public async Task DeleteSavedCardAsync(Guid userId, Guid cardId, CancellationToken ct = default)
+    {
+        var card = await _cards.GetByIdAsync(cardId, ct)
+            ?? throw new NotFoundException("Card", cardId);
+
+        if (card.UserId != userId)
+            throw new UnauthorizedException("Access denied.");
+
+        await _cards.DeleteAsync(card, ct);
+        await _uow.SaveChangesAsync(ct);
+    }
+
+    public async Task<SavedCardDto> SetDefaultCardAsync(Guid userId, Guid cardId, CancellationToken ct = default)
+    {
+        var card = await _cards.GetByIdAsync(cardId, ct)
+            ?? throw new NotFoundException("Card", cardId);
+
+        if (card.UserId != userId)
+            throw new UnauthorizedException("Access denied.");
+
+        // Unset all other defaults
+        var others = await _cards.FindAsync(c => c.UserId == userId && c.IsDefault && c.Id != cardId, ct);
+        foreach (var c in others)
+        {
+            c.IsDefault = false;
+            await _cards.UpdateAsync(c, ct);
+        }
+
+        card.IsDefault = true;
+        await _cards.UpdateAsync(card, ct);
+        await _uow.SaveChangesAsync(ct);
+        return ToCardDto(card);
+    }
+
     private static UserProfileDto ToProfileDto(User u) =>
         new(u.Id, u.Name, u.Email, u.Phone, u.Role.ToString(), u.IsVerified, u.CreatedAt);
 
     private static SavedTravellerDto ToTravellerDto(SavedTraveller t) =>
         new(t.Id, t.Name, t.Email, t.Phone, t.DOB);
+
+    private static SavedCardDto ToCardDto(SavedCard c) =>
+        new(c.Id, c.CardHolderName, c.LastFourDigits, c.ExpiryMonth, c.ExpiryYear, c.CardType, c.NickName, c.IsDefault);
 }

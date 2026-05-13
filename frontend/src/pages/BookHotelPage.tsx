@@ -2,17 +2,22 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, MapPin, Star, Users, Calendar,
-  CheckCircle, Shield, Tag, Info, ChevronRight, Home, BriefcaseBusiness, X,
+  CheckCircle, Shield, Tag, Info, ChevronRight, Home, BriefcaseBusiness, X, CreditCard,
 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import type { HotelDto, HotelRoomDto } from '@/types'
 import { hotelService } from '@/services/hotelService'
+import { userService } from '@/services/userService'
 import { api } from '@/api/axios'
 import { endpoints } from '@/api/endpoints'
 import { formatCurrency } from '@/utils/formatters'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { PaymentMethodSelector } from '@/components/common/PaymentMethodSelector'
+import { AddCardModal } from '@/components/common/AddCardModal'
+import type { PaymentChoice } from '@/components/common/PaymentMethodSelector'
+import { useAppSelector } from '@/hooks/useAppDispatch'
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 
@@ -68,6 +73,17 @@ export default function BookHotelPage() {
   const [includeContribution, setIncludeContribution] = useState(false)
   const [showFareRules, setShowFareRules] = useState(false)
   const [showContributionInfo, setShowContributionInfo] = useState(false)
+  const [walletBalance, setWalletBalance] = useState(0)
+  const [paymentChoice, setPaymentChoice] = useState<PaymentChoice>({ type: 'new_card' })
+  const [showAddCard, setShowAddCard] = useState(false)
+  const authUser = useAppSelector(s => s.auth.user)
+  const isLoggedIn = !!authUser
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      userService.getWallet().then(r => setWalletBalance(r.data?.balance ?? 0)).catch(() => {})
+    }
+  }, [isLoggedIn])
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -131,6 +147,8 @@ export default function BookHotelPage() {
         checkOut,
         guests,
         couponCode: values.couponCode || undefined,
+        useWallet:  paymentChoice.type === 'wallet',
+        savedCardId: paymentChoice.type === 'saved_card' ? paymentChoice.cardId : undefined,
         guestName,
         guestEmail: values.email,
         guestPhone: values.phone,
@@ -157,7 +175,11 @@ export default function BookHotelPage() {
         totalAmount:  res.data.totalAmount,
       }))
 
-      navigate(`/hotels/booking/${res.data.id}/confirm?new=true`)
+      if (paymentChoice.type === 'new_card') {
+        navigate(`/payment?bookingId=${res.data.id}&amount=${total}`)
+      } else {
+        navigate(`/hotels/booking/${res.data.id}/confirm?new=true`)
+      }
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
       setApiError(msg ?? 'Booking failed. Please try again.')
@@ -520,6 +542,36 @@ export default function BookHotelPage() {
                   </label>
                 </div>
 
+                {/* Payment Method */}
+                {isLoggedIn && (
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="h-4 w-4 text-blue-600" />
+                        <h3 className="font-bold text-gray-900 text-sm">Payment Method</h3>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowAddCard(true)}
+                        className="text-xs font-semibold text-blue-600 hover:underline"
+                      >
+                        + Add Card
+                      </button>
+                    </div>
+                    <PaymentMethodSelector
+                      walletBalance={walletBalance}
+                      requiredAmount={total}
+                      selected={paymentChoice}
+                      onSelect={setPaymentChoice}
+                    />
+                    {paymentChoice.type === 'wallet' && (
+                      <p className="mt-2 text-xs text-green-600 font-medium flex items-center gap-1">
+                        <span>👛</span> {formatCurrency(total)} will be deducted from wallet
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 {/* Trust badges */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-2.5">
                   <div className="flex items-center gap-2.5 text-sm text-gray-600">
@@ -549,6 +601,8 @@ export default function BookHotelPage() {
                 >
                   {submitting ? (
                     <><span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Processing…</>
+                  ) : paymentChoice.type === 'new_card' ? (
+                    <>Proceed to Payment · {formatCurrency(total)}</>
                   ) : (
                     <>Confirm Booking · {formatCurrency(total)}</>
                   )}
@@ -562,6 +616,16 @@ export default function BookHotelPage() {
           </div>
         </form>
       </div>
+
+      {showAddCard && (
+        <AddCardModal
+          onClose={() => setShowAddCard(false)}
+          onSaved={card => {
+            setShowAddCard(false)
+            setPaymentChoice({ type: 'saved_card', cardId: card.cardId })
+          }}
+        />
+      )}
 
       {showFareRules && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4">

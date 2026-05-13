@@ -104,6 +104,7 @@ export default function BookingDetailPage() {
   const [cancelling, setCancelling] = useState(false)
   const [showCancelDialog, setShowCancelDialog] = useState(false)
   const [downloading, setDownloading] = useState(false)
+  const [refundAmount, setRefundAmount] = useState<number | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -135,9 +136,9 @@ export default function BookingDetailPage() {
     if (!booking) return null
     return {
       ...booking,
-      userName: booking.userName ?? bookingUi?.userName ?? bookingUi?.guestName,
-      userEmail: booking.userEmail ?? bookingUi?.email,
-      userPhone: booking.userPhone ?? bookingUi?.mobile ?? bookingUi?.phone,
+      userName: bookingUi?.userName ?? bookingUi?.guestName ?? booking.userName,
+      userEmail: bookingUi?.email ?? booking.userEmail,
+      userPhone: bookingUi?.mobile ?? bookingUi?.phone ?? booking.userPhone,
       airline: booking.airline ?? bookingUi?.airline,
       flightNumber: booking.flightNumber ?? bookingUi?.flightNumber,
       origin: booking.origin ?? bookingUi?.origin,
@@ -159,7 +160,9 @@ export default function BookingDetailPage() {
     if (!mergedBooking) return
     setCancelling(true)
     try {
-      await bookingService.cancel(mergedBooking.id)
+      const res = await bookingService.cancel(mergedBooking.id)
+      const refund = res.data?.refundAmount ?? Math.round(mergedBooking.finalAmount * 0.9)
+      setRefundAmount(refund)
       setBooking(prev => prev ? { ...prev, status: 'Cancelled' } : prev)
       setShowCancelDialog(false)
     } catch {
@@ -271,6 +274,19 @@ export default function BookingDetailPage() {
       <div className="bg-gradient-to-r from-orange-500 via-orange-500 to-orange-400 pb-24" />
 
       <div className="mx-auto -mt-20 max-w-7xl px-4 pb-10 sm:px-6">
+        {/* Wallet refund banner — shown immediately after cancellation */}
+        {refundAmount !== null && (
+          <div className="mb-5 flex items-center gap-3 rounded-3xl border border-green-200 bg-green-50 p-5 shadow-sm">
+            <span className="text-3xl">👛</span>
+            <div>
+              <p className="font-bold text-green-800">Booking Cancelled — Refund Processed!</p>
+              <p className="text-sm text-green-700">
+                <strong>₹{refundAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong> (90% of fare) has been credited to your TravelPort Wallet. Check your wallet balance in your profile.
+              </p>
+            </div>
+          </div>
+        )}
+
         {!isNew && (
           <button onClick={() => navigate(-1)} className="mb-5 flex items-center gap-1 text-sm font-medium text-white/90 hover:text-white">
             <ArrowLeft className="h-4 w-4" /> Back to bookings
@@ -327,10 +343,12 @@ export default function BookingDetailPage() {
                       </div>
                     </div>
                   </div>
-                  <button type="button" onClick={handleDownload} className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100">
-                    <Download className="h-4 w-4" />
-                    Download E-Ticket
-                  </button>
+                  {mergedBooking.status !== 'Cancelled' && (
+                    <button type="button" onClick={handleDownload} className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100">
+                      <Download className="h-4 w-4" />
+                      Download E-Ticket
+                    </button>
+                  )}
                 </div>
 
                 <div className="grid gap-5 pt-5 md:grid-cols-[110px_minmax(0,1fr)]">
@@ -373,10 +391,12 @@ export default function BookingDetailPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm">
-                  <span className="font-medium text-emerald-800">Your e-ticket is valid for airport check-in and can be downloaded anytime from this page.</span>
-                  <button type="button" onClick={handleDownload} className="font-bold text-blue-600 hover:underline">Download now</button>
-                </div>
+                {mergedBooking.status !== 'Cancelled' && (
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm">
+                    <span className="font-medium text-emerald-800">Your e-ticket is valid for airport check-in and can be downloaded anytime from this page.</span>
+                    <button type="button" onClick={handleDownload} className="font-bold text-blue-600 hover:underline">Download now</button>
+                  </div>
+                )}
               </div>
             </section>
 
@@ -474,10 +494,12 @@ export default function BookingDetailPage() {
             <section className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
               <h2 className="text-xl font-extrabold text-gray-900">Booking Actions</h2>
               <div className="mt-4 space-y-3">
-                <Button type="button" size="lg" loading={downloading} className="w-full bg-blue-600 font-bold hover:bg-blue-700" onClick={handleDownload}>
-                  <Download className="h-4 w-4" />
-                  Download E-Ticket
-                </Button>
+                {mergedBooking.status !== 'Cancelled' && (
+                  <Button type="button" size="lg" loading={downloading} className="w-full bg-blue-600 font-bold hover:bg-blue-700" onClick={handleDownload}>
+                    <Download className="h-4 w-4" />
+                    Download E-Ticket
+                  </Button>
+                )}
                 {canCancel && (
                   <Button type="button" variant="danger" size="lg" className="w-full" onClick={() => setShowCancelDialog(true)}>
                     Cancel Booking

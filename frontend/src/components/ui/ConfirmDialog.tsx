@@ -85,7 +85,7 @@ export function ConfirmDialog({
           </button>
           <Button
             ref={confirmRef}
-            variant={variant}
+            variant={variant === 'warning' ? 'secondary' : variant}
             loading={loading}
             onClick={onConfirm}
             className="flex-1 rounded-xl py-2.5 text-sm font-semibold"

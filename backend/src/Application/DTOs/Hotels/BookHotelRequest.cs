@@ -8,6 +8,7 @@ public record BookHotelRequest(
     int Guests,
     string? CouponCode = null,
     bool UseWallet = false,
+    Guid? SavedCardId = null,
     string? GuestName = null,
     string? GuestEmail = null,
     string? GuestPhone = null

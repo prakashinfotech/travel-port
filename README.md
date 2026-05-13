@@ -30,12 +30,16 @@ TravelPort covers:
 - Cab Search (deterministic mock — Ola/Uber/Meru/Zoom, distance-based pricing)
 - User Authentication (JWT + Refresh Tokens)
 - Booking Management, Cancellation & PDF Invoice Download (Flight e-ticket + Hotel invoice, A4)
-- Wallet & 11 Coupons (flight and hotel specific)
+- Wallet System — top-up, balance deduction at booking, automatic 90% refund on cancellation
+- Saved Credit Cards — securely store cards (last 4 digits only), set default, delete
+- Payment Method Selection at Booking — pay via Wallet, Saved Card, or proceed to payment page
+- Payment Page — Credit/Debit Card (live preview), UPI (QR + countdown timer), Net Banking (bank picker + timer)
+- 11 Coupons (flight and hotel specific)
 - Razorpay Payment Gateway (toggle via config; falls back to mock in dev)
-- SMTP Email Notifications — booking confirmed, booking cancelled, password reset (Office365/Gmail)
+- SMTP Email Notifications — booking confirmed (sent to contact email), cancelled, password reset
 - Admin Panel — 4-tab dashboard (stats + analytics, user management, all bookings, coupon CRUD)
-- Dynamic Traveller Details UI based on selected seat count
-- Bookings Page with numbered pagination, sorted by latest first
+- Dynamic Traveller Details UI; traveller name/email/phone stored per booking and shown in PDF + email
+- Bookings Page with numbered pagination, status/type filters (Confirmed/Cancelled · Flight/Hotel)
 
 ---
 

@@ -45,6 +45,9 @@ export const endpoints = {
     walletTransactions: '/users/wallet/transactions',
     travellers:         '/users/travellers',
     traveller:          (id: string) => `/users/travellers/${id}`,
+    cards:              '/users/cards',
+    card:               (id: string) => `/users/cards/${id}`,
+    cardDefault:        (id: string) => `/users/cards/${id}/default`,
   },
   admin: {
     dashboard:    '/admin/dashboard',
