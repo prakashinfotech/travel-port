@@ -23,6 +23,7 @@ Full-stack travel booking platform built with .NET 8 Clean Architecture + React 
 TravelPort covers:
 - Flight Search & Booking (900+ DB seed flights — IndiGo, SpiceJet, Vistara, Akasa Air, Air India, Air India Express, Go First across 42 routes)
 - Goibibo-style Flight Fare Popup + Fare-family Booking Flow
+- Paginated flight search results with filters and sorting preserved between pages
 - Home page recent searches persist and reopen saved result pages
 - Hotel Search & Booking with Guest Details (name/email/phone stored per booking)
 - Bus Search (deterministic mock — realistic Indian operators & routes)
@@ -39,6 +40,8 @@ TravelPort covers:
 - SMTP Email Notifications — booking confirmed (sent to contact email), cancelled, password reset
 - Admin Panel — 4-tab dashboard (stats + analytics, user management, all bookings, coupon CRUD)
 - Dynamic Traveller Details UI; traveller name/email/phone stored per booking and shown in PDF + email
+- App-wide toast notifications, route-level error boundary, and shared skeleton loaders across search surfaces
+- Richer Profile page with account overview, wallet feedback, safer traveller/card deletion, and saved payment management
 - Bookings Page with numbered pagination, status/type filters (Confirmed/Cancelled · Flight/Hotel)
 
 ---

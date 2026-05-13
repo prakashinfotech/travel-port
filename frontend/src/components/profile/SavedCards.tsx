@@ -3,6 +3,8 @@ import { CreditCard, Star, Trash2 } from 'lucide-react'
 import { userService } from '@/services/userService'
 import type { SavedCardDto } from '@/types'
 import { AddCardModal } from '@/components/common/AddCardModal'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { useToast } from '@/components/ui/ToastProvider'
 
 function cardBrandBg(type: string) {
   if (type === 'Visa') return 'from-blue-700 to-blue-500'
@@ -12,30 +14,38 @@ function cardBrandBg(type: string) {
 }
 
 export function SavedCards() {
+  const toast = useToast()
   const [cards, setCards] = useState<SavedCardDto[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddCard, setShowAddCard] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [settingDefaultId, setSettingDefaultId] = useState<string | null>(null)
+  const [cardToDelete, setCardToDelete] = useState<SavedCardDto | null>(null)
 
   const fetchCards = () => {
     setLoading(true)
     userService.getSavedCards()
       .then(r => setCards(r.data ?? []))
-      .catch(() => setCards([]))
+      .catch(() => {
+        toast.error('Cards unavailable', 'Saved cards could not be loaded right now.')
+        setCards([])
+      })
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { fetchCards() }, [])
+  useEffect(() => { fetchCards() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleDelete = async (cardId: string) => {
-    if (!confirm('Remove this saved card?')) return
-    setDeletingId(cardId)
+  const handleDelete = async () => {
+    if (!cardToDelete) return
+
+    setDeletingId(cardToDelete.cardId)
     try {
-      await userService.deleteSavedCard(cardId)
-      setCards(prev => prev.filter(c => c.cardId !== cardId))
+      await userService.deleteSavedCard(cardToDelete.cardId)
+      setCards(prev => prev.filter(c => c.cardId !== cardToDelete.cardId))
+      toast.success('Card removed', `Saved card ending in ${cardToDelete.lastFourDigits} was removed.`)
+      setCardToDelete(null)
     } catch {
-      alert('Failed to remove card.')
+      toast.error('Card not removed', 'We could not remove this saved card. Please try again.')
     } finally {
       setDeletingId(null)
     }
@@ -44,11 +54,15 @@ export function SavedCards() {
   const handleSetDefault = async (cardId: string) => {
     setSettingDefaultId(cardId)
     try {
-      const res = await userService.setDefaultCard(cardId)
+      await userService.setDefaultCard(cardId)
       setCards(prev => prev.map(c => ({ ...c, isDefault: c.cardId === cardId })))
-      void res
+      const card = cards.find(item => item.cardId === cardId)
+      toast.success(
+        'Default card updated',
+        card ? `Card ending in ${card.lastFourDigits} is now your default.` : 'Your default payment card was updated.',
+      )
     } catch {
-      alert('Failed to update default card.')
+      toast.error('Default card not updated', 'We could not change the default card. Please try again.')
     } finally {
       setSettingDefaultId(null)
     }
@@ -56,83 +70,76 @@ export function SavedCards() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-5">
+      <div className="mb-5 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <CreditCard className="h-5 w-5 text-blue-600" />
           <h2 className="text-lg font-bold text-gray-800">Saved Cards</h2>
         </div>
         <button
           onClick={() => setShowAddCard(true)}
-          className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
         >
           + Add New Card
         </button>
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {[1, 2].map(i => (
-            <div key={i} className="h-36 bg-gray-100 rounded-2xl animate-pulse" />
+            <div key={i} className="h-36 animate-pulse rounded-2xl bg-gray-100" />
           ))}
         </div>
       ) : cards.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-          <CreditCard className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 font-medium">No saved cards yet</p>
-          <p className="text-sm text-gray-400 mt-1">Add a card to speed up future bookings</p>
+        <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 py-12 text-center">
+          <CreditCard className="mx-auto mb-3 h-10 w-10 text-gray-300" />
+          <p className="font-medium text-gray-500">No saved cards yet</p>
+          <p className="mt-1 text-sm text-gray-400">Add a card to speed up future bookings</p>
           <button
             onClick={() => setShowAddCard(true)}
-            className="mt-4 px-5 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors"
+            className="mt-4 rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
           >
             Add Card
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {cards.map(card => (
-            <div key={card.cardId} className="relative group">
-              {/* Card visual */}
-              <div className={`relative rounded-2xl p-5 text-white bg-gradient-to-br ${cardBrandBg(card.cardType)} overflow-hidden shadow-md`}>
-                {/* Decorative circles */}
-                <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-white/10" />
-                <div className="absolute -bottom-8 -left-4 w-32 h-32 rounded-full bg-white/10" />
+            <div key={card.cardId} className="group relative">
+              <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-br p-5 text-white shadow-md ${cardBrandBg(card.cardType)}`}>
+                <div className="absolute -right-6 -top-6 h-28 w-28 rounded-full bg-white/10" />
+                <div className="absolute -bottom-8 -left-4 h-32 w-32 rounded-full bg-white/10" />
 
                 {card.isDefault && (
-                  <div className="absolute top-3 right-3 flex items-center gap-1 bg-white/20 rounded-full px-2 py-0.5 text-xs font-semibold backdrop-blur-sm">
+                  <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold backdrop-blur-sm">
                     <Star className="h-3 w-3 fill-white" /> Default
                   </div>
                 )}
 
                 <div className="relative">
-                  <p className="text-white/70 text-xs font-semibold uppercase tracking-widest mb-4">{card.cardType}</p>
-                  <p className="font-mono text-lg tracking-widest mb-4">
-                    •••• •••• •••• {card.lastFourDigits}
-                  </p>
+                  <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-white/70">{card.cardType}</p>
+                  <p className="mb-4 font-mono text-lg tracking-widest">•••• •••• •••• {card.lastFourDigits}</p>
                   <div className="flex items-end justify-between">
                     <div>
-                      <p className="text-white/60 text-[10px] uppercase tracking-wide">Card Holder</p>
-                      <p className="text-sm font-semibold truncate max-w-[120px]">{card.cardHolderName}</p>
+                      <p className="text-[10px] uppercase tracking-wide text-white/60">Card Holder</p>
+                      <p className="max-w-[120px] truncate text-sm font-semibold">{card.cardHolderName}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-white/60 text-[10px] uppercase tracking-wide">Expires</p>
+                      <p className="text-[10px] uppercase tracking-wide text-white/60">Expires</p>
                       <p className="text-sm font-semibold">
                         {card.expiryMonth.toString().padStart(2, '0')}/{card.expiryYear.toString().slice(-2)}
                       </p>
                     </div>
                   </div>
-                  {card.nickName && (
-                    <p className="text-white/60 text-xs mt-2 italic">"{card.nickName}"</p>
-                  )}
+                  {card.nickName && <p className="mt-2 text-xs italic text-white/60">"{card.nickName}"</p>}
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className="flex items-center gap-2 mt-2.5 px-1">
+              <div className="mt-2.5 flex items-center gap-2 px-1">
                 {!card.isDefault && (
                   <button
                     onClick={() => handleSetDefault(card.cardId)}
                     disabled={settingDefaultId === card.cardId}
-                    className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 disabled:opacity-50"
+                    className="flex items-center gap-1 text-xs font-semibold text-blue-600 disabled:opacity-50 hover:text-blue-700"
                   >
                     <Star className="h-3.5 w-3.5" />
                     {settingDefaultId === card.cardId ? 'Setting…' : 'Set as Default'}
@@ -140,9 +147,9 @@ export function SavedCards() {
                 )}
                 <div className="flex-1" />
                 <button
-                  onClick={() => handleDelete(card.cardId)}
+                  onClick={() => setCardToDelete(card)}
                   disabled={deletingId === card.cardId}
-                  className="flex items-center gap-1 text-xs font-semibold text-red-500 hover:text-red-600 disabled:opacity-50"
+                  className="flex items-center gap-1 text-xs font-semibold text-red-500 disabled:opacity-50 hover:text-red-600"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                   {deletingId === card.cardId ? 'Removing…' : 'Remove'}
@@ -159,14 +166,25 @@ export function SavedCards() {
           onSaved={card => {
             setShowAddCard(false)
             setCards(prev => {
-              const updated = card.isDefault
-                ? prev.map(c => ({ ...c, isDefault: false }))
-                : prev
+              const updated = card.isDefault ? prev.map(c => ({ ...c, isDefault: false })) : prev
               return [...updated, card]
             })
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={cardToDelete !== null}
+        title="Remove saved card?"
+        message={cardToDelete
+          ? `Card ending in ${cardToDelete.lastFourDigits} will be removed from your saved payment methods.`
+          : ''}
+        confirmLabel="Remove Card"
+        cancelLabel="Keep Card"
+        loading={deletingId !== null}
+        onConfirm={handleDelete}
+        onCancel={() => setCardToDelete(null)}
+      />
     </div>
   )
 }

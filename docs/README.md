@@ -14,10 +14,11 @@ TravelPort is a comprehensive travel booking portal inspired by Goibibo, offerin
 - 🏨 Hotel Search & Booking
 - 🚌 Bus Booking
 - 🚂 Train Booking
-- 🌴 Holiday Packages
 - 👤 User Authentication & Profiles
 - 💰 Wallet & Offers
 - 🛠️ Admin Panel
+- 🔔 Toast notifications, resilient error handling, and loading skeletons
+- 📄 Paginated flight results and a richer profile experience
 
 ---
 

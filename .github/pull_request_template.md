@@ -2,7 +2,7 @@
 - Briefly describe what this PR changes and why.
 
 ## Checks
-- [ ] `./scripts/test-all.sh` or `./scripts/test-all.ps1` passed locally before commit
+- [ ] `./scripts/test-all.sh` or `.\scripts\test-all.cmd` passed locally before commit
 - [ ] Documentation updated for any behavior, workflow, or API changes
 - [ ] CI is expected to pass without skipping tests
 

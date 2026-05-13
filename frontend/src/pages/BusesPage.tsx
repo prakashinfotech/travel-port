@@ -4,6 +4,7 @@ import { Bus, Clock, Wifi, Star, Filter } from 'lucide-react'
 import { api } from '@/api/axios'
 import { endpoints } from '@/api/endpoints'
 import type { BusDto, ApiResponse } from '@/types'
+import { BusCardSkeleton } from '@/components/ui/Skeleton'
 
 const CITIES = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Hyderabad', 'Ahmedabad', 'Goa', 'Pune', 'Jaipur', 'Kolkata']
 
@@ -137,13 +138,7 @@ export default function BusesPage() {
         <div className="flex-1">
           {loading && (
             <div className="space-y-4">
-              {[1,2,3].map(i => (
-                <div key={i} className="bg-white rounded-xl p-5 animate-pulse">
-                  <div className="h-5 bg-gray-200 rounded w-1/3 mb-3" />
-                  <div className="h-4 bg-gray-100 rounded w-1/2 mb-2" />
-                  <div className="h-4 bg-gray-100 rounded w-1/4" />
-                </div>
-              ))}
+              {[1, 2, 3].map(i => <BusCardSkeleton key={i} />)}
             </div>
           )}
 

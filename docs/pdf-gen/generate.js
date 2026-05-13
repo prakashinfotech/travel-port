@@ -338,11 +338,11 @@ function srsHTML() {
 
     <div class="sub-section">
       <h3>1.2 Scope</h3>
-      <p>TravelPort provides end-to-end travel booking capabilities including flight search and booking, hotel discovery and reservation, bus/train/cab search (deterministic mock), digital wallet, coupon system, SMTP email notifications, PDF invoice generation, and a role-based admin panel.</p>
+      <p>TravelPort provides end-to-end travel booking capabilities including flight search and booking, paginated flight discovery, hotel discovery and reservation, bus/train/cab search (deterministic mock), digital wallet, coupon system, toast-based user feedback, resilient error recovery, PDF invoice generation, and a role-based admin panel.</p>
       <div class="card-grid-3">
         <div class="stat-card"><div class="num">900+</div><div class="label">Seed Flights</div></div>
         <div class="stat-card"><div class="num">60+</div><div class="label">Hotels</div></div>
-        <div class="stat-card"><div class="num">49+</div><div class="label">API Endpoints</div></div>
+        <div class="stat-card"><div class="num">53+</div><div class="label">API Endpoints</div></div>
       </div>
     </div>
 
@@ -610,7 +610,7 @@ function srsHTML() {
         ['Performance', 'badge-blue', 'Flight/hotel search responds in < 500 ms (cache hit < 50 ms). API supports 100 concurrent users on a single 2-core server.'],
         ['Security', 'badge-red', 'JWT (15 min) + Refresh Tokens (7 days). BCrypt cost 12. Secrets in env vars only. HTTPS enforced in production. SQL injection prevention via EF Core parameterization.'],
         ['Reliability', 'badge-green', 'Background workers (BookingExpiryWorker, RefreshTokenCleanupWorker) recover gracefully on shutdown. DataSeeder is idempotent — existing data preserved on restart. Commits and CI are gated by automated backend and frontend tests.'],
-        ['Usability', 'badge-pink', 'Goibibo-style UI with skeleton loaders, responsive layout (lg breakpoint), accessible form controls and keyboard navigation. Mobile filter drawer planned (Phase 9).'],
+        ['Usability', 'badge-pink', 'Goibibo-style UI with skeleton loaders, toast notifications, route-level error recovery, accessible form controls, and keyboard navigation.'],
       ].map(([title, badge, desc]) => `
         <div class="card">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
@@ -1470,7 +1470,7 @@ ${baseCSS}
     </div>
     <div class="cover-badge">API Reference</div>
     <h1>TravelPort</h1>
-    <h2>Complete REST API Documentation — 49+ Endpoints</h2>
+    <h2>Complete REST API Documentation — 53+ Endpoints</h2>
     <div class="cover-divider"></div>
     <div class="cover-meta">
       <div class="cover-meta-item"><div class="label">Base URL (Dev)</div><div class="value">http://localhost:5000</div></div>
@@ -1625,6 +1625,6 @@ async function generatePDF(html, filename, label) {
   console.log('  • SRS.pdf                — Software Requirements Specification');
   console.log('  • TECHNICAL_DESIGN.pdf   — Architecture & Data Design');
   console.log('  • DEPLOYMENT_GUIDE.pdf   — Docker & CI/CD Deployment');
-  console.log('  • API_REFERENCE.pdf      — Complete REST API Reference (49+ endpoints)');
+  console.log('  • API_REFERENCE.pdf      — Complete REST API Reference (53+ endpoints)');
   console.log('');
 })();

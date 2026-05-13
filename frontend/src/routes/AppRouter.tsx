@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Layout } from '@/components/layout/Layout'
 import { PrivateRoute } from './PrivateRoute'
 import { FullPageSpinner } from '@/components/ui/Spinner'
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 
 const HomePage             = lazy(() => import('@/pages/HomePage'))
 const LoginPage            = lazy(() => import('@/pages/LoginPage'))
@@ -34,44 +35,46 @@ const PaymentPage          = lazy(() => import('@/pages/PaymentPage'))
 export function AppRouter() {
   return (
     <BrowserRouter>
-      <Suspense fallback={<FullPageSpinner />}>
-        <Routes>
-          <Route element={<Layout />}>
-            {/* Public */}
-            <Route index                   element={<HomePage />} />
-            <Route path="login"            element={<LoginPage />} />
-            <Route path="register"         element={<RegisterPage />} />
-            <Route path="forgot-password"  element={<ForgotPasswordPage />} />
-            <Route path="reset-password"   element={<ResetPasswordPage />} />
-            <Route path="verify-email"     element={<EmailVerificationPage />} />
+      <ErrorBoundary>
+        <Suspense fallback={<FullPageSpinner />}>
+          <Routes>
+            <Route element={<Layout />}>
+              {/* Public */}
+              <Route index                   element={<HomePage />} />
+              <Route path="login"            element={<LoginPage />} />
+              <Route path="register"         element={<RegisterPage />} />
+              <Route path="forgot-password"  element={<ForgotPasswordPage />} />
+              <Route path="reset-password"   element={<ResetPasswordPage />} />
+              <Route path="verify-email"     element={<EmailVerificationPage />} />
 
-            {/* Flights */}
-            <Route path="flights"               element={<FlightsPage />} />
-            <Route path="flights/:id/book"      element={<PrivateRoute><BookFlightPage /></PrivateRoute>} />
+              {/* Flights */}
+              <Route path="flights"               element={<FlightsPage />} />
+              <Route path="flights/:id/book"      element={<PrivateRoute><BookFlightPage /></PrivateRoute>} />
 
-            {/* Hotels */}
-            <Route path="hotels"                              element={<HotelsPage />} />
-            <Route path="hotels/:id"                          element={<HotelDetailPage />} />
-            <Route path="hotels/:id/book/:roomId"             element={<PrivateRoute><BookHotelPage /></PrivateRoute>} />
-            <Route path="hotels/booking/:id/confirm"          element={<PrivateRoute><HotelBookingConfirmPage /></PrivateRoute>} />
+              {/* Hotels */}
+              <Route path="hotels"                              element={<HotelsPage />} />
+              <Route path="hotels/:id"                          element={<HotelDetailPage />} />
+              <Route path="hotels/:id/book/:roomId"             element={<PrivateRoute><BookHotelPage /></PrivateRoute>} />
+              <Route path="hotels/booking/:id/confirm"          element={<PrivateRoute><HotelBookingConfirmPage /></PrivateRoute>} />
 
-            {/* Transport */}
-            <Route path="buses"  element={<BusesPage />} />
-            <Route path="trains" element={<TrainsPage />} />
-            <Route path="cabs"   element={<CabsPage />} />
+              {/* Transport */}
+              <Route path="buses"  element={<BusesPage />} />
+              <Route path="trains" element={<TrainsPage />} />
+              <Route path="cabs"   element={<CabsPage />} />
 
-            {/* Protected */}
-            <Route path="bookings"     element={<PrivateRoute><BookingsPage /></PrivateRoute>} />
-            <Route path="bookings/:id" element={<PrivateRoute><BookingDetailPage /></PrivateRoute>} />
-            <Route path="profile"      element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
-            <Route path="payment"      element={<PrivateRoute><PaymentPage /></PrivateRoute>} />
-            <Route path="admin"        element={<PrivateRoute><AdminPage /></PrivateRoute>} />
+              {/* Protected */}
+              <Route path="bookings"     element={<PrivateRoute><BookingsPage /></PrivateRoute>} />
+              <Route path="bookings/:id" element={<PrivateRoute><BookingDetailPage /></PrivateRoute>} />
+              <Route path="profile"      element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+              <Route path="payment"      element={<PrivateRoute><PaymentPage /></PrivateRoute>} />
+              <Route path="admin"        element={<PrivateRoute><AdminPage /></PrivateRoute>} />
 
-            {/* 404 */}
-            <Route path="*" element={<NotFoundPage />} />
-          </Route>
-        </Routes>
-      </Suspense>
+              {/* 404 */}
+              <Route path="*" element={<NotFoundPage />} />
+            </Route>
+          </Routes>
+        </Suspense>
+      </ErrorBoundary>
     </BrowserRouter>
   )
 }
