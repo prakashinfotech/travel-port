@@ -8,4 +8,5 @@ public interface IBookingService
     Task<BookingDto> GetByIdAsync(Guid userId, Guid bookingId, CancellationToken ct = default);
     Task<(byte[] Content, string FileName)> GetInvoiceAsync(Guid userId, Guid bookingId, CancellationToken ct = default);
     Task<CancelBookingResponse> CancelAsync(Guid userId, Guid bookingId, CancellationToken ct = default);
+    Task SendConfirmationEmailAsync(Guid bookingId, CancellationToken ct = default);
 }

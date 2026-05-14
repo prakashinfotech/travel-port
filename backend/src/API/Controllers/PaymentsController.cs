@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using TravelPort.Application.Common.Interfaces;
 using TravelPort.Application.Common.Models;
 using TravelPort.Application.DTOs.Payments;
+using TravelPort.Application.Services.Interfaces;
 using TravelPort.Domain.Enums;
 using TravelPort.Persistence.Context;
 using PaymentStatus  = TravelPort.Domain.Enums.PaymentStatus;
@@ -14,11 +15,13 @@ namespace TravelPort.API.Controllers;
 public class PaymentsController : BaseApiController
 {
     private readonly IPaymentService _payment;
+    private readonly IBookingService _bookingService;
     private readonly TravelPortDbContext _db;
 
-    public PaymentsController(IPaymentService payment, TravelPortDbContext db)
+    public PaymentsController(IPaymentService payment, IBookingService bookingService, TravelPortDbContext db)
     {
         _payment = payment;
+        _bookingService = bookingService;
         _db = db;
     }
 
@@ -88,6 +91,9 @@ public class PaymentsController : BaseApiController
         booking.Status = BookingStatus.Confirmed;
         _db.Payments.Add(payment);
         await _db.SaveChangesAsync(ct);
+
+        // Send confirmation email now that payment is complete
+        await _bookingService.SendConfirmationEmailAsync(booking.Id, ct);
 
         return Ok(ApiResponse<object>.Ok(new { paymentId = payment.Id, bookingRef = booking.BookingRef },
             "Payment verified successfully"));

@@ -175,28 +175,34 @@ public class HotelService : IHotelService
         await _bookings.AddAsync(booking, ct);
         await _uow.SaveChangesAsync(ct);
 
-        var user = await _users.GetByIdAsync(userId, ct);
-        if (user is not null)
+        // Send confirmation email immediately only when payment is settled at booking time.
+        // For card/UPI/net-banking the email is sent after payment is verified (PaymentsController).
+        bool paymentSettledNow = req.UseWallet || req.SavedCardId.HasValue;
+        if (paymentSettledNow)
         {
-            var guestName    = req.GuestName  ?? user.Name;
-            var guestEmail   = req.GuestEmail ?? user.Email;
-            var hotelName    = hotel?.Name    ?? req.HotelId.ToString();
-            var hotelAddress = hotel?.Address ?? string.Empty;
-            var city         = hotel?.City    ?? string.Empty;
-            var starRating   = hotel?.StarRating ?? 0m;
-            var room         = hotel?.Rooms.FirstOrDefault(r => r.Id == req.RoomId);
-            var roomType     = room?.RoomType   ?? "Room";
-            var pricePerNight = room?.PricePerNight ?? (total / nights);
+            var user = await _users.GetByIdAsync(userId, ct);
+            if (user is not null)
+            {
+                var guestName     = req.GuestName  ?? user.Name;
+                var guestEmail    = req.GuestEmail ?? user.Email;
+                var hotelName     = hotel?.Name    ?? req.HotelId.ToString();
+                var hotelAddress  = hotel?.Address ?? string.Empty;
+                var city          = hotel?.City    ?? string.Empty;
+                var starRating    = hotel?.StarRating ?? 0m;
+                var room          = hotel?.Rooms.FirstOrDefault(r => r.Id == req.RoomId);
+                var roomType      = room?.RoomType   ?? "Room";
+                var pricePerNight = room?.PricePerNight ?? (total / nights);
 
-            await _email.SendHotelBookingConfirmationAsync(
-                guestEmail, guestName, booking.BookingRef,
-                hotelName, hotelAddress, city, starRating,
-                roomType,
-                req.CheckIn.ToString("dd MMM yyyy"),
-                req.CheckOut.ToString("dd MMM yyyy"),
-                nights, req.Guests,
-                req.GuestName, req.GuestPhone,
-                pricePerNight, total, discount, req.CouponCode, finalAmount, ct);
+                await _email.SendHotelBookingConfirmationAsync(
+                    guestEmail, guestName, booking.BookingRef,
+                    hotelName, hotelAddress, city, starRating,
+                    roomType,
+                    req.CheckIn.ToString("dd MMM yyyy"),
+                    req.CheckOut.ToString("dd MMM yyyy"),
+                    nights, req.Guests,
+                    req.GuestName, req.GuestPhone,
+                    pricePerNight, total, discount, req.CouponCode, finalAmount, ct);
+            }
         }
 
         return new BookingCreatedResponse(booking.Id, booking.BookingRef, booking.TotalAmount, booking.Status);

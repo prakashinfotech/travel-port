@@ -115,6 +115,64 @@ public class BookingService : IBookingService
         return new CancelBookingResponse(bookingId, refund);
     }
 
+    public async Task SendConfirmationEmailAsync(Guid bookingId, CancellationToken ct = default)
+    {
+        var booking = await _bookings.GetByIdAsync(bookingId, ct);
+        if (booking is null) return;
+
+        var user = await _users.GetByIdAsync(booking.UserId, ct);
+        if (user is null) return;
+
+        var toEmail = !string.IsNullOrWhiteSpace(booking.GuestEmail) ? booking.GuestEmail : user.Email;
+        var toName  = !string.IsNullOrWhiteSpace(booking.GuestName)  ? booking.GuestName  : user.Name;
+
+        if (booking.BookingType == BookingType.Flight)
+        {
+            var flight = await _flights.GetByIdAsync(booking.ReferenceId, ct);
+            if (flight is null) return;
+
+            var passengers = booking.Passengers ?? 1;
+            var unitPrice  = passengers > 0 ? booking.TotalAmount / passengers : booking.TotalAmount;
+            var depTime    = flight.DepartureTime.ToString("dd MMM yyyy, hh:mm tt");
+            var arrTime    = flight.ArrivalTime.ToString("dd MMM yyyy, hh:mm tt");
+            var dur        = $"{flight.Duration / 60}h {flight.Duration % 60}m";
+
+            await _email.SendFlightBookingConfirmationAsync(
+                toEmail, toName, booking.BookingRef,
+                flight.Airline, flight.FlightNumber,
+                flight.Source, MapCityName(flight.Source) ?? flight.Source,
+                flight.Destination, MapCityName(flight.Destination) ?? flight.Destination,
+                depTime, arrTime, dur,
+                "Economy", passengers,
+                unitPrice, booking.TotalAmount, booking.DiscountAmount, booking.CouponCode, booking.FinalAmount, ct);
+        }
+        else if (booking.BookingType == BookingType.Hotel)
+        {
+            var hotel = await _hotels.GetByIdAsync(booking.ReferenceId, ct);
+            if (hotel is null) return;
+
+            var nights = booking.CheckIn.HasValue && booking.CheckOut.HasValue
+                ? (booking.CheckOut.Value - booking.CheckIn.Value).Days
+                : 1;
+            var pricePerNight = nights > 0 ? booking.TotalAmount / nights : booking.TotalAmount;
+            var matchedRoom = hotel.Rooms
+                .Where(r => r.IsActive)
+                .OrderBy(r => Math.Abs(r.PricePerNight - pricePerNight))
+                .FirstOrDefault();
+            var roomType = matchedRoom?.RoomType ?? "Room";
+
+            await _email.SendHotelBookingConfirmationAsync(
+                toEmail, toName, booking.BookingRef,
+                hotel.Name, hotel.Address, hotel.City, hotel.StarRating,
+                roomType,
+                booking.CheckIn?.ToString("dd MMM yyyy") ?? string.Empty,
+                booking.CheckOut?.ToString("dd MMM yyyy") ?? string.Empty,
+                nights, 1,
+                booking.GuestName, booking.GuestPhone,
+                pricePerNight, booking.TotalAmount, booking.DiscountAmount, booking.CouponCode, booking.FinalAmount, ct);
+        }
+    }
+
     private async Task<BookingDto> ToDtoAsync(Booking booking, CancellationToken ct)
     {
         var user = await _users.GetByIdAsync(booking.UserId, ct);

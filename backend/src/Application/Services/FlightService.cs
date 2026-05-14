@@ -207,22 +207,28 @@ public class FlightService : IFlightService
         await _uow.SaveChangesAsync(ct);
         await _cache.RemoveAsync($"flight:{req.FlightId}", ct);
 
-        var user = await _users.GetByIdAsync(userId, ct);
-        if (user is not null && flightEntity is not null)
+        // Send confirmation email immediately only when payment is settled at booking time.
+        // For card/UPI/net-banking the email is sent after payment is verified (PaymentsController).
+        bool paymentSettledNow = req.UseWallet || req.SavedCardId.HasValue;
+        if (paymentSettledNow)
         {
-            var toEmail = !string.IsNullOrWhiteSpace(req.GuestEmail) ? req.GuestEmail : user.Email;
-            var toName  = !string.IsNullOrWhiteSpace(req.GuestName)  ? req.GuestName  : user.Name;
-            var depTime = flightEntity.DepartureTime.ToString("dd MMM yyyy, hh:mm tt");
-            var arrTime = flightEntity.ArrivalTime.ToString("dd MMM yyyy, hh:mm tt");
-            var dur     = $"{flightEntity.Duration / 60}h {flightEntity.Duration % 60}m";
-            await _email.SendFlightBookingConfirmationAsync(
-                toEmail, toName, booking.BookingRef,
-                flightEntity.Airline, flightEntity.FlightNumber,
-                flightEntity.Source, flightEntity.Source,
-                flightEntity.Destination, flightEntity.Destination,
-                depTime, arrTime, dur,
-                req.CabinClass, req.Passengers,
-                unitPrice, total, discount, req.CouponCode, finalAmount, ct);
+            var user = await _users.GetByIdAsync(userId, ct);
+            if (user is not null && flightEntity is not null)
+            {
+                var toEmail = !string.IsNullOrWhiteSpace(req.GuestEmail) ? req.GuestEmail : user.Email;
+                var toName  = !string.IsNullOrWhiteSpace(req.GuestName)  ? req.GuestName  : user.Name;
+                var depTime = flightEntity.DepartureTime.ToString("dd MMM yyyy, hh:mm tt");
+                var arrTime = flightEntity.ArrivalTime.ToString("dd MMM yyyy, hh:mm tt");
+                var dur     = $"{flightEntity.Duration / 60}h {flightEntity.Duration % 60}m";
+                await _email.SendFlightBookingConfirmationAsync(
+                    toEmail, toName, booking.BookingRef,
+                    flightEntity.Airline, flightEntity.FlightNumber,
+                    flightEntity.Source, flightEntity.Source,
+                    flightEntity.Destination, flightEntity.Destination,
+                    depTime, arrTime, dur,
+                    req.CabinClass, req.Passengers,
+                    unitPrice, total, discount, req.CouponCode, finalAmount, ct);
+            }
         }
 
         return new BookingCreatedResponse(booking.Id, booking.BookingRef, booking.TotalAmount, booking.Status);
