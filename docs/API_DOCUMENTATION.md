@@ -59,7 +59,7 @@ Response 200:
 ```
 
 The reset link points to `http://localhost:5173/reset-password?token=...` and expires in **1 hour**.
-When SendGrid is disabled in development, the backend logs the reset link instead of sending email.
+When SMTP email is disabled (`Email__Enabled=false`), the backend logs the reset link instead of sending email.
 
 ### POST /auth/reset-password
 ```json

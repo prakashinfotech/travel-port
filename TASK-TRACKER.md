@@ -64,7 +64,7 @@
 | 2.6 | Background workers (IHostedService) | ✅ | Scheduled cleanup / maintenance tasks |
 | 2.7 | Razorpay payment gateway (backend) | ✅ | `POST /payments/initiate`, `POST /payments/verify`, HMAC signature check |
 | 2.8 | Mock payment fallback (dev mode) | ✅ | `order_mock_` prefix — skips signature verification |
-| 2.9 | SendGrid email notifications | ✅ | Booking confirmation email; toggle via config |
+| 2.9 | SMTP email notifications | ✅ | Booking confirmation email via Office365 SMTP; toggle via `Email__Enabled` config |
 | 2.10 | Coupon system (Fixed + Percentage types) | ✅ | 5 coupons seeded; applied at booking time |
 | 2.11 | Admin endpoints (dashboard, users, bookings, coupons) | ✅ | Role-guarded with `[Authorize(Roles = "Admin")]` |
 | 2.12 | Saved travellers CRUD | ✅ | `GET/POST/DELETE /users/travellers` |
