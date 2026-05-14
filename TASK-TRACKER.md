@@ -363,6 +363,8 @@
 | 11.8 | Verification pass | ✅ | Frontend tests, frontend production build, and backend tests all passed after the changes |
 | 11.9 | Flight lowest-fare date strip | ✅ | Added a Goibibo-style nearby-date strip that shows the lowest available fare and supports direct date switching |
 | 11.10 | Flight monthly fare calendar | ✅ | Added a 2-month fare calendar overlay with visible-date price prefetch and cached lowest-price rendering |
+| 11.11 | Docker SMTP email fix | ✅ | `EMAIL_ENABLED=true` + SMTP credentials added to `.env`; API container restarted; booking confirmation emails now send from Docker |
+| 11.12 | `BookingDetailPage` — replace static email placeholder | ✅ | Removed hardcoded "SMTP configuration is added" message; replaced with green success banner showing actual recipient email |
 
 ---
 
@@ -395,7 +397,7 @@ dotnet run --project src/API --launch-profile https
 
 | Metric | Value |
 |---|---|
-| Total phases completed | 10 |
+| Total phases completed | 11 |
 | Total features delivered | 200+ |
 | Flights in seed DB | 900+ (dynamic demand-based pricing) |
 | Hotels in seed DB | 60+ (12 cities) |

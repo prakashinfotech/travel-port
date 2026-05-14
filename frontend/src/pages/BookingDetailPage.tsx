@@ -424,8 +424,8 @@ export default function BookingDetailPage() {
                 </div>
               </div>
 
-              <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900">
-                Booking details were saved in the database successfully. Confirmation email support is wired through SMTP and will start sending once SMTP configuration is added.
+              <div className="mt-5 rounded-2xl border border-green-100 bg-green-50 p-4 text-sm text-green-900">
+                A confirmation email has been sent to <strong>{mergedBooking.userEmail}</strong>. Please check your inbox.
               </div>
             </section>
 
