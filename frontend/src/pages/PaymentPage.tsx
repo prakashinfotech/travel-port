@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import {
   CreditCard, Smartphone, Building2, CheckCircle, Lock, AlertCircle, ChevronRight,
@@ -39,14 +39,12 @@ export default function PaymentPage() {
   const bookingId = params.get('bookingId') ?? ''
   const amount    = Number(params.get('amount') ?? 0)
 
-  const [method, setMethod]         = useState<PayMethod>('card')
-  const [loading, setLoading]       = useState(false)
-  const [paid, setPaid]             = useState(false)
-  const [error, setError]           = useState('')
-  const [countdown, setCountdown]   = useState(0)
-  const timerRef                    = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [method, setMethod] = useState<PayMethod>('card')
+  const [loading, setLoading] = useState(false)
+  const [paid, setPaid]       = useState(false)
+  const [error, setError]     = useState('')
 
-  // Card fields
+  // Card fields (display only — actual data collected by Razorpay modal)
   const [cardNum,  setCardNum]  = useState('')
   const [cardName, setCardName] = useState('')
   const [expiry,   setExpiry]   = useState('')
@@ -56,13 +54,7 @@ export default function PaymentPage() {
   const [upiId, setUpiId] = useState('')
 
   // Net Banking
-  const [bank,      setBank]      = useState('')
-  const [netBankId, setNetBankId] = useState('')
-
-  // Processing overlay (UPI / NetBanking timer)
-  const [processing, setProcessing] = useState(false)
-
-  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current) }, [])
+  const [bank, setBank] = useState('')
 
   if (!bookingId) {
     return (
@@ -75,22 +67,7 @@ export default function PaymentPage() {
     )
   }
 
-  const startTimer = (onDone: () => void) => {
-    setCountdown(20)
-    setProcessing(true)
-    let secs = 20
-    timerRef.current = setInterval(() => {
-      secs -= 1
-      setCountdown(secs)
-      if (secs <= 5) {
-        clearInterval(timerRef.current!)
-        setProcessing(false)
-        onDone()
-      }
-    }, 1000)
-  }
-
-  const completeBooking = async () => {
+  const openRazorpay = async () => {
     setLoading(true)
     setError('')
     try {
@@ -98,48 +75,72 @@ export default function PaymentPage() {
         endpoints.payments.initiate, { bookingId }
       )
       const order = data.data
-      const verifyRes = await api.post(endpoints.payments.verify, {
-        bookingId,
-        razorpayOrderId:    order.orderId,
-        razorpayPaymentId:  `pay_mock_${Date.now()}`,
-        razorpaySignature:  'mock_signature',
-      })
-      if (verifyRes.data.success) {
-        setPaid(true)
-        setTimeout(() => navigate(`/bookings/${bookingId}`), 2500)
-      } else {
-        setError('Payment verification failed. Contact support.')
+
+      const options: Record<string, unknown> = {
+        key: order.keyId,
+        amount: order.amount,
+        currency: order.currency,
+        order_id: order.orderId,
+        name: 'TravelPort',
+        description: 'Booking Payment',
+        theme: { color: '#2563eb' },
+        method: {
+          card: method === 'card',
+          upi: method === 'upi',
+          netbanking: method === 'netbanking',
+          wallet: false,
+          emi: false,
+        },
+        handler: async (response: {
+          razorpay_order_id: string
+          razorpay_payment_id: string
+          razorpay_signature: string
+        }) => {
+          try {
+            const verifyRes = await api.post(endpoints.payments.verify, {
+              bookingId,
+              razorpayOrderId:   response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
+            })
+            if (verifyRes.data.success) {
+              setPaid(true)
+              setTimeout(() => navigate(`/bookings/${bookingId}`), 2500)
+            } else {
+              setError('Payment verification failed. Please contact support.')
+            }
+          } catch {
+            setError('Payment verification failed. Please contact support.')
+          } finally {
+            setLoading(false)
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setLoading(false)
+            setError('Payment cancelled. Please try again.')
+          },
+        },
       }
+
+      const rzp = new window.Razorpay(options)
+      rzp.open()
     } catch {
-      setError('Payment failed. Please try again.')
-    } finally {
+      setError('Unable to initiate payment. Please try again.')
       setLoading(false)
     }
   }
 
-  // ── Card submit ──
-  const handleCardPay = async () => {
-    if (!cardName.trim()) { setError('Enter card holder name.'); return }
-    if (cardNum.replace(/\s/g, '').length < 16) { setError('Enter a valid 16-digit card number.'); return }
-    if (expiry.length < 5) { setError('Enter a valid expiry (MM/YY).'); return }
-    if (cvv.length < 3) { setError('Enter a valid CVV.'); return }
-    setError('')
-    await completeBooking()
-  }
-
-  // ── UPI submit ──
-  const handleUpiPay = () => {
+  const handleCardPay = () => { setError(''); openRazorpay() }
+  const handleUpiPay  = () => {
     if (!upiId.trim() || !upiId.includes('@')) { setError('Enter a valid UPI ID (e.g. name@upi).'); return }
     setError('')
-    startTimer(completeBooking)
+    openRazorpay()
   }
-
-  // ── Net Banking submit ──
   const handleNetBankingPay = () => {
     if (!bank) { setError('Select your bank.'); return }
-    if (!netBankId.trim()) { setError('Enter your Net Banking Customer ID.'); return }
     setError('')
-    startTimer(completeBooking)
+    openRazorpay()
   }
 
   // ── Success screen ──
@@ -155,40 +156,6 @@ export default function PaymentPage() {
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Payment Successful!</h1>
           <p className="text-gray-500 mb-2">₹{amount.toLocaleString('en-IN')} paid successfully.</p>
           <p className="text-sm text-gray-400">Redirecting to your booking…</p>
-        </div>
-      </div>
-    )
-  }
-
-  // ── Processing overlay (UPI / NetBanking) ──
-  if (processing) {
-    return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4">
-        <div className="text-center max-w-sm mx-auto">
-          <div className="relative mx-auto mb-6 flex h-24 w-24 items-center justify-center">
-            <svg className="absolute inset-0 h-24 w-24 -rotate-90" viewBox="0 0 96 96">
-              <circle cx="48" cy="48" r="44" fill="none" stroke="#e5e7eb" strokeWidth="6" />
-              <circle
-                cx="48" cy="48" r="44" fill="none" stroke="#2563eb" strokeWidth="6"
-                strokeDasharray={`${2 * Math.PI * 44}`}
-                strokeDashoffset={`${2 * Math.PI * 44 * (1 - countdown / 20)}`}
-                strokeLinecap="round"
-                style={{ transition: 'stroke-dashoffset 1s linear' }}
-              />
-            </svg>
-            <span className="text-2xl font-bold text-blue-600">{countdown}</span>
-          </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">
-            {method === 'upi' ? 'Waiting for UPI payment…' : 'Processing Net Banking…'}
-          </h2>
-          <p className="text-sm text-gray-500">
-            {method === 'upi'
-              ? 'Open your UPI app and approve the payment request.'
-              : 'Connecting to your bank. Please do not close this page.'}
-          </p>
-          <div className="mt-6 flex items-center justify-center gap-2 text-xs text-gray-400">
-            <Lock className="h-3 w-3" /> Secured with 256-bit SSL
-          </div>
         </div>
       </div>
     )
@@ -294,6 +261,10 @@ export default function PaymentPage() {
               />
             </div>
 
+            <p className="text-xs text-gray-400 bg-gray-50 rounded-lg px-3 py-2">
+              Your payment details will be collected securely via Razorpay's encrypted checkout.
+            </p>
+
             <Button onClick={handleCardPay} loading={loading} disabled={loading} className="w-full py-3 text-base">
               Pay ₹{amount.toLocaleString('en-IN')} Now
             </Button>
@@ -366,15 +337,8 @@ export default function PaymentPage() {
               </select>
             </div>
 
-            <Input
-              label="Customer / User ID"
-              placeholder="Enter your Net Banking Customer ID"
-              value={netBankId}
-              onChange={e => setNetBankId(e.target.value)}
-            />
-
             <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-xs text-amber-700">
-              You will be connected to your bank's secure portal. Do not share your password with anyone.
+              You will be redirected to your bank's secure portal via Razorpay. Do not share your password with anyone.
             </div>
 
             <Button onClick={handleNetBankingPay} loading={loading} disabled={loading} className="w-full py-3 text-base">
