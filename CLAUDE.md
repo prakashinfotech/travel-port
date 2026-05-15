@@ -61,10 +61,15 @@ After any code or config change, update the relevant documentation:
 - Never put real tokens in `appsettings.json` (committed to git)
 - Raise a warning immediately if a secret is detected in a committed file
 
-### 3. Commit and PR workflow
-- **Never auto-commit or auto-push.** Only commit when the user explicitly says "commit" or "create PR"
+### 3. Commit and PR workflow — NEVER BREAK THIS SEQUENCE
+- **Never auto-commit or auto-push.** Only start this workflow when the user explicitly says "commit" or "create PR"
+- **Mandatory sequence for every commit — no exceptions:**
+  1. `git checkout Development && git pull origin Development` — pull latest Development first
+  2. `git checkout -b <descriptive-feature-branch>` — create a new branch named after the feature/fix (e.g. `feat/hotel-search-filter`, `fix/booking-email-null`)
+  3. Stage specific files (never `git add -A` blindly), then commit following `GIT.md` conventions
+  4. **Stop. Ask the user:** "Ready to push `<branch>` to origin and open a PR?" — never push without explicit yes
+  5. Only push + create PR after user confirms
 - Follow the commit convention in `GIT.md` exactly
-- Always stage specific files — never `git add -A` blindly
 - All commits go to a feature branch, never directly to `main` or `Development`
 - Before a commit, run the shared test gate: `./scripts/test-all.sh` or `.\scripts\test-all.cmd`
 - Keep `git config core.hooksPath .githooks` enabled in the working clone so the pre-commit hook enforces tests
