@@ -320,19 +320,15 @@ Response:
 ```json
 Request: { "bookingId": "uuid" }
 
-Response 200 (real Razorpay):
+Response 200:
 {
   "success": true,
-  "data": { "orderId": "order_xxx", "amount": 4499.00, "currency": "INR", "keyId": "rzp_test_xxx" }
-}
-
-Response 200 (dev — Razorpay not configured):
-{
-  "success": true,
-  "message": "Mock order created (Razorpay not configured)",
-  "data": { "orderId": "order_mock_xxx", "amount": 4499.00, "currency": "INR", "keyId": "rzp_test_placeholder" }
+  "data": { "orderId": "order_xxx", "amount": 449900, "currency": "INR", "keyId": "rzp_test_xxx" }
 }
 ```
+
+> `amount` is returned in **paise** (₹1 = 100 paise) as required by the Razorpay Checkout SDK.
+> Falls back to a mock order (with `keyId: ""`) when `Razorpay.Enabled = false` in config.
 
 ### POST /payments/verify
 ```json
@@ -352,7 +348,9 @@ Response 200:
 }
 ```
 
-**Signature verification:** `HMAC-SHA256(keySecret, "{orderId}|{paymentId}")`. In dev mode (mock orders), verification is always accepted.
+**Signature verification:** `HMAC-SHA256(keySecret, "{orderId}|{paymentId}")` — validated server-side via Razorpay's algorithm.
+
+**Frontend flow:** `PaymentPage.tsx` loads the Razorpay Checkout SDK (`checkout.js` via `index.html`). On pay click it calls `/initiate`, opens the Razorpay hosted modal pre-set to the chosen method (card / UPI / net banking), then calls `/verify` with the signature returned by Razorpay on success.
 
 ---
 

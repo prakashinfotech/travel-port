@@ -215,6 +215,30 @@ FlightService.BookAsync
     └── Invalidate flight cache key
 ```
 
+### Booking Flow with Razorpay Checkout (Card / UPI / Net Banking)
+
+```
+User clicks "Pay via Razorpay" on PaymentPage
+    ↓
+POST /payments/initiate  →  RazorpayService.CreateOrderAsync
+    ├── Converts amount to paise, calls Razorpay Orders API
+    └── Returns { orderId, amount (paise), currency, keyId }
+    ↓
+Frontend: new window.Razorpay(options).open()
+    ├── Razorpay hosted modal opens (card / UPI / net banking pre-selected)
+    └── User completes payment inside Razorpay's secure UI
+    ↓
+Razorpay calls handler({ razorpay_order_id, razorpay_payment_id, razorpay_signature })
+    ↓
+POST /payments/verify
+    ├── RazorpayService.VerifySignature — HMAC-SHA256(secret, "orderId|paymentId")
+    ├── Creates Payment entity (status: Success)
+    ├── Updates Booking status → Confirmed
+    └── Sends confirmation email (flight or hotel template)
+    ↓
+Frontend: redirect to /bookings/{id}
+```
+
 ### Hotel Manager Data Scoping
 
 ```
