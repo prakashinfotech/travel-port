@@ -53,13 +53,43 @@
 - **AI Generated:** `ConfirmDialog` component replacing native `confirm()` on BookingCard + BookingDetailPage
 - **AI Generated:** Full Admin Dashboard — `IAdminService`, `AdminService`, `AdminController` (9 endpoints), `AdminPage.tsx` (4-tab React page: Dashboard, Users, Bookings, Coupons)
 
-### Phase 8 — Docker & CI/CD Pipeline
+### Phase 8 — Docker, CI/CD & Frontend Reliability
 - **AI Generated:** Multi-stage Dockerfiles for backend (SDK→ASP.NET runtime) and frontend (Node→Nginx)
 - **AI Generated:** `docker-compose.yml` — SQL Server (healthcheck) → API → Nginx/React; `sqldata` volume
-- **AI Generated:** GitHub Actions 3-job pipeline: build+verify → Docker push to `ghcr.io` → SSH deploy
+- **AI Generated:** GitHub Actions 3-job pipeline: build+verify → Docker push → image verify
 - **AI Fixed:** `vite.config.ts` proxy target (`https://localhost:7001` → `http://localhost:5000`)
 - **AI Fixed:** Hotel filter logic (star=exact match, amenities/popular filters OR logic)
 - **AI Fixed:** FlightsPage city name pre-population from URL params on mount
+- **AI Generated:** Saved Credit Cards — `SavedCard` entity + EF migration; GET/POST/DELETE/set-default endpoints; last 4 digits only stored
+- **AI Generated:** Payment method selector (wallet / saved card / new card) on BookFlightPage + BookHotelPage
+- **AI Fixed:** Background workers — graceful shutdown on `OperationCanceledException` from `Task.Delay`
+- **AI Fixed:** SMTP `FromEmail` mismatch — must match `Username` for Office365
+
+### Phase 9 — Hotel Management Portal
+- **AI Generated:** `Hotel` role added to `UserRole` enum; `HotelId` FK on `User` entity
+- **AI Generated:** `IHotelManagerService` + `HotelManagerService` — dashboard, paginated bookings, hotel profile, room CRUD; scoped by `hotelId` JWT claim
+- **AI Generated:** `IHotelRoomRepository` + `HotelRoomRepository` — `GetByIdForHotelAsync` prevents cross-hotel room access
+- **AI Generated:** `HotelManagerController` (8 endpoints, `[Authorize(Roles="Hotel")]`) — reads `hotelId` from JWT for all queries
+- **AI Generated:** Admin hotel registration (`POST /admin/hotels`) — creates hotel + manager user + sends credentials email
+- **AI Generated:** `SendHotelCredentialsEmailAsync` — sky-blue HTML email with login details, hotel name, feature list
+- **AI Generated:** EF Core migration `AddHotelPortal` — `Users.HotelId`, `Hotels.Images`, `HotelRooms.Images`
+- **AI Generated:** Frontend Hotel Portal — `HotelLayout` sidebar, `HotelDashboardPage`, `HotelBookingsPage`, `HotelRoomsPage`, `HotelProfilePage`
+- **AI Generated:** `HotelRoute` guard + hotel-role redirect to `/hotel/dashboard` on login
+- **AI Generated:** Admin panel Hotels tab with `RegisterHotelModal` + active/inactive toggle
+- **AI Diagnosed & Fixed (regression):** Hotel-role users appearing in admin user list — added `.Where(u => u.Role != UserRole.Hotel)` in `UserRepository.GetPagedAsync`; fixed `GetDashboardAsync` customer count
+
+### Phase 10 — Code Quality, Security Hardening & Test Expansion
+- **AI Audited:** Scanned for hardcoded/static values across all `.cs`, `.ts`, `.tsx`, `.json` files
+- **AI Fixed (security):** Real SMTP credentials committed in `appsettings.json` — removed; `Email.Enabled` defaults to `false`; credentials must be in `appsettings.Development.json` or Docker env vars
+- **AI Refactored:** BCrypt cost factor `12` hardcoded in 3 places — extracted to `SecurityConstants.BcryptWorkFactor` named constant in Application/Common/Constants
+- **AI Generated:** `RegisterHotelRequestValidator` (FluentValidation) — validates HotelName, City, Address, StarRating (1–5), ManagerName, ManagerEmail, ManagerPassword (full password policy)
+- **AI Generated:** `CreateRoomRequestValidator` (FluentValidation) — price > 0, guests 1–20, rooms > 0, optional field length limits
+- **AI Expanded:** Test suite from 11 → 108 tests (all passing):
+  - `AuthValidatorsTests` — 40+ positive/negative cases for all 4 auth request types
+  - `BookFlightRequestValidatorTests` — boundary passenger counts, case-sensitive cabin class, empty FlightId
+  - `RegisterHotelRequestValidatorTests` — star rating range, each password rule, field lengths, email format
+  - `CreateRoomRequestValidatorTests` — price/guest/room boundaries, optional field max-length
+- **AI Updated:** All documentation — ARCHITECTURE.md, DATABASE_DESIGN.md, SECURITY_GUIDE.md, AI_USAGE_REPORT.md, DEPLOYMENT.md, API_DOCUMENTATION.md, TESTING_GUIDE.md, README.md, TASK-TRACKER.md, TODO.md
 
 ---
 
@@ -70,12 +100,17 @@
 | Clean Architecture | Domain → Application → Infrastructure/Persistence → API | ✅ |
 | In-memory cache (IMemoryCache) over Redis | Simpler for dev; Redis-swappable via one DI line | ✅ |
 | BCrypt cost factor 12 | Balance of security vs performance | ✅ |
+| BCrypt cost as named constant | `SecurityConstants.BcryptWorkFactor` — no magic numbers | ✅ |
 | Wallet atomicity — deduct without save | Booking + wallet committed in single UoW call | ✅ |
 | Deterministic mock for buses/trains/cabs | HashCode seed ensures repeatable results | ✅ |
 | `JsonStringEnumConverter` | Enums as strings in all API responses | ✅ |
 | Email with `<table>` layouts | Gmail/Outlook strip CSS flexbox, gradients, rgba | ✅ |
 | Docker with Nginx reverse proxy | Single exposed port (80), clean `/api` proxy | ✅ |
 | GHA `environment: production` | Manual approval gate before each deploy | ✅ |
+| Hotel scoping via JWT claim | `hotelId` claim in JWT → no extra DB query per request | ✅ |
+| Saved cards — last 4 digits only | PCI-safe; Razorpay handles full PAN | ✅ |
+| SMTP credentials out of appsettings.json | Security fix — empty defaults, real values in gitignored file | ✅ |
+| Validator coverage expansion | Every new DTO gets a FluentValidation validator + positive/negative tests | ✅ |
 
 ---
 
@@ -87,6 +122,8 @@
 | Boilerplate code generation | 85% faster |
 | Bug diagnosis (root cause) | 70% faster |
 | Documentation writing | 80% faster |
+| Security audit & hardening | 75% faster |
+| Test coverage expansion | 80% faster |
 | Overall development velocity | ~4-5x improvement |
 
 ---

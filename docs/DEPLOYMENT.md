@@ -187,12 +187,14 @@ Go to **GitHub repo → Settings → Secrets and variables → Actions** and add
 ### Email (SMTP)
 | Secret | Notes |
 |---|---|
-| `EMAIL_ENABLED` | `true` or `false` |
+| `EMAIL_ENABLED` | `true` or `false` — **defaults to `false` in appsettings.json** |
 | `EMAIL_SMTP_HOST` | e.g. `smtp.office365.com` |
 | `EMAIL_SMTP_PORT` | `587` |
-| `EMAIL_USERNAME` | Your email address |
-| `EMAIL_PASSWORD` | App password / account password |
-| `EMAIL_FROM` | Must match `EMAIL_USERNAME` for Office365 |
+| `EMAIL_USERNAME` | Your SMTP email address |
+| `EMAIL_PASSWORD` | App password / account password — **never commit to appsettings.json** |
+| `EMAIL_FROM` | Must match `EMAIL_USERNAME` for Office365 (mismatched sender is rejected) |
+
+> **Important:** `appsettings.json` ships with `Email.Enabled = false` and empty credentials. Set real SMTP credentials only in `appsettings.Development.json` (gitignored) locally, or via Docker env vars / CI secrets in production. When email is disabled, booking emails are skipped and password reset tokens are logged server-side.
 
 ### Razorpay (payments)
 | Secret | Notes |
@@ -285,3 +287,5 @@ docker images | grep travelport
 | Frontend calls fail with CORS error | `AllowedOrigins` mismatch | Set `ALLOWED_ORIGIN_0/1` secrets to your exact domain (no trailing slash) |
 | Images not found on pull | Docker Hub auth failed | Ensure `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` secrets are set correctly in the repo |
 | Migrations fail on startup | Connection string wrong | Check `ConnectionStrings__DefaultConnection` env var in docker-compose |
+| Hotel manager can't log in | HotelId not set on User | Ensure hotel was registered via `POST /admin/hotels`; manager user must have `HotelId` set and `Role = Hotel` |
+| Hotel portal shows 403 | JWT missing `hotelId` claim | Re-login — old tokens issued before the hotel portal migration won't have the claim |

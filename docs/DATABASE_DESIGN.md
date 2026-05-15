@@ -3,20 +3,19 @@
 ## ER Diagram (Text Representation)
 
 ```
-Users ──────────────── Bookings ──────── Payments
-  │                       │
-  │                 ┌─────┴──────┐
-  │                 │            │
-  │              Flights       Hotels
+Users ──────────────────────── Bookings
+  │  └── HotelId (FK→Hotels)      │
+  │                          ┌────┴──────┐
+  │                          │           │
+  │                       Flights     Hotels ──── HotelRooms
   │
   └── SavedTravellers
+  └── SavedCards
   └── Wallets ──── WalletTransactions
-  └── Coupons
+  └── RefreshTokens
 
-Flights ─── FlightRoutes ─── FlightSchedules
-Hotels  ─── HotelRooms ───── RoomBookings
-Buses   ─── BusRoutes ─────── BusSchedules
-Trains  ─── TrainRoutes ───── TrainSchedules
+Hotels  ─── HotelRooms
+Coupons (global — referenced by Bookings.CouponCode)
 ```
 
 ---
@@ -26,29 +25,31 @@ Trains  ─── TrainRoutes ───── TrainSchedules
 ### Users
 ```sql
 CREATE TABLE Users (
-    UserId        UNIQUEIDENTIFIER  PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
+    Id            UNIQUEIDENTIFIER  PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
     Name          NVARCHAR(100)     NOT NULL,
     Email         NVARCHAR(255)     NOT NULL UNIQUE,
     Phone         NVARCHAR(15),
     PasswordHash  NVARCHAR(500)     NOT NULL,
-    Role          NVARCHAR(20)      NOT NULL DEFAULT 'User',  -- User | Admin
+    Role          NVARCHAR(20)      NOT NULL DEFAULT 'User',
+    -- Role values: 'User' | 'Admin' | 'Hotel'
+    HotelId       UNIQUEIDENTIFIER  NULL REFERENCES Hotels(Id),
+    -- Populated for Hotel-role users; NULL for User and Admin roles
     IsVerified    BIT               NOT NULL DEFAULT 0,
     IsActive      BIT               NOT NULL DEFAULT 1,
     CreatedAt     DATETIME2         NOT NULL DEFAULT GETUTCDATE(),
     UpdatedAt     DATETIME2,
     DeletedAt     DATETIME2         NULL,   -- Soft delete
-    INDEX IX_Users_Email (Email),
-    INDEX IX_Users_Phone (Phone)
+    INDEX IX_Users_Email (Email)
 );
 ```
 
 ### Flights
 ```sql
 CREATE TABLE Flights (
-    FlightId      UNIQUEIDENTIFIER  PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
+    Id            UNIQUEIDENTIFIER  PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
     Airline       NVARCHAR(100)     NOT NULL,
     FlightNumber  NVARCHAR(20)      NOT NULL,
-    Source        NVARCHAR(10)      NOT NULL,  -- IATA code
+    Source        NVARCHAR(10)      NOT NULL,  -- IATA code (e.g. BOM, DEL)
     Destination   NVARCHAR(10)      NOT NULL,
     DepartureTime DATETIME2         NOT NULL,
     ArrivalTime   DATETIME2         NOT NULL,
@@ -68,17 +69,20 @@ CREATE TABLE Flights (
 ### Hotels
 ```sql
 CREATE TABLE Hotels (
-    HotelId       UNIQUEIDENTIFIER  PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
+    Id            UNIQUEIDENTIFIER  PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
     Name          NVARCHAR(200)     NOT NULL,
     City          NVARCHAR(100)     NOT NULL,
     Address       NVARCHAR(500),
     StarRating    DECIMAL(2,1)      NOT NULL,
     Description   NVARCHAR(MAX),
-    Amenities     NVARCHAR(MAX),    -- JSON array
-    Latitude      DECIMAL(9,6),
-    Longitude     DECIMAL(9,6),
+    Amenities     NVARCHAR(MAX),    -- JSON array e.g. ["Pool","WiFi","Gym"]
+    ImageUrl      NVARCHAR(500),    -- Primary image URL
+    Images        NVARCHAR(MAX),    -- JSON array of gallery image URLs (nullable)
+    ReviewScore   DECIMAL(3,1)      NOT NULL DEFAULT 0,
+    ReviewCount   INT               NOT NULL DEFAULT 0,
     IsActive      BIT               NOT NULL DEFAULT 1,
     CreatedAt     DATETIME2         NOT NULL DEFAULT GETUTCDATE(),
+    DeletedAt     DATETIME2         NULL,
     INDEX IX_Hotels_City (City),
     INDEX IX_Hotels_Rating (StarRating)
 );
@@ -87,96 +91,114 @@ CREATE TABLE Hotels (
 ### HotelRooms
 ```sql
 CREATE TABLE HotelRooms (
-    RoomId        UNIQUEIDENTIFIER  PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
-    HotelId       UNIQUEIDENTIFIER  NOT NULL REFERENCES Hotels(HotelId),
-    RoomType      NVARCHAR(50)      NOT NULL,  -- Standard | Deluxe | Suite
+    Id            UNIQUEIDENTIFIER  PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
+    HotelId       UNIQUEIDENTIFIER  NOT NULL REFERENCES Hotels(Id),
+    RoomType      NVARCHAR(100)     NOT NULL,  -- e.g. Standard | Deluxe | Suite
     PricePerNight DECIMAL(10,2)     NOT NULL,
     MaxGuests     INT               NOT NULL,
     TotalRooms    INT               NOT NULL,
-    Amenities     NVARCHAR(MAX),    -- JSON
-    IsActive      BIT               NOT NULL DEFAULT 1
+    Amenities     NVARCHAR(MAX),    -- JSON array e.g. ["AC","TV","WiFi"]
+    Images        NVARCHAR(MAX),    -- JSON array of room image URLs (nullable)
+    IsActive      BIT               NOT NULL DEFAULT 1,
+    CreatedAt     DATETIME2         NOT NULL DEFAULT GETUTCDATE(),
+    DeletedAt     DATETIME2         NULL
 );
 ```
 
 ### Bookings
 ```sql
 CREATE TABLE Bookings (
-    BookingId     UNIQUEIDENTIFIER  PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
-    BookingRef    NVARCHAR(20)      NOT NULL UNIQUE,  -- TP2024XXXX
-    UserId        UNIQUEIDENTIFIER  NOT NULL REFERENCES Users(UserId),
-    BookingType   NVARCHAR(20)      NOT NULL,  -- Flight | Hotel | Bus | Train
-    ReferenceId   UNIQUEIDENTIFIER  NOT NULL,  -- FlightId/HotelId etc.
+    Id            UNIQUEIDENTIFIER  PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
+    BookingRef    NVARCHAR(20)      NOT NULL UNIQUE,
+    -- Format: FL2026XXXXXX (flights) | HT2026XXXXXX (hotels)
+    UserId        UNIQUEIDENTIFIER  NOT NULL REFERENCES Users(Id),
+    BookingType   NVARCHAR(20)      NOT NULL,  -- 'Flight' | 'Hotel' | 'Bus' | 'Train'
+    ReferenceId   UNIQUEIDENTIFIER  NOT NULL,  -- FlightId or HotelId
     TotalAmount   DECIMAL(10,2)     NOT NULL,
     DiscountAmount DECIMAL(10,2)    NOT NULL DEFAULT 0,
     FinalAmount   DECIMAL(10,2)     NOT NULL,
     Status        NVARCHAR(20)      NOT NULL DEFAULT 'Pending',
-    -- Pending | Confirmed | Cancelled | Refunded
+    -- Status: 'Pending' | 'Confirmed' | 'Cancelled'
+    -- Flight booking fields
+    Passengers    INT,
+    CabinClass    NVARCHAR(20),
+    -- Hotel booking fields
+    CheckIn       DATETIME2,
+    CheckOut      DATETIME2,
+    -- Guest / traveller details (stored per booking)
+    GuestName     NVARCHAR(200),
+    GuestEmail    NVARCHAR(255),
+    GuestPhone    NVARCHAR(20),
+    -- Coupon
+    CouponCode    NVARCHAR(30),
     CancelledAt   DATETIME2         NULL,
-    RefundAmount  DECIMAL(10,2),
     CreatedAt     DATETIME2         NOT NULL DEFAULT GETUTCDATE(),
     UpdatedAt     DATETIME2,
+    DeletedAt     DATETIME2         NULL,
     INDEX IX_Bookings_User (UserId),
     INDEX IX_Bookings_Status (Status),
-    INDEX IX_Bookings_Ref (BookingRef)
-);
-```
-
-### Payments
-```sql
-CREATE TABLE Payments (
-    PaymentId         UNIQUEIDENTIFIER  PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
-    BookingId         UNIQUEIDENTIFIER  NOT NULL REFERENCES Bookings(BookingId),
-    Method            NVARCHAR(30)      NOT NULL,  -- Card | UPI | NetBanking | Wallet
-    GatewayOrderId    NVARCHAR(100),
-    GatewayPaymentId  NVARCHAR(100),
-    Amount            DECIMAL(10,2)     NOT NULL,
-    Status            NVARCHAR(20)      NOT NULL,  -- Pending | Success | Failed | Refunded
-    PaidAt            DATETIME2,
-    CreatedAt         DATETIME2         NOT NULL DEFAULT GETUTCDATE(),
-    INDEX IX_Payments_Booking (BookingId)
+    INDEX IX_Bookings_Ref (BookingRef),
+    INDEX IX_Bookings_Reference (ReferenceId)
 );
 ```
 
 ### Wallets
 ```sql
 CREATE TABLE Wallets (
-    WalletId   UNIQUEIDENTIFIER  PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
-    UserId     UNIQUEIDENTIFIER  NOT NULL UNIQUE REFERENCES Users(UserId),
+    Id         UNIQUEIDENTIFIER  PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
+    UserId     UNIQUEIDENTIFIER  NOT NULL UNIQUE REFERENCES Users(Id),
     Balance    DECIMAL(10,2)     NOT NULL DEFAULT 0,
     UpdatedAt  DATETIME2         NOT NULL DEFAULT GETUTCDATE()
 );
 
 CREATE TABLE WalletTransactions (
-    TransactionId  UNIQUEIDENTIFIER  PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
-    WalletId       UNIQUEIDENTIFIER  NOT NULL REFERENCES Wallets(WalletId),
-    Type           NVARCHAR(20)      NOT NULL,  -- Credit | Debit
-    Amount         DECIMAL(10,2)     NOT NULL,
-    Description    NVARCHAR(200),
-    ReferenceId    UNIQUEIDENTIFIER, -- BookingId
-    CreatedAt      DATETIME2         NOT NULL DEFAULT GETUTCDATE()
+    Id           UNIQUEIDENTIFIER  PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
+    WalletId     UNIQUEIDENTIFIER  NOT NULL REFERENCES Wallets(Id),
+    Type         NVARCHAR(20)      NOT NULL,  -- 'Credit' | 'Debit'
+    Amount       DECIMAL(10,2)     NOT NULL,
+    Description  NVARCHAR(200),
+    ReferenceId  UNIQUEIDENTIFIER, -- BookingId
+    CreatedAt    DATETIME2         NOT NULL DEFAULT GETUTCDATE()
+);
+```
+
+### SavedCards
+```sql
+CREATE TABLE SavedCards (
+    Id           UNIQUEIDENTIFIER  PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
+    UserId       UNIQUEIDENTIFIER  NOT NULL REFERENCES Users(Id),
+    Last4        NVARCHAR(4)       NOT NULL,  -- ONLY last 4 digits — no full PAN stored
+    CardBrand    NVARCHAR(20),                -- 'Visa' | 'Mastercard' | 'Rupay' etc.
+    ExpiryMonth  INT               NOT NULL,
+    ExpiryYear   INT               NOT NULL,
+    CardHolder   NVARCHAR(100)     NOT NULL,
+    IsDefault    BIT               NOT NULL DEFAULT 0,
+    CreatedAt    DATETIME2         NOT NULL DEFAULT GETUTCDATE(),
+    DeletedAt    DATETIME2         NULL
 );
 ```
 
 ### SavedTravellers
 ```sql
 CREATE TABLE SavedTravellers (
-    TravellerId  UNIQUEIDENTIFIER  PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
-    UserId       UNIQUEIDENTIFIER  NOT NULL REFERENCES Users(UserId),
+    Id           UNIQUEIDENTIFIER  PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
+    UserId       UNIQUEIDENTIFIER  NOT NULL REFERENCES Users(Id),
     Name         NVARCHAR(100)     NOT NULL,
     Email        NVARCHAR(255),
     Phone        NVARCHAR(15),
     DOB          DATE,
     PassportNo   NVARCHAR(50),
-    CreatedAt    DATETIME2         NOT NULL DEFAULT GETUTCDATE()
+    CreatedAt    DATETIME2         NOT NULL DEFAULT GETUTCDATE(),
+    DeletedAt    DATETIME2         NULL
 );
 ```
 
 ### Coupons
 ```sql
 CREATE TABLE Coupons (
-    CouponId     UNIQUEIDENTIFIER  PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
+    Id           UNIQUEIDENTIFIER  PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
     Code         NVARCHAR(30)      NOT NULL UNIQUE,
-    Type         NVARCHAR(20)      NOT NULL,  -- Percentage | Fixed
+    Type         NVARCHAR(20)      NOT NULL,  -- 'Percentage' | 'Fixed'
     Value        DECIMAL(10,2)     NOT NULL,
     MinAmount    DECIMAL(10,2)     NOT NULL DEFAULT 0,
     MaxDiscount  DECIMAL(10,2),
@@ -188,33 +210,62 @@ CREATE TABLE Coupons (
 );
 ```
 
-### AuditLogs
+### RefreshTokens
 ```sql
-CREATE TABLE AuditLogs (
-    LogId      UNIQUEIDENTIFIER  PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
-    UserId     UNIQUEIDENTIFIER,
-    Action     NVARCHAR(100)     NOT NULL,
-    Entity     NVARCHAR(100)     NOT NULL,
-    EntityId   NVARCHAR(100),
-    OldValues  NVARCHAR(MAX),
-    NewValues  NVARCHAR(MAX),
-    IpAddress  NVARCHAR(50),
-    CreatedAt  DATETIME2         NOT NULL DEFAULT GETUTCDATE()
+CREATE TABLE RefreshTokens (
+    Id           UNIQUEIDENTIFIER  PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
+    UserId       UNIQUEIDENTIFIER  NOT NULL REFERENCES Users(Id),
+    TokenHash    NVARCHAR(500)     NOT NULL,
+    ExpiresAt    DATETIME2         NOT NULL,
+    RevokedAt    DATETIME2         NULL,
+    CreatedAt    DATETIME2         NOT NULL DEFAULT GETUTCDATE()
 );
 ```
 
 ---
 
+## Seed Data (DataSeeder)
+
+| Entity | Count |
+|---|---|
+| Users | 4 (1 Admin, 3 Users) + hotel managers created dynamically |
+| Flights | 900+ across 42 routes, 7 airlines, 14 date slots |
+| Hotels | 60+ across 12 Indian cities |
+| Hotel Rooms | 120+ room types across all hotels |
+| Coupons | 11 (flight-specific + hotel-specific + universal) |
+| Bookings | Sample confirmed bookings for John (flight + hotel) |
+
+---
+
+## Relationships
+
+| Relationship | Type | Notes |
+|---|---|---|
+| User → Wallet | 1:1 | Created on registration |
+| User → Bookings | 1:N | All booking types |
+| User → SavedCards | 1:N | Soft-deleted |
+| User → SavedTravellers | 1:N | Soft-deleted |
+| User → Hotel (HotelId) | N:1 (nullable) | Only Hotel-role users have this set |
+| Hotel → HotelRooms | 1:N | Soft-deleted |
+| Hotel → User (manager) | 1:1 (via HotelId) | One manager per hotel |
+| Booking → User | N:1 | |
+| Booking → Flight/Hotel | N:1 (via ReferenceId) | Polymorphic reference |
+| Wallet → WalletTransactions | 1:N | |
+
+---
+
 ## Indexing Strategy
 
-| Table     | Index Columns             | Type      | Reason                   |
-|-----------|---------------------------|-----------|--------------------------|
-| Flights   | Source, Destination       | Composite | Route search             |
-| Flights   | DepartureTime             | Single    | Date-based search        |
-| Hotels    | City                      | Single    | City search              |
-| Bookings  | UserId, Status            | Composite | User booking history     |
-| Users     | Email                     | Unique    | Login lookup             |
-| Coupons   | Code                      | Unique    | Coupon validation        |
+| Table | Index Columns | Type | Reason |
+|---|---|---|---|
+| Flights | Source, Destination | Composite | Route search |
+| Flights | DepartureTime | Single | Date-based search |
+| Hotels | City | Single | City search |
+| Hotels | StarRating | Single | Rating filter |
+| Bookings | UserId, Status | Composite | User booking history |
+| Bookings | ReferenceId | Single | Hotel booking lookups |
+| Users | Email | Unique | Login lookup |
+| Coupons | Code | Unique | Coupon validation |
 
 ---
 
@@ -222,6 +273,8 @@ CREATE TABLE AuditLogs (
 
 All major tables include `DeletedAt DATETIME2 NULL`.
 EF Core Global Query Filter: `.HasQueryFilter(e => e.DeletedAt == null)`
+
+Affected tables: `Users`, `Hotels`, `HotelRooms`, `Bookings`, `SavedCards`, `SavedTravellers`
 
 ---
 
@@ -233,6 +286,17 @@ public abstract class BaseEntity {
     public Guid Id { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
-    public DateTime? DeletedAt { get; set; }
+    public DateTime? DeletedAt { get; set; }  // null = not deleted
 }
 ```
+
+---
+
+## EF Core Migrations
+
+| Migration | Changes |
+|---|---|
+| `InitialCreate` | All base tables (Users, Flights, Hotels, HotelRooms, Bookings, Wallets, Coupons, etc.) |
+| `AddHotelGuestDetails` | `Bookings.GuestName`, `GuestEmail`, `GuestPhone` |
+| `AddSavedCards` | `SavedCards` table |
+| `AddHotelPortal` | `Users.HotelId` (nullable FK), `Hotels.Images`, `HotelRooms.Images` |

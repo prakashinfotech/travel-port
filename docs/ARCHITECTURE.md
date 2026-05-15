@@ -6,6 +6,8 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                         CLIENT LAYER                            │
 │   React 18 + TypeScript + Vite + Tailwind + Redux Toolkit       │
+│                                                                 │
+│   Customer Portal (/*)     Hotel Portal (/hotel/*)              │
 └─────────────────────────┬───────────────────────────────────────┘
                           │ HTTP / REST (via Nginx in Docker)
 ┌─────────────────────────▼───────────────────────────────────────┐
@@ -16,17 +18,17 @@
 ┌─────────────────────────▼───────────────────────────────────────┐
 │                         API GATEWAY                             │
 │           .NET 8 Web API  |  JWT Auth  |  Serilog               │
-└──────┬──────────┬─────────┬────────────┬───────────┬────────────┘
-       │          │         │            │           │
-  ┌────▼──┐  ┌───▼───┐ ┌───▼───┐  ┌────▼────┐ ┌────▼────┐
-  │ Auth  │  │Flight │ │ Hotel │  │Booking  │ │ Admin   │
-  │Service│  │Service│ │Service│  │ Service │ │ Service │
-  └────┬──┘  └───┬───┘ └───┬───┘  └────┬────┘ └────┬────┘
-       │          │         │            │           │
-┌──────▼──────────▼─────────▼────────────▼───────────▼────────────┐
-│                    PERSISTENCE LAYER                             │
-│              SQL Server (EF Core)  |  IMemoryCache              │
-└─────────────────────────────────────────────────────────────────┘
+└──────┬──────────┬─────────┬────────────┬───────────┬────────────┬────────────┘
+       │          │         │            │           │            │
+  ┌────▼──┐  ┌───▼───┐ ┌───▼───┐  ┌────▼────┐ ┌────▼────┐ ┌────▼──────────┐
+  │ Auth  │  │Flight │ │ Hotel │  │Booking  │ │ Admin   │ │ HotelManager  │
+  │Service│  │Service│ │Service│  │ Service │ │ Service │ │ Service       │
+  └────┬──┘  └───┬───┘ └───┬───┘  └────┬────┘ └────┬────┘ └────┬──────────┘
+       │          │         │            │           │            │
+┌──────▼──────────▼─────────▼────────────▼───────────▼───────────▼────────────┐
+│                    PERSISTENCE LAYER                                         │
+│              SQL Server (EF Core)  |  IMemoryCache                          │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 **Docker deployment:** `docker compose up` starts SQL Server → .NET API → Nginx/React. Port 80 only is exposed externally; API and DB are internal.
@@ -39,36 +41,87 @@
 backend/src/
 │
 ├── API/                        ← Presentation Layer
-│   ├── Controllers/            ← HTTP endpoints
+│   ├── Controllers/
+│   │   ├── AuthController.cs
+│   │   ├── FlightsController.cs
+│   │   ├── HotelsController.cs
+│   │   ├── BookingsController.cs
+│   │   ├── UsersController.cs
+│   │   ├── AdminController.cs
+│   │   ├── HotelManagerController.cs   ← [Authorize(Roles="Hotel")] — scoped to JWT hotelId
+│   │   ├── BusesController.cs
+│   │   ├── TrainsController.cs
+│   │   └── CabsController.cs
 │   ├── Middleware/             ← Auth, logging, error handling
 │   ├── Filters/                ← Action filters
 │   └── Program.cs              ← DI composition root
 │
 ├── Application/                ← Business Logic Layer
-│   ├── Services/               ← Business services (Auth, Flight, Hotel, Booking, Wallet, Admin)
+│   ├── Services/
+│   │   ├── AuthService.cs
+│   │   ├── FlightService.cs
+│   │   ├── HotelService.cs
+│   │   ├── BookingService.cs
+│   │   ├── WalletService.cs
+│   │   ├── AdminService.cs
+│   │   └── HotelManagerService.cs      ← Hotel manager dashboard, bookings, room CRUD
 │   ├── Common/
+│   │   ├── Constants/
+│   │   │   └── SecurityConstants.cs    ← BcryptWorkFactor = 12
 │   │   ├── Exceptions/
-│   │   ├── Interfaces/         ← ICacheService, IWalletRepository, IWalletService, etc.
+│   │   ├── Interfaces/         ← ICacheService, IWalletRepository, IHotelRoomRepository, etc.
 │   │   └── Mappings/
-│   ├── DTOs/                   ← Request/Response data transfer objects
-│   └── Validators/             ← FluentValidation validators
+│   ├── DTOs/
+│   │   ├── Auth/
+│   │   ├── Flights/
+│   │   ├── Hotels/
+│   │   ├── Bookings/
+│   │   ├── Admin/
+│   │   └── HotelManager/               ← RegisterHotelRequest, HotelProfileDto, CreateRoomRequest, etc.
+│   └── Validators/
+│       ├── Auth/
+│       ├── Flights/
+│       ├── Admin/                       ← RegisterHotelRequestValidator
+│       └── HotelManager/               ← CreateRoomRequestValidator
 │
 ├── Domain/                     ← Core Domain Layer (no dependencies)
-│   ├── Entities/               ← Booking, Flight, Hotel, User, Wallet, WalletTransaction, etc.
+│   ├── Entities/
+│   │   ├── User.cs             ← Role: User | Admin | Hotel; HotelId FK (nullable)
+│   │   ├── Hotel.cs            ← Images (JSON array, nullable)
+│   │   ├── HotelRoom.cs        ← Images (JSON array, nullable)
+│   │   ├── Booking.cs
+│   │   ├── Flight.cs
+│   │   ├── Wallet.cs
+│   │   ├── WalletTransaction.cs
+│   │   ├── SavedCard.cs        ← Last 4 digits only; no full PAN stored
+│   │   └── Coupon.cs
 │   ├── Enums/
+│   │   ├── UserRole.cs         ← User = 0, Admin = 1, Hotel = 2
+│   │   ├── BookingStatus.cs
+│   │   ├── BookingType.cs
+│   │   └── CouponType.cs
 │   └── ValueObjects/
 │
 ├── Infrastructure/             ← External Concerns
-│   ├── Auth/                   ← JWT (JwtService, JwtSettings)
-│   ├── Services/               ← CacheService (wraps IDistributedCache with JSON serialization)
+│   ├── Auth/                   ← JwtService — adds hotelId claim for Hotel-role users
+│   ├── Services/               ← CacheService, SmtpEmailService
+│   ├── ExternalProviders/
+│   │   ├── Email/              ← SmtpEmailService (booking, hotel credentials, password reset)
+│   │   ├── Payment/            ← RazorpayService
+│   │   └── Flights/            ← DuffelProvider (disabled by default)
 │   └── BackgroundServices/     ← BookingExpiryWorker, RefreshTokenCleanupWorker
 │
 └── Persistence/                ← Database Layer
     ├── Context/                ← TravelPortDbContext
-    ├── Migrations/             ← EF Core migrations
-    ├── Repositories/           ← FlightRepository, HotelRepository, WalletRepository, etc.
+    ├── Migrations/             ← EF Core migrations (including AddHotelPortal)
+    ├── Repositories/
+    │   ├── UserRepository.cs       ← Excludes Hotel role from admin user lists
+    │   ├── HotelRepository.cs      ← GetWithAllRoomsAsync, GetAllWithManagerAsync
+    │   ├── HotelRoomRepository.cs  ← GetByIdForHotelAsync (scoped by hotelId)
+    │   ├── BookingRepository.cs    ← GetHotelBookingsPagedAsync
+    │   └── ...
     ├── Configurations/         ← EF entity configurations
-    └── Seeds/                  ← DataSeeder (BCrypt-hashed users, flights, hotels, coupons, bookings)
+    └── Seeds/                  ← DataSeeder (users, 900+ flights, 60+ hotels, 11 coupons, bookings)
 ```
 
 ---
@@ -78,39 +131,66 @@ backend/src/
 ```
 frontend/src/
 │
-├── api/                        ← Axios instances + interceptors
+├── api/                        ← Axios instance + JWT interceptor + endpoint constants
 ├── components/
-│   ├── common/                 ← Reusable UI primitives
-│   ├── ui/                     ← Design system components
-│   ├── layouts/                ← Page shells
-│   └── forms/                  ← Form engine components
-├── features/                   ← Feature-based modules
-│   ├── auth/
-│   ├── flights/
-│   ├── hotels/
-│   ├── bookings/
-│   └── admin/
-├── hooks/                      ← Custom React hooks
-├── pages/                      ← Route-level components
-├── routes/                     ← Route definitions + guards
-├── services/                   ← API service layer
-├── store/                      ← Redux slices
-├── types/                      ← TypeScript interfaces
-└── utils/                      ← Pure helper functions
+│   ├── common/                 ← Reusable UI primitives (Button, Input, Select, Skeleton)
+│   ├── ui/                     ← ConfirmDialog, Toast
+│   ├── layout/
+│   │   ├── HotelLayout.tsx     ← Sidebar layout for /hotel/* routes (Dashboard, Bookings, Rooms, Profile)
+│   │   └── MainLayout.tsx
+│   └── forms/
+├── features/
+│   └── auth/                   ← Redux slice, LoginForm (hotel-role → /hotel/dashboard redirect)
+├── pages/
+│   ├── FlightsPage.tsx
+│   ├── HotelsPage.tsx
+│   ├── BookingsPage.tsx
+│   ├── AdminPage.tsx           ← 5-tab: Dashboard, Users, Bookings, Coupons, Hotels
+│   ├── ProfilePage.tsx
+│   └── hotel/
+│       ├── HotelDashboardPage.tsx   ← 8 stat cards + summary grid
+│       ├── HotelBookingsPage.tsx    ← Paginated bookings table with status filter
+│       ├── HotelRoomsPage.tsx       ← Room cards + add/edit modal + delete confirm
+│       └── HotelProfilePage.tsx     ← Edit hotel details + image gallery preview
+├── routes/
+│   ├── AppRouter.tsx           ← Nested /hotel/* route block
+│   ├── PrivateRoute.tsx
+│   └── HotelRoute.tsx          ← Redirects non-Hotel roles away from /hotel/*
+├── services/
+│   ├── flightService.ts
+│   ├── hotelService.ts
+│   ├── bookingService.ts
+│   ├── adminService.ts
+│   ├── hotelManagerService.ts  ← getDashboard, getBookings, getProfile, updateProfile, room CRUD
+│   └── userService.ts
+├── store/                      ← Redux slices (auth)
+├── types/                      ← index.ts — UserToken includes role: 'Hotel' and hotelId
+└── utils/                      ← formatters, helpers
 ```
 
 ---
 
-## 4. Data Flow
+## 4. Role-Based Routing
+
+| Role  | Default Route   | Access                                             |
+|-------|-----------------|----------------------------------------------------|
+| Guest | `/`             | Public search, flights, hotels                     |
+| User  | `/`             | Booking, wallet, profile, booking history          |
+| Admin | `/admin`        | Admin panel (users, bookings, coupons, hotels)     |
+| Hotel | `/hotel/dashboard` | Hotel portal (dashboard, bookings, rooms, profile) |
+
+Hotel managers are redirected to `/hotel/dashboard` immediately after login. The `HotelRoute` guard prevents any non-Hotel JWT from accessing `/hotel/*` routes.
+
+---
+
+## 5. Data Flow
 
 ```
 User Action
     ↓
 React Component
     ↓
-Redux Action / React Query Mutation
-    ↓
-API Service Layer (Axios)
+Redux Action / Service call (Axios)
     ↓
 .NET 8 API Controller
     ↓
@@ -135,27 +215,41 @@ FlightService.BookAsync
     └── Invalidate flight cache key
 ```
 
+### Hotel Manager Data Scoping
+
+```
+GET /hotel-manager/dashboard
+    ↓
+HotelManagerController.CurrentHotelId   ← reads hotelId claim from JWT
+    ↓
+HotelManagerService.GetDashboardAsync(hotelId)
+    ↓
+All queries scoped to that hotelId — no cross-hotel data access possible
+```
+
 ---
 
-## 5. Authentication Flow
+## 6. Authentication Flow
 
 ```
 Login Request
     ↓
 JWT Access Token (15min) + Refresh Token (7d)
+    ├── User/Admin → standard claims (sub, email, name, role, jti)
+    └── Hotel      → standard claims + hotelId claim
     ↓
-Tokens stored in httpOnly cookie / localStorage
+Tokens stored in localStorage
     ↓
 Each request → Authorization: Bearer <access_token>
     ↓
-Token Expiry → Auto-refresh via interceptor
+Token Expiry → Auto-refresh via Axios interceptor (single in-flight refresh)
     ↓
-Refresh Token Rotation → New pair issued
+Refresh Token → New pair issued
 ```
 
 ---
 
-## 6. Caching Strategy
+## 7. Caching Strategy
 
 | Cache Key Pattern | TTL | Used By |
 |---|---|---|
@@ -172,7 +266,7 @@ Cache entries for a flight/hotel are **invalidated on booking** (seat count chan
 
 ---
 
-## 7. Background Services
+## 8. Background Services
 
 | Service | Schedule | Responsibility |
 |---|---|---|
@@ -183,7 +277,7 @@ Both extend `BackgroundService` (IHostedService) and use `IServiceScopeFactory` 
 
 ---
 
-## 8. Wallet System
+## 9. Wallet System
 
 - Each user gets one `Wallet` (created on registration).
 - `WalletTransaction` records every credit/debit with a description and optional reference ID.
@@ -193,7 +287,7 @@ Both extend `BackgroundService` (IHostedService) and use `IServiceScopeFactory` 
 
 ---
 
-## 9. Key Design Decisions
+## 10. Key Design Decisions
 
 | Decision | Choice | Reason |
 |----------|--------|--------|
@@ -202,18 +296,23 @@ Both extend `BackgroundService` (IHostedService) and use `IServiceScopeFactory` 
 | Caching | IDistributedCache (in-memory / Redis) | Cache-aside pattern; Redis-ready with one line swap |
 | Background Jobs | IHostedService | Native .NET, no extra dependency |
 | Wallet atomicity | DeductAsync without save | Booking + wallet change committed in single UoW call |
+| Hotel scoping | hotelId JWT claim | Controller reads claim → all queries scoped; no cross-hotel access |
+| Saved cards | Last 4 digits only | PCI-safe; full PANs never stored |
+| BCrypt cost | `SecurityConstants.BcryptWorkFactor = 12` | Named constant — no magic numbers |
 | State | Redux Toolkit | Predictable, DevTools support |
 | Validation | FluentValidation + Zod | Backend + frontend both validated |
 | Auth | JWT + Refresh Tokens | Stateless, scalable |
+| Email | SMTP (Office365) via `SmtpEmailService` | Table-based HTML for Gmail/Outlook compatibility |
 
 ---
 
-## 10. Module Dependency Graph
+## 11. Module Dependency Graph
 
 ```
 Domain ← Application ← Infrastructure ← API
            ↑                 ↑
       Persistence       External APIs
+                        (Duffel, Razorpay, SMTP)
 ```
 
 Domain has ZERO outward dependencies — pure C# entities and interfaces.
