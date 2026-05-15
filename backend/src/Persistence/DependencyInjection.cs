@@ -28,6 +28,7 @@ public static class DependencyInjection
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IWalletRepository, WalletRepository>();
         services.AddScoped<ICouponRepository, CouponRepository>();
+        services.AddScoped<IHotelRoomRepository, HotelRoomRepository>();
         services.AddScoped(typeof(IRepository<>), typeof(BaseRepository<>));
 
         return services;

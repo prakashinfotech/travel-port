@@ -3,7 +3,8 @@ export interface UserToken {
   id: string
   name: string
   email: string
-  role: 'User' | 'Admin'
+  role: 'User' | 'Admin' | 'Hotel'
+  hotelId?: string
 }
 
 export interface AuthResponse {
@@ -410,6 +411,115 @@ export interface AdminAnalyticsDto {
   monthlyRevenue: MonthlyRevenueDto[]
   bookingsByStatus: BookingsByStatusDto[]
   bookingsByType: BookingsByTypeDto[]
+}
+
+// ── Hotel Manager ─────────────────────────────────────────────────────────────
+export interface HotelManagerDashboardDto {
+  totalBookings: number
+  activeBookings: number
+  cancelledBookings: number
+  totalRevenue: number
+  totalRooms: number
+  activeRooms: number
+  avgReviewScore: number
+  reviewCount: number
+}
+
+export interface HotelManagerBookingDto {
+  id: string
+  bookingRef: string
+  roomType: string
+  guestName: string
+  guestEmail: string
+  guestPhone?: string
+  checkIn: string
+  checkOut: string
+  nights: number
+  guests: number
+  amount: number
+  status: string
+  bookedAt: string
+}
+
+export interface HotelRoomManagerDto {
+  id: string
+  roomType: string
+  pricePerNight: number
+  maxGuests: number
+  totalRooms: number
+  amenities?: string
+  images?: string
+  isActive: boolean
+}
+
+export interface HotelProfileDto {
+  id: string
+  name: string
+  city: string
+  address?: string
+  starRating: number
+  reviewScore: number
+  reviewCount: number
+  description?: string
+  amenities?: string
+  imageUrl?: string
+  images?: string
+  isActive: boolean
+  rooms: HotelRoomManagerDto[]
+}
+
+export interface CreateRoomRequest {
+  roomType: string
+  pricePerNight: number
+  maxGuests: number
+  totalRooms: number
+  amenities?: string
+  images?: string
+}
+
+export interface UpdateRoomRequest {
+  roomType?: string
+  pricePerNight?: number
+  maxGuests?: number
+  totalRooms?: number
+  amenities?: string
+  images?: string
+  isActive?: boolean
+}
+
+export interface UpdateHotelDetailsRequest {
+  name?: string
+  address?: string
+  city?: string
+  starRating?: number
+  description?: string
+  amenities?: string
+  imageUrl?: string
+  images?: string
+}
+
+export interface AdminHotelListDto {
+  id: string
+  name: string
+  city: string
+  address?: string
+  starRating: number
+  reviewScore: number
+  reviewCount: number
+  isActive: boolean
+  roomCount: number
+  managerEmail?: string
+  createdAt: string
+}
+
+export interface RegisterHotelRequest {
+  hotelName: string
+  city: string
+  address: string
+  starRating: number
+  managerEmail: string
+  managerPassword: string
+  managerName: string
 }
 
 // ── API wrapper ───────────────────────────────────────────────────────────────

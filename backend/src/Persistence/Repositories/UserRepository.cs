@@ -18,7 +18,9 @@ public class UserRepository : BaseRepository<User>, IUserRepository
     public async Task<(IReadOnlyList<User> Items, int Total)> GetPagedAsync(
         int page, int pageSize, string? search = null, CancellationToken cancellationToken = default)
     {
-        var query = _dbSet.Include(u => u.Wallet).AsQueryable();
+        var query = _dbSet.Include(u => u.Wallet)
+            .Where(u => u.Role != Domain.Enums.UserRole.Hotel)
+            .AsQueryable();
         if (!string.IsNullOrWhiteSpace(search))
         {
             var lower = search.ToLower();
@@ -32,4 +34,7 @@ public class UserRepository : BaseRepository<User>, IUserRepository
             .ToListAsync(cancellationToken);
         return (items, total);
     }
+
+    public async Task<User?> GetHotelManagerAsync(Guid hotelId, CancellationToken cancellationToken = default)
+        => await _dbSet.FirstOrDefaultAsync(u => u.HotelId == hotelId && u.Role == Domain.Enums.UserRole.Hotel, cancellationToken);
 }

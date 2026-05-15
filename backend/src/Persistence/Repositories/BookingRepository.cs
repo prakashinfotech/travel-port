@@ -59,4 +59,22 @@ public class BookingRepository : BaseRepository<Booking>, IBookingRepository
         => await _dbSet
             .Where(b => b.CreatedAt >= from && b.CreatedAt <= to)
             .ToListAsync(cancellationToken);
+
+    public async Task<(IReadOnlyList<Booking> Items, int Total)> GetHotelBookingsPagedAsync(
+        Guid hotelId, int page, int pageSize, string? status,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _dbSet.Where(b => b.BookingType == BookingType.Hotel && b.ReferenceId == hotelId);
+
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<BookingStatus>(status, true, out var s))
+            query = query.Where(b => b.Status == s);
+
+        var total = await query.CountAsync(cancellationToken);
+        var items = await query
+            .OrderByDescending(b => b.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+        return (items, total);
+    }
 }

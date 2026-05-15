@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using TravelPort.Application.Common.Models;
 using TravelPort.Application.DTOs.Admin;
 using TravelPort.Application.DTOs.Bookings;
+using TravelPort.Application.DTOs.HotelManager;
 using TravelPort.Application.Services.Interfaces;
 
 namespace TravelPort.API.Controllers;
@@ -94,5 +95,30 @@ public class AdminController : BaseApiController
     {
         await _admin.DeleteCouponAsync(id, ct);
         return Ok(ApiResponse<object>.Ok(null!, "Coupon deactivated."));
+    }
+
+    // ── Hotels ───────────────────────────────────────────────────────────────
+
+    [HttpGet("hotels")]
+    public async Task<ActionResult<ApiResponse<List<AdminHotelListDto>>>> GetHotels(CancellationToken ct)
+    {
+        var result = await _admin.GetHotelsAsync(ct);
+        return Ok(ApiResponse<List<AdminHotelListDto>>.Ok(result));
+    }
+
+    [HttpPost("hotels")]
+    public async Task<ActionResult<ApiResponse<AdminHotelListDto>>> RegisterHotel(
+        [FromBody] RegisterHotelRequest req, CancellationToken ct)
+    {
+        var result = await _admin.RegisterHotelAsync(req, ct);
+        return StatusCode(201, ApiResponse<AdminHotelListDto>.Ok(result, "Hotel registered and credentials emailed."));
+    }
+
+    [HttpPost("hotels/{id:guid}/toggle")]
+    public async Task<ActionResult<ApiResponse<AdminHotelListDto>>> ToggleHotelActive(Guid id, CancellationToken ct)
+    {
+        var result = await _admin.ToggleHotelActiveAsync(id, ct);
+        return Ok(ApiResponse<AdminHotelListDto>.Ok(result,
+            result.IsActive ? "Hotel activated." : "Hotel deactivated."));
     }
 }

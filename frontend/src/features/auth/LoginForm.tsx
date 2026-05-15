@@ -24,7 +24,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const location = useLocation()
-  const { isAuthenticated, loading, error } = useAuth()
+  const { isAuthenticated, user, loading, error } = useAuth()
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -34,6 +34,8 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     if (isAuthenticated) {
       if (onSuccess) {
         onSuccess()
+      } else if (user?.role === 'Hotel') {
+        navigate('/hotel/dashboard', { replace: true })
       } else {
         const from = (location.state as { from?: Location })?.from
         const redirect = from ? `${from.pathname}${from.search ?? ''}` : '/'
@@ -41,7 +43,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       }
     }
     return () => { dispatch(clearError()) }
-  }, [isAuthenticated, navigate, location, dispatch, onSuccess])
+  }, [isAuthenticated, user, navigate, location, dispatch, onSuccess])
 
   const onSubmit = (data: FormValues) => {
     dispatch(login(data))

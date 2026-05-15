@@ -446,6 +446,9 @@ All admin endpoints require `[Authorize(Roles = "Admin")]`. Enums serialize as s
 | POST   | `/admin/coupons`                | ✅    | Admin | Create coupon                        |
 | PUT    | `/admin/coupons/:id`            | ✅    | Admin | Update coupon                        |
 | DELETE | `/admin/coupons/:id`            | ✅    | Admin | Deactivate coupon                    |
+| GET    | `/admin/hotels`                 | ✅    | Admin | List all registered hotels           |
+| POST   | `/admin/hotels`                 | ✅    | Admin | Register hotel + create manager account + send credentials email |
+| POST   | `/admin/hotels/:id/toggle`      | ✅    | Admin | Toggle hotel active/inactive         |
 
 ### GET /admin/dashboard
 ```json
@@ -577,6 +580,118 @@ Response 200:
     "total": 100,
     "totalPages": 10
   }
+}
+```
+
+---
+
+## Hotel Manager
+
+All hotel-manager endpoints require `[Authorize(Roles = "Hotel")]`. The JWT token for hotel managers includes a `hotelId` claim automatically scoped to their property.
+
+| Method | Endpoint                                | Auth | Role  | Description                             |
+|--------|-----------------------------------------|------|-------|-----------------------------------------|
+| GET    | `/hotel-manager/dashboard`              | ✅   | Hotel | Bookings, revenue, rooms overview       |
+| GET    | `/hotel-manager/bookings`               | ✅   | Hotel | Paginated bookings for this hotel       |
+| GET    | `/hotel-manager/profile`                | ✅   | Hotel | Hotel details + all rooms               |
+| PUT    | `/hotel-manager/profile`                | ✅   | Hotel | Update hotel name, description, amenities, images |
+| POST   | `/hotel-manager/rooms`                  | ✅   | Hotel | Add a new room type                     |
+| PUT    | `/hotel-manager/rooms/:id`              | ✅   | Hotel | Update room price, amenities, images    |
+| DELETE | `/hotel-manager/rooms/:id`              | ✅   | Hotel | Soft-delete (deactivate) a room         |
+
+### GET /admin/hotels — List Hotels
+```json
+Response 200:
+{
+  "success": true,
+  "data": [
+    {
+      "id": "uuid",
+      "name": "The Grand Palace",
+      "city": "Mumbai",
+      "address": "123 Marine Drive",
+      "starRating": 5.0,
+      "reviewScore": 4.3,
+      "reviewCount": 120,
+      "isActive": true,
+      "roomCount": 6,
+      "managerEmail": "manager@grandpalace.com",
+      "createdAt": "2026-01-01T00:00:00Z"
+    }
+  ]
+}
+```
+
+### POST /admin/hotels/:id/toggle — Toggle Hotel Active
+```json
+Response 200:
+{ "success": true, "data": { "id": "uuid", "name": "The Grand Palace", "isActive": false } }
+```
+
+### POST /admin/hotels — Register Hotel
+```json
+Request:
+{
+  "hotelName": "The Grand Palace",
+  "city": "Mumbai",
+  "address": "123 Marine Drive, Mumbai",
+  "starRating": 5,
+  "managerName": "Rajesh Kumar",
+  "managerEmail": "manager@grandpalace.com",
+  "managerPassword": "Hotel@2025"
+}
+
+Response 201:
+{
+  "success": true,
+  "message": "Hotel registered and credentials emailed.",
+  "data": {
+    "id": "uuid",
+    "name": "The Grand Palace",
+    "city": "Mumbai",
+    "starRating": 5.0,
+    "isActive": true,
+    "roomCount": 0,
+    "managerEmail": "manager@grandpalace.com"
+  }
+}
+```
+
+### GET /hotel-manager/dashboard
+```json
+Response 200:
+{
+  "success": true,
+  "data": {
+    "totalBookings": 45,
+    "activeBookings": 32,
+    "cancelledBookings": 13,
+    "totalRevenue": 248500.00,
+    "totalRooms": 6,
+    "activeRooms": 5,
+    "avgReviewScore": 4.3,
+    "reviewCount": 120
+  }
+}
+```
+
+### POST /hotel-manager/rooms — Add Room
+```json
+Request:
+{
+  "roomType": "Deluxe King",
+  "pricePerNight": 4500,
+  "maxGuests": 2,
+  "totalRooms": 10,
+  "amenities": "[\"AC\",\"WiFi\",\"TV\",\"Mini Bar\",\"Sea View\"]",
+  "images": "[\"https://example.com/room1.jpg\",\"https://example.com/room2.jpg\"]"
+}
+
+Response 201:
+{
+  "success": true,
+  "message": "Room added.",
+  "data": { "id": "uuid", "roomType": "Deluxe King", "pricePerNight": 4500, "isActive": true }
 }
 ```
 

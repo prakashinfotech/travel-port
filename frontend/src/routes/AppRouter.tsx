@@ -1,7 +1,9 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Layout } from '@/components/layout/Layout'
+import { HotelLayout } from '@/components/layout/HotelLayout'
 import { PrivateRoute } from './PrivateRoute'
+import { HotelRoute } from './HotelRoute'
 import { FullPageSpinner } from '@/components/ui/Spinner'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 
@@ -31,6 +33,11 @@ const CabsPage             = lazy(() => import('@/pages/CabsPage'))
 const ProfilePage          = lazy(() => import('@/pages/ProfilePage'))
 const AdminPage            = lazy(() => import('@/pages/AdminPage'))
 const PaymentPage          = lazy(() => import('@/pages/PaymentPage'))
+
+const HotelDashboardPage   = lazy(() => import('@/pages/hotel/HotelDashboardPage'))
+const HotelBookingsPage    = lazy(() => import('@/pages/hotel/HotelBookingsPage'))
+const HotelRoomsPage       = lazy(() => import('@/pages/hotel/HotelRoomsPage'))
+const HotelProfilePage     = lazy(() => import('@/pages/hotel/HotelProfilePage'))
 
 export function AppRouter() {
   return (
@@ -71,6 +78,14 @@ export function AppRouter() {
 
               {/* 404 */}
               <Route path="*" element={<NotFoundPage />} />
+            </Route>
+
+            {/* Hotel Portal — sidebar layout, no main Navbar/Footer */}
+            <Route path="hotel" element={<HotelRoute><HotelLayout /></HotelRoute>}>
+              <Route path="dashboard" element={<HotelDashboardPage />} />
+              <Route path="bookings"  element={<HotelBookingsPage />} />
+              <Route path="rooms"     element={<HotelRoomsPage />} />
+              <Route path="profile"   element={<HotelProfilePage />} />
             </Route>
           </Routes>
         </Suspense>

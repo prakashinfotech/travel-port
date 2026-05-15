@@ -32,8 +32,14 @@ PowerShell:
 - Frontend: `npm --prefix frontend run test -- --run`
 
 Current automated coverage includes:
-- `backend/tests/TravelPort.Application.Tests` for FluentValidation rules on auth and flight booking DTOs
-- `frontend/src/utils/formatters.test.ts` for shared UI formatting helpers
+
+**Backend — `backend/tests/TravelPort.Application.Tests`** (108 tests total):
+- `AuthValidatorsTests` — RegisterRequest (valid email formats, strong passwords, invalid phone, missing fields, each password rule independently), LoginRequest (valid/empty/invalid-format email, empty password), ForgotPasswordRequest (valid/invalid/empty email), ResetPasswordRequest (valid, empty token, weak password, each missing character class)
+- `BookFlightRequestValidatorTests` — Economy and Business cabin accepted; all boundary passenger counts (1, 9 valid; 0, 10 invalid); empty FlightId rejected; case-sensitive cabin class check
+- `RegisterHotelRequestValidatorTests` — valid full request; star ratings 1–5 accepted, 0/6/10 rejected; strong password accepted; each field empty rejected; each password rule tested independently; max-length boundaries on name, city, address
+- `CreateRoomRequestValidatorTests` — valid full request; null optional fields accepted; boundary MaxGuests (1/20 valid, 0/21 invalid); zero/negative price rejected; zero/negative TotalRooms rejected; Amenities/Images over max length rejected
+
+**Frontend — `frontend/src/utils/formatters.test.ts`** for shared UI formatting helpers
 
 ---
 

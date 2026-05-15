@@ -12,7 +12,7 @@ import type { RootState } from '@/store'
 import type {
   AdminDashboardDto, AdminUserDto, AdminAnalyticsDto,
   CouponDto, CreateCouponRequest, UpdateCouponRequest,
-  BookingDto,
+  BookingDto, AdminHotelListDto, RegisterHotelRequest,
 } from '@/types'
 import { adminService } from '@/services/adminService'
 import { formatCurrency } from '@/utils/formatters'
@@ -20,7 +20,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
-type Tab = 'dashboard' | 'users' | 'bookings' | 'coupons'
+type Tab = 'dashboard' | 'users' | 'bookings' | 'coupons' | 'hotels'
 
 // ── Stat Card ────────────────────────────────────────────────────────────────
 function StatCard({ label, value, icon: Icon, color }: {
@@ -177,6 +177,109 @@ function CouponModal({ coupon, onClose, onSaved }: {
   )
 }
 
+// ── Register Hotel Modal ──────────────────────────────────────────────────────
+function RegisterHotelModal({ onClose, onRegistered }: {
+  onClose: () => void
+  onRegistered: (hotel: AdminHotelListDto) => void
+}) {
+  const [form, setForm] = useState<RegisterHotelRequest>({
+    hotelName: '', city: '', address: '', starRating: 3,
+    managerEmail: '', managerPassword: '', managerName: '',
+  })
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const set = (k: keyof RegisterHotelRequest, v: unknown) =>
+    setForm(f => ({ ...f, [k]: v }))
+
+  const handleSave = async () => {
+    if (!form.hotelName.trim() || !form.city.trim() || !form.managerEmail.trim() || !form.managerPassword.trim() || !form.managerName.trim()) {
+      setError('All fields are required.'); return
+    }
+    setSaving(true); setError('')
+    try {
+      const hotel = await adminService.registerHotel(form)
+      onRegistered(hotel)
+      onClose()
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setError(msg ?? 'Failed to register hotel.')
+    } finally { setSaving(false) }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl">
+        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100">
+          <h2 className="text-lg font-bold text-gray-900">Register Hotel</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="h-5 w-5" /></button>
+        </div>
+        <div className="px-6 py-5 space-y-4">
+          {error && <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-2 text-sm text-red-700">{error}</div>}
+          <p className="text-xs text-gray-500 bg-sky-50 border border-sky-100 rounded-lg px-4 py-2">
+            Hotel login credentials will be emailed to the manager after registration.
+          </p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1">Hotel Name *</label>
+              <input value={form.hotelName} onChange={e => set('hotelName', e.target.value)}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1">City *</label>
+              <input value={form.city} onChange={e => set('city', e.target.value)}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1">Address *</label>
+            <input value={form.address} onChange={e => set('address', e.target.value)}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1">Star Rating</label>
+            <select value={form.starRating} onChange={e => set('starRating', Number(e.target.value))}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              {[1, 2, 3, 4, 5].map(s => <option key={s} value={s}>{s} Star{s > 1 ? 's' : ''}</option>)}
+            </select>
+          </div>
+          <div className="border-t border-gray-100 pt-4">
+            <p className="text-xs font-semibold text-gray-500 mb-3">Manager Account</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Manager Name *</label>
+                <input value={form.managerName} onChange={e => set('managerName', e.target.value)}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Login Email *</label>
+                <input type="email" value={form.managerEmail} onChange={e => set('managerEmail', e.target.value)}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+            </div>
+            <div className="mt-4">
+              <label className="block text-xs font-semibold text-gray-500 mb-1">Temporary Password *</label>
+              <input type="text" value={form.managerPassword} onChange={e => set('managerPassword', e.target.value)}
+                placeholder="Min 8 characters"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+          </div>
+        </div>
+        <div className="flex gap-3 px-6 py-4 border-t border-gray-100">
+          <button onClick={onClose}
+            className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+            Cancel
+          </button>
+          <Button onClick={handleSave} loading={saving} className="flex-1 rounded-xl py-2.5 text-sm">
+            Register Hotel
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Pagination ────────────────────────────────────────────────────────────────
 function Pagination({ page, total, pageSize, onChange }: { page: number; total: number; pageSize: number; onChange: (p: number) => void }) {
   const pages = Math.max(1, Math.ceil(total / pageSize))
@@ -231,6 +334,12 @@ export default function AdminPage() {
   const [deleteTarget,    setDeleteTarget]    = useState<CouponDto | null>(null)
   const [deleting,        setDeleting]        = useState(false)
 
+  // Hotels
+  const [hotels,           setHotels]           = useState<AdminHotelListDto[]>([])
+  const [hotelsLoading,    setHotelsLoading]    = useState(false)
+  const [registerHotelOpen, setRegisterHotelOpen] = useState(false)
+  const [togglingHotelId,  setTogglingHotelId]  = useState<string | null>(null)
+
   const PAGE_SIZE = 15
 
   useEffect(() => {
@@ -276,6 +385,22 @@ export default function AdminPage() {
 
   useEffect(() => { if (tab === 'coupons') loadCoupons() }, [tab, loadCoupons])
 
+  const loadHotels = useCallback(async () => {
+    setHotelsLoading(true)
+    try { setHotels(await adminService.getHotels()) }
+    finally { setHotelsLoading(false) }
+  }, [])
+
+  useEffect(() => { if (tab === 'hotels') loadHotels() }, [tab, loadHotels])
+
+  const handleToggleHotel = async (id: string) => {
+    setTogglingHotelId(id)
+    try {
+      const updated = await adminService.toggleHotelActive(id)
+      setHotels(prev => prev.map(h => h.id === updated.id ? updated : h))
+    } finally { setTogglingHotelId(null) }
+  }
+
   const handleToggleBlock = async () => {
     if (!blockTarget) return
     setBlocking(true)
@@ -305,6 +430,7 @@ export default function AdminPage() {
     { id: 'users',     label: 'Users',     icon: Users },
     { id: 'bookings',  label: 'Bookings',  icon: BookOpen },
     { id: 'coupons',   label: 'Coupons',   icon: Tag },
+    { id: 'hotels',    label: 'Hotels',    icon: Hotel },
   ]
 
   const skeletonRows = (cols: number) =>
@@ -317,6 +443,12 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Modals */}
+      {registerHotelOpen && (
+        <RegisterHotelModal
+          onClose={() => setRegisterHotelOpen(false)}
+          onRegistered={hotel => setHotels(prev => [hotel, ...prev])}
+        />
+      )}
       {couponModal !== null && (
         <CouponModal
           coupon={couponModal === 'create' ? null : couponModal}
@@ -687,6 +819,84 @@ export default function AdminPage() {
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {/* ── HOTELS ────────────────────────────────────────────────── */}
+        {tab === 'hotels' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-gray-900">Registered Hotels</h2>
+              <Button onClick={() => setRegisterHotelOpen(true)}
+                className="flex items-center gap-2 text-sm">
+                <Plus className="h-4 w-4" /> Register Hotel
+              </Button>
+            </div>
+
+            {hotelsLoading ? (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <table className="w-full"><tbody>{skeletonRows(6)}</tbody></table>
+              </div>
+            ) : hotels.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-16 text-center">
+                <Hotel className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500 text-sm">No hotels registered yet.</p>
+                <button onClick={() => setRegisterHotelOpen(true)}
+                  className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">
+                  <Plus className="h-4 w-4" /> Register First Hotel
+                </button>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-x-auto">
+                <table className="w-full text-sm min-w-[700px]">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-100">
+                      <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Hotel</th>
+                      <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">City</th>
+                      <th className="text-center px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Stars</th>
+                      <th className="text-center px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Rooms</th>
+                      <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Manager Email</th>
+                      <th className="text-center px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
+                      <th className="px-5 py-3" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {hotels.map(h => (
+                      <tr key={h.id} className="hover:bg-gray-50/50">
+                        <td className="px-5 py-4">
+                          <p className="font-medium text-gray-900">{h.name}</p>
+                          <p className="text-xs text-gray-400 truncate max-w-[200px]">{h.address}</p>
+                        </td>
+                        <td className="px-5 py-4 text-gray-700">{h.city}</td>
+                        <td className="px-5 py-4 text-center text-amber-500 font-semibold">{'★'.repeat(Math.floor(h.starRating))}</td>
+                        <td className="px-5 py-4 text-center text-gray-700">{h.roomCount}</td>
+                        <td className="px-5 py-4 text-gray-500 text-xs">{h.managerEmail ?? '—'}</td>
+                        <td className="px-5 py-4 text-center">
+                          <Badge variant={h.isActive ? 'success' : 'danger'}>
+                            {h.isActive ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </td>
+                        <td className="px-5 py-4">
+                          <button
+                            disabled={togglingHotelId === h.id}
+                            onClick={() => handleToggleHotel(h.id)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 ${
+                              h.isActive
+                                ? 'border-red-200 text-red-600 hover:bg-red-50'
+                                : 'border-green-200 text-green-600 hover:bg-green-50'
+                            }`}
+                          >
+                            {h.isActive
+                              ? <><ShieldOff className="h-3.5 w-3.5" /> Deactivate</>
+                              : <><ShieldCheck className="h-3.5 w-3.5" /> Activate</>}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 

@@ -6,6 +6,47 @@
 
 ---
 
+## Phase 7 — Hotel Management Portal
+**Branch:** `Development`
+**Scope:** Full hotel manager self-service portal + admin hotel registration
+
+| # | Feature | Status | Notes |
+|---|---|---|---|
+| 7.1 | `Hotel` role added to `UserRole` enum + `HotelId` FK on `User` | ✅ | JwtService includes `hotelId` claim in token |
+| 7.2 | `Images` field on `Hotel` and `HotelRoom` entities | ✅ | Nullable `nvarchar(max)` JSON array of image URLs |
+| 7.3 | `IHotelManagerService` + `HotelManagerService` | ✅ | Dashboard, bookings, profile, room CRUD |
+| 7.4 | `IHotelRoomRepository` + `HotelRoomRepository` | ✅ | `GetByIdForHotelAsync` for scoped room access |
+| 7.5 | Admin hotel registration (`POST /admin/hotels`) | ✅ | Creates hotel + manager user + sends credentials email |
+| 7.6 | Admin hotel list + toggle active (`GET/POST /admin/hotels`) | ✅ | Full hotel management in admin panel |
+| 7.7 | `HotelManagerController` (8 endpoints, `[Authorize(Roles="Hotel")]`) | ✅ | Dashboard, bookings, profile, room CRUD |
+| 7.8 | Hotel credentials email template | ✅ | Sky-blue HTML email with login details + feature list |
+| 7.9 | EF Core migration `AddHotelPortal` | ✅ | Adds `Users.HotelId`, `Hotels.Images`, `HotelRooms.Images` |
+| 7.10 | Frontend Hotel Portal (`/hotel/*` routes) | ✅ | Sidebar layout with Dashboard, Bookings, Rooms, My Hotel pages |
+| 7.11 | `HotelRoute` guard + hotel redirect on login | ✅ | Hotel role redirects to `/hotel/dashboard` after login |
+| 7.12 | Admin panel Hotels tab | ✅ | Register hotel modal + active/inactive toggle |
+| 7.13 | `hotelManagerService.ts` + types + endpoints | ✅ | Full TypeScript service for all hotel manager API calls |
+
+---
+
+## Phase 8 — Code Quality, Security Hardening & Test Expansion
+**Branch:** `feature/hotel-portal`
+**Scope:** Static value audit, security fix, validator coverage, doc updates
+
+| # | Feature | Status | Notes |
+|---|---|---|---|
+| 8.1 | BCrypt cost factor extracted to `SecurityConstants.BcryptWorkFactor` | ✅ | Replaces hardcoded `12` in `AuthService` + `AdminService` |
+| 8.2 | SMTP credentials removed from `appsettings.json` | ✅ | Real credentials must live in `appsettings.Development.json` or Docker env vars; `Email.Enabled` defaults `false` |
+| 8.3 | `RegisterHotelRequestValidator` (FluentValidation) | ✅ | Validates all 7 fields; star rating 1–5; password policy enforced |
+| 8.4 | `CreateRoomRequestValidator` (FluentValidation) | ✅ | Price > 0, guests 1–20, rooms > 0, optional field length limits |
+| 8.5 | Test suite expanded: 108 tests (up from 11) | ✅ | Auth, BookFlight, RegisterHotel, CreateRoom — positive + negative cases for every validation rule |
+| 8.6 | `AuthValidatorsTests` — full positive/negative coverage | ✅ | 40+ cases covering all 4 auth request types |
+| 8.7 | `BookFlightRequestValidatorTests` — boundary + case-sensitivity tests | ✅ | Covers cabin class case sensitivity and all passenger boundaries |
+| 8.8 | `RegisterHotelRequestValidatorTests` — comprehensive hotel registration tests | ✅ | Star rating range, password rules, field lengths, email format |
+| 8.9 | `CreateRoomRequestValidatorTests` — room creation tests | ✅ | Price/guest/room count boundaries, max-length on optional fields |
+| 8.10 | README, API docs, TESTING_GUIDE, TODO, TASK-TRACKER updated | ✅ | Hotel portal, test counts, static value findings documented |
+
+---
+
 ## Phase 6 — Test Gate & CI Enforcement
 **Branch:** `feature/pdf-linux-font-support`
 **Scope:** Baseline automated tests, commit hook, CI policy, documentation

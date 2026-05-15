@@ -10,4 +10,7 @@ public interface IHotelRepository : IRepository<Hotel>
         DateTime checkOut,
         int guests,
         CancellationToken cancellationToken = default);
+
+    Task<Hotel?> GetWithAllRoomsAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Hotel>> GetAllWithManagerAsync(CancellationToken cancellationToken = default);
 }

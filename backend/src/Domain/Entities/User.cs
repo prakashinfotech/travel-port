@@ -12,6 +12,7 @@ public class User : BaseEntity
     public UserRole Role { get; set; } = UserRole.User;
     public bool IsVerified { get; set; } = false;
     public bool IsActive { get; set; } = true;
+    public Guid? HotelId { get; set; }
 
     public Wallet? Wallet { get; set; }
     public ICollection<Booking> Bookings { get; set; } = new List<Booking>();

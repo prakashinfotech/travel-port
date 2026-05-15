@@ -4,6 +4,7 @@ import type {
   AdminDashboardDto, AdminUserDto, AdminAnalyticsDto,
   CouponDto, CreateCouponRequest, UpdateCouponRequest,
   BookingDto, ApiResponse,
+  AdminHotelListDto, RegisterHotelRequest,
 } from '@/types'
 
 const e = endpoints.admin
@@ -39,4 +40,13 @@ export const adminService = {
 
   deleteCoupon: (id: string) =>
     api.delete<ApiResponse<object>>(e.coupon(id)).then(r => r.data),
+
+  getHotels: () =>
+    api.get<ApiResponse<AdminHotelListDto[]>>(e.hotels).then(r => r.data.data),
+
+  registerHotel: (req: RegisterHotelRequest) =>
+    api.post<ApiResponse<AdminHotelListDto>>(e.hotels, req).then(r => r.data.data),
+
+  toggleHotelActive: (id: string) =>
+    api.post<ApiResponse<AdminHotelListDto>>(e.toggleHotel(id)).then(r => r.data.data),
 }

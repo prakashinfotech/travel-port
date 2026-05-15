@@ -39,7 +39,8 @@ TravelPort covers:
 - 11 Coupons (flight and hotel specific)
 - Razorpay Payment Gateway (toggle via config; falls back to mock in dev)
 - SMTP Email Notifications — booking confirmed (sent to contact email), cancelled, password reset
-- Admin Panel — 4-tab dashboard (stats + analytics, user management, all bookings, coupon CRUD)
+- Admin Panel — 5-tab dashboard (stats + analytics, user management, all bookings, coupon CRUD, hotel management)
+- Hotel Management Portal — Admin registers hotels with manager credentials (emailed on creation); Hotel managers log in to a dedicated portal to manage bookings, rooms, amenities, images, and hotel profile
 - Dynamic Traveller Details UI; traveller name/email/phone stored per booking and shown in PDF + email
 - App-wide toast notifications, route-level error boundary, and shared skeleton loaders across search surfaces
 - Richer Profile page with account overview, wallet feedback, safer traveller/card deletion, and saved payment management
@@ -260,9 +261,10 @@ Goibibo-AI-Assignment/
 │       └── API/             # Controllers, Middleware, Program.cs
 ├── frontend/
 │   └── src/
-│       ├── pages/           # FlightsPage, HotelsPage, BookingsPage, AdminPage, ProfilePage ...
+│       ├── pages/           # FlightsPage, HotelsPage, BookingsPage, AdminPage, ProfilePage, hotel/* ...
+│       ├── pages/hotel/     # HotelDashboardPage, HotelBookingsPage, HotelRoomsPage, HotelProfilePage
 │       ├── components/      # FlightCard, HotelCard, BookingCard, ConfirmDialog, UI primitives
-│       ├── services/        # flightService, hotelService, bookingService, adminService, userService
+│       ├── services/        # flightService, hotelService, bookingService, adminService, hotelManagerService, userService
 │       ├── features/auth/   # Redux slice, LoginForm, RegisterForm
 │       └── routes/          # AppRouter, PrivateRoute
 ├── docs/                    # Architecture, API docs, DB design, Security guide

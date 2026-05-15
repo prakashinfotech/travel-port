@@ -29,4 +29,15 @@ public class HotelRepository : BaseRepository<Hotel>, IHotelRepository
             .OrderBy(h => h.StarRating)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<Hotel?> GetWithAllRoomsAsync(Guid id, CancellationToken cancellationToken = default)
+        => await _dbSet
+            .Include(h => h.Rooms)
+            .FirstOrDefaultAsync(h => h.Id == id, cancellationToken);
+
+    public async Task<IReadOnlyList<Hotel>> GetAllWithManagerAsync(CancellationToken cancellationToken = default)
+        => await _dbSet
+            .Include(h => h.Rooms)
+            .OrderByDescending(h => h.CreatedAt)
+            .ToListAsync(cancellationToken);
 }

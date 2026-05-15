@@ -30,6 +30,7 @@
 
 
 ### Features Pending
+- [x] ✅ **Hotel Management Portal** — Admin can register hotels with manager email/password (credentials emailed). Hotel managers log in to `/hotel/*` portal to manage bookings, rooms, amenities, images, and hotel profile. Includes `RegisterHotelRequestValidator` and `CreateRoomRequestValidator` with 108 automated tests.
 - [ ] 🔴 **Multi-city flight search** — `FlightSearchRequest` supports origin/destination only. Add `MultiCity` trip type.
 - [ ] 🔴 **Bus & Train booking persistence** — buses and trains are mocked in-memory; they have no DB entity or booking endpoint. Add `Bus` and `Train` domain entities + booking flow.
 - [ ] 🔴 **Cab booking persistence** — same as buses/trains.
@@ -44,8 +45,10 @@
 ### Technical Debt
 - [ ] 🟡 **`RazorpayService._logger` warning** — `_logger` field is declared but never used. Either inject and use `ILogger`, or remove the field.
 - [ ] 🟡 **`FlightService.ExtractAmadeusPrice`** — Amadeus support was replaced by Duffel but the extraction helper and fallback code path still exist. Clean up once Amadeus is fully retired.
-- [ ] 🟡 **Expand unit coverage beyond validators/helpers** — add tests for core services (`FlightService`, `HotelService`, `WalletService`) and richer booking scenarios.
+- [x] ✅ **Expand unit coverage beyond validators/helpers** — 108 tests now cover Auth, BookFlight, RegisterHotel, and CreateRoom validators (positive + negative cases for every rule).
 - [ ] 🟢 **Add integration tests** — the repository now has a test project and commit/CI gate, but auth and booking flows still need end-to-end API coverage.
+- [x] ✅ **Hardcoded BCrypt cost factor** — extracted to `SecurityConstants.BcryptWorkFactor` constant in Application layer; used in `AuthService` and `AdminService`.
+- [x] ✅ **SMTP credentials in appsettings.json** — real credentials removed; `Email.Enabled` defaulted to `false`; credentials belong in `appsettings.Development.json` (gitignored) or Docker env vars only.
 
 ---
 

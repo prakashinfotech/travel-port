@@ -10,6 +10,7 @@ public class HotelRoom : BaseEntity
     public int MaxGuests { get; set; }
     public int TotalRooms { get; set; }
     public string? Amenities { get; set; }
+    public string? Images { get; set; }
     public bool IsActive { get; set; } = true;
 
     public Hotel Hotel { get; set; } = null!;

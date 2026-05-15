@@ -23,7 +23,7 @@ public class JwtService : IJwtService
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.Secret));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        var claims = new[]
+        var claimsList = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
@@ -31,6 +31,9 @@ public class JwtService : IJwtService
             new Claim(ClaimTypes.Role, user.Role.ToString()),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
+        if (user.HotelId.HasValue)
+            claimsList.Add(new Claim("hotelId", user.HotelId.Value.ToString()));
+        var claims = claimsList.ToArray();
 
         var token = new JwtSecurityToken(
             issuer: _settings.Issuer,

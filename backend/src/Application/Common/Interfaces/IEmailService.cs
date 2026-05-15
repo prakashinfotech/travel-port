@@ -26,4 +26,9 @@ public interface IEmailService
         string bookingType, decimal refundAmount, CancellationToken ct = default);
 
     Task SendPasswordResetAsync(string toEmail, string toName, string resetLink, CancellationToken ct = default);
+
+    Task SendHotelCredentialsEmailAsync(
+        string toEmail, string toName,
+        string hotelName, string loginEmail, string password,
+        CancellationToken ct = default);
 }

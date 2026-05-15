@@ -591,6 +591,79 @@ public class SmtpEmailService : IEmailService
         await SendAsync(toEmail, toName, "Reset Your TravelPort Password", Wrap(body), ct);
     }
 
+    // ── Hotel Credentials ────────────────────────────────────────────────────
+
+    public async Task SendHotelCredentialsEmailAsync(
+        string toEmail, string toName,
+        string hotelName, string loginEmail, string password,
+        CancellationToken ct = default)
+    {
+        if (!IsConfigured)
+        {
+            _logger.LogInformation("Email skipped — hotel credentials for {Email}", toEmail);
+            return;
+        }
+
+        var body = $"""
+            {TopBar("#0369a1", "Welcome to TravelPort Hotel Portal", $"Your hotel account for {WebUtility.HtmlEncode(hotelName)} is ready.")}
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="padding:28px 32px">
+                  <p style="margin:0 0 4px 0;font-size:15px;color:#374151">
+                    Hi <strong style="color:#111827">{WebUtility.HtmlEncode(toName)}</strong>,
+                  </p>
+                  <p style="margin:0 0 20px 0;font-size:14px;color:#6b7280;line-height:1.6">
+                    Your hotel manager account has been created on TravelPort.
+                    Use the credentials below to log in and manage your property.
+                  </p>
+
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                         style="background-color:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;margin:0 0 20px 0">
+                    <tr>
+                      <td style="padding:20px 24px">
+                        <p style="font-size:12px;font-weight:700;color:#0369a1;text-transform:uppercase;
+                                  letter-spacing:0.8px;margin:0 0 16px 0">Your Login Credentials</p>
+                        <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                               style="border:1px solid #e0f2fe;border-radius:6px;background-color:#ffffff">
+                          {InfoRow("Hotel", hotelName)}
+                          {InfoRow("Login Email", loginEmail, shaded: true)}
+                          {InfoRow("Temporary Password", password)}
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                         style="background-color:#fef9c3;border:1px solid #fde047;border-radius:8px;margin-bottom:20px">
+                    <tr>
+                      <td style="padding:14px 18px;font-size:13px;color:#713f12">
+                        <strong>Security Notice:</strong> Please log in and change your password immediately.
+                        Do not share your credentials with anyone.
+                      </td>
+                    </tr>
+                  </table>
+
+                  <p style="font-size:14px;color:#374151;line-height:1.6">
+                    With your hotel portal you can:
+                  </p>
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                         style="margin-bottom:20px">
+                    <tr><td style="padding:6px 0;font-size:13px;color:#374151">&#10003;&nbsp; View all guest bookings in real-time</td></tr>
+                    <tr><td style="padding:6px 0;font-size:13px;color:#374151">&#10003;&nbsp; Add and manage rooms with pricing</td></tr>
+                    <tr><td style="padding:6px 0;font-size:13px;color:#374151">&#10003;&nbsp; Upload room photos and hotel images</td></tr>
+                    <tr><td style="padding:6px 0;font-size:13px;color:#374151">&#10003;&nbsp; Update hotel amenities and description</td></tr>
+                    <tr><td style="padding:6px 0;font-size:13px;color:#374151">&#10003;&nbsp; Track revenue and occupancy statistics</td></tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+            """;
+
+        await SendAsync(toEmail, toName,
+            $"Your TravelPort Hotel Portal Access — {hotelName}",
+            Wrap(body), ct);
+    }
+
     // ── SMTP sender ───────────────────────────────────────────────────────────
 
     private async Task SendAsync(string toEmail, string toName, string subject, string htmlContent, CancellationToken ct)

@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using TravelPort.Application.Common.Constants;
 using TravelPort.Application.Common.Exceptions;
 using TravelPort.Application.Common.Interfaces;
 using TravelPort.Application.DTOs.Auth;
@@ -49,7 +50,7 @@ public class AuthService : IAuthService
             Name = request.Name,
             Email = request.Email.ToLowerInvariant(),
             Phone = request.Phone,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password, 12),
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password, SecurityConstants.BcryptWorkFactor),
             Role = UserRole.User,
             IsActive = true
         };
@@ -126,7 +127,7 @@ public class AuthService : IAuthService
         var user = await _users.GetByIdAsync(entry.UserId, ct)
             ?? throw new BusinessException("Reset link is invalid or expired.");
 
-        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword, 12);
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword, SecurityConstants.BcryptWorkFactor);
 
         await _tokens.RevokeAllForUserAsync(user.Id, ct);
         await _cache.RemoveAsync(tokenKey, ct);

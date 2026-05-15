@@ -13,6 +13,7 @@ public class Hotel : BaseEntity
     public string? Description { get; set; }
     public string? Amenities { get; set; }
     public string? ImageUrl { get; set; }
+    public string? Images { get; set; }
     public decimal? Latitude { get; set; }
     public decimal? Longitude { get; set; }
     public bool IsActive { get; set; } = true;

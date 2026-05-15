@@ -1,5 +1,6 @@
 using TravelPort.Application.DTOs.Admin;
 using TravelPort.Application.DTOs.Bookings;
+using TravelPort.Application.DTOs.HotelManager;
 
 namespace TravelPort.Application.Services.Interfaces;
 
@@ -14,4 +15,9 @@ public interface IAdminService
     Task<CouponDto> UpdateCouponAsync(Guid id, UpdateCouponRequest req, CancellationToken ct = default);
     Task DeleteCouponAsync(Guid id, CancellationToken ct = default);
     Task<AdminAnalyticsDto> GetAnalyticsAsync(CancellationToken ct = default);
+
+    // Hotel management
+    Task<List<AdminHotelListDto>> GetHotelsAsync(CancellationToken ct = default);
+    Task<AdminHotelListDto> RegisterHotelAsync(RegisterHotelRequest req, CancellationToken ct = default);
+    Task<AdminHotelListDto> ToggleHotelActiveAsync(Guid hotelId, CancellationToken ct = default);
 }

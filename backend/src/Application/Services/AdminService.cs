@@ -1,7 +1,9 @@
+using TravelPort.Application.Common.Constants;
 using TravelPort.Application.Common.Exceptions;
 using TravelPort.Application.Common.Interfaces;
 using TravelPort.Application.DTOs.Admin;
 using TravelPort.Application.DTOs.Bookings;
+using TravelPort.Application.DTOs.HotelManager;
 using TravelPort.Application.Services.Interfaces;
 using TravelPort.Domain.Entities;
 using TravelPort.Domain.Enums;
@@ -15,6 +17,7 @@ public class AdminService : IAdminService
     private readonly ICouponRepository _coupons;
     private readonly IFlightRepository _flights;
     private readonly IHotelRepository _hotels;
+    private readonly IEmailService _email;
     private readonly IUnitOfWork _uow;
 
     public AdminService(
@@ -23,14 +26,16 @@ public class AdminService : IAdminService
         ICouponRepository coupons,
         IFlightRepository flights,
         IHotelRepository hotels,
+        IEmailService email,
         IUnitOfWork uow)
     {
-        _users = users;
+        _users    = users;
         _bookings = bookings;
-        _coupons = coupons;
-        _flights = flights;
-        _hotels = hotels;
-        _uow = uow;
+        _coupons  = coupons;
+        _flights  = flights;
+        _hotels   = hotels;
+        _email    = email;
+        _uow      = uow;
     }
 
     // ── Dashboard ────────────────────────────────────────────────────────────
@@ -40,6 +45,7 @@ public class AdminService : IAdminService
         var allUsers    = await _users.GetAllAsync(ct);
         var allBookings = await _bookings.GetAllAsync(ct);
 
+        var customerCount  = allUsers.Count(u => u.Role != UserRole.Hotel);
         var totalRevenue   = allBookings.Where(b => b.Status != BookingStatus.Cancelled).Sum(b => b.FinalAmount);
         var active         = allBookings.Count(b => b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Pending);
         var cancelled      = allBookings.Count(b => b.Status == BookingStatus.Cancelled);
@@ -49,7 +55,7 @@ public class AdminService : IAdminService
         var avgValue       = paidBookings.Count > 0 ? paidBookings.Average(b => b.FinalAmount) : 0m;
 
         return new AdminDashboardDto(
-            allUsers.Count,
+            customerCount,
             allBookings.Count,
             totalRevenue,
             active,
@@ -245,12 +251,86 @@ public class AdminService : IAdminService
         return new AdminAnalyticsDto(monthly, byStatus, byType);
     }
 
+    // ── Hotels ───────────────────────────────────────────────────────────────
+
+    public async Task<List<AdminHotelListDto>> GetHotelsAsync(CancellationToken ct = default)
+    {
+        var hotels = await _hotels.GetAllWithManagerAsync(ct);
+        var result = new List<AdminHotelListDto>();
+        foreach (var h in hotels)
+        {
+            var manager = await _users.GetHotelManagerAsync(h.Id, ct);
+            result.Add(ToAdminHotelDto(h, manager));
+        }
+        return result;
+    }
+
+    public async Task<AdminHotelListDto> RegisterHotelAsync(RegisterHotelRequest req, CancellationToken ct = default)
+    {
+        if (await _users.EmailExistsAsync(req.ManagerEmail.ToLowerInvariant(), ct))
+            throw new BusinessException("A user with this email already exists.");
+
+        var hotel = new Hotel
+        {
+            Id         = Guid.NewGuid(),
+            Name       = req.HotelName,
+            City       = req.City,
+            Address    = req.Address,
+            StarRating = req.StarRating,
+            IsActive   = true
+        };
+
+        await _hotels.AddAsync(hotel, ct);
+
+        var manager = new User
+        {
+            Id           = Guid.NewGuid(),
+            Name         = req.ManagerName,
+            Email        = req.ManagerEmail.ToLowerInvariant(),
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.ManagerPassword, SecurityConstants.BcryptWorkFactor),
+            Role         = UserRole.Hotel,
+            HotelId      = hotel.Id,
+            IsActive     = true,
+            IsVerified   = true
+        };
+
+        await _users.AddAsync(manager, ct);
+        await _uow.SaveChangesAsync(ct);
+
+        if (_email.IsConfigured)
+        {
+            await _email.SendHotelCredentialsEmailAsync(
+                req.ManagerEmail, req.ManagerName,
+                req.HotelName, req.ManagerEmail, req.ManagerPassword, ct);
+        }
+
+        return ToAdminHotelDto(hotel, manager);
+    }
+
+    public async Task<AdminHotelListDto> ToggleHotelActiveAsync(Guid hotelId, CancellationToken ct = default)
+    {
+        var hotel = await _hotels.GetByIdAsync(hotelId, ct)
+            ?? throw new NotFoundException("Hotel", hotelId);
+
+        hotel.IsActive = !hotel.IsActive;
+        await _hotels.UpdateAsync(hotel, ct);
+        await _uow.SaveChangesAsync(ct);
+
+        var manager = await _users.GetHotelManagerAsync(hotelId, ct);
+        return ToAdminHotelDto(hotel, manager);
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private static CouponDto ToDto(Coupon c) => new(
         c.Id, c.Code, c.Type.ToString(), c.Value,
         c.MinAmount, c.MaxDiscount, c.UsageLimit, c.UsedCount,
         c.ExpiresAt, c.IsActive, c.CreatedAt
+    );
+
+    private static AdminHotelListDto ToAdminHotelDto(Hotel h, User? manager) => new(
+        h.Id, h.Name, h.City, h.Address, h.StarRating, h.ReviewScore, h.ReviewCount,
+        h.IsActive, h.Rooms.Count, manager?.Email, h.CreatedAt
     );
 
     private static string? MapCity(string? code) => code switch
