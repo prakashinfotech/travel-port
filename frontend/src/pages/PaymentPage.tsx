@@ -53,6 +53,12 @@ export default function PaymentPage() {
       )
       const order = data.data
 
+      if (!window.Razorpay) {
+        setError('Payment gateway failed to load. Please disable any ad-blockers, refresh the page, and try again.')
+        setLoading(false)
+        return
+      }
+
       const rzp = new window.Razorpay({
         key:      order.keyId,
         amount:   order.amount,
