@@ -44,9 +44,9 @@ public static class DependencyInjection
         services.AddSingleton<IInvoiceDocumentService, InvoiceDocumentService>();
 
         // ── Transport mock providers ──────────────────────────────────────────
-        services.AddSingleton<BusSearchProvider>();
-        services.AddSingleton<TrainSearchProvider>();
-        services.AddSingleton<CabSearchProvider>();
+        services.AddSingleton<IBusSearchProvider, BusSearchProvider>();
+        services.AddSingleton<ITrainSearchProvider, TrainSearchProvider>();
+        services.AddSingleton<ICabSearchProvider, CabSearchProvider>();
 
         // ── Background workers ────────────────────────────────────────────────
         services.AddHostedService<BookingExpiryWorker>();

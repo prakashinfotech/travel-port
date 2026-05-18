@@ -23,6 +23,8 @@ public class Booking : BaseEntity
     public string? GuestName { get; set; }
     public string? GuestEmail { get; set; }
     public string? GuestPhone { get; set; }
+    // JSON snapshot of transport details for Bus/Train/Cab bookings
+    public string? TransportSnapshot { get; set; }
 
     public User User { get; set; } = null!;
     public Payment? Payment { get; set; }

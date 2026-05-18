@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Bus, Clock, Wifi, Star, Filter } from 'lucide-react'
 import { api } from '@/api/axios'
 import { endpoints } from '@/api/endpoints'
@@ -20,6 +20,7 @@ function formatDuration(mins: number) {
 
 export default function BusesPage() {
   const today = new Date().toISOString().split('T')[0]
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [origin, setOrigin]           = useState(searchParams.get('origin') || 'Mumbai')
   const [destination, setDestination] = useState(searchParams.get('destination') || 'Pune')
@@ -191,8 +192,11 @@ export default function BusesPage() {
                       <div className="ml-6 text-right">
                         <p className="text-2xl font-bold text-gray-800">₹{bus.price.toLocaleString()}</p>
                         <p className="text-xs text-gray-500 mb-2">per seat</p>
-                        <button className="bg-green-600 text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 transition">
-                          SELECT SEATS
+                        <button
+                          onClick={() => navigate('/buses/book', { state: { bus, seats } })}
+                          className="bg-green-600 text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 transition"
+                        >
+                          BOOK NOW
                         </button>
                       </div>
                     </div>

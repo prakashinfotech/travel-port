@@ -1,32 +1,9 @@
+using TravelPort.Application.Common.Interfaces;
+using TravelPort.Application.DTOs.Transport;
+
 namespace TravelPort.Infrastructure.ExternalProviders.Transport;
 
-public record BusSearchRequest(
-    string Origin,
-    string Destination,
-    DateTime TravelDate,
-    int Seats = 1,
-    int Page = 1,
-    int PageSize = 20
-);
-
-public record BusDto(
-    string Id,
-    string Operator,
-    string BusType,
-    string Origin,
-    string Destination,
-    DateTime DepartureTime,
-    DateTime ArrivalTime,
-    int DurationMinutes,
-    int AvailableSeats,
-    decimal Price,
-    bool AcAvailable,
-    bool IsRefundable,
-    string Amenities,
-    decimal Rating
-);
-
-public class BusSearchProvider
+public class BusSearchProvider : IBusSearchProvider
 {
     private static readonly string[] AcOperators =
         ["VRL Travels", "Orange Travels", "IntrCity SmartBus", "Neeta Travels", "SRS Travels", "Greenline Travels", "Chartered Bus"];
@@ -40,7 +17,6 @@ public class BusSearchProvider
     private static readonly string[] NonAcBusTypes =
         ["Non-A/C Sleeper", "Non-A/C Seater", "Government Express", "Ordinary Express"];
 
-    // Route-specific approximate durations in minutes
     private static readonly Dictionary<(string, string), int> RouteDurations = new()
     {
         [("Mumbai",    "Pune")]        = 200,
@@ -87,7 +63,7 @@ public class BusSearchProvider
 
         for (int i = 0; i < count; i++)
         {
-            var isAc    = rng.Next(3) != 0; // 2/3 chance AC
+            var isAc    = rng.Next(3) != 0;
             var hour    = rng.Next(5, 23);
             var dur     = GetRouteDuration(req.Origin, req.Destination, rng);
             var dep     = req.TravelDate.Date.AddHours(hour).AddMinutes(rng.Next(0, 4) * 15);

@@ -1,6 +1,8 @@
+using System.Text.Json;
 using TravelPort.Application.Common.Exceptions;
 using TravelPort.Application.Common.Interfaces;
 using TravelPort.Application.DTOs.Bookings;
+using TravelPort.Application.DTOs.Transport;
 using TravelPort.Application.Services.Interfaces;
 using TravelPort.Domain.Entities;
 using TravelPort.Domain.Enums;
@@ -73,6 +75,9 @@ public class BookingService : IBookingService
 
         if (booking.BookingType == BookingType.Hotel)
             return (_invoiceDocumentService.GenerateHotelInvoicePdf(dto), $"{booking.BookingRef}-hotel-invoice.pdf");
+
+        if (booking.BookingType is BookingType.Bus or BookingType.Train or BookingType.Cab)
+            return (_invoiceDocumentService.GenerateTransportTicketPdf(dto), $"{booking.BookingRef}-ticket.pdf");
 
         return (_invoiceDocumentService.GenerateBookingTicketPdf(dto), $"{booking.BookingRef}-e-ticket.pdf");
     }
@@ -171,6 +176,25 @@ public class BookingService : IBookingService
                 booking.GuestName, booking.GuestPhone,
                 pricePerNight, booking.TotalAmount, booking.DiscountAmount, booking.CouponCode, booking.FinalAmount, ct);
         }
+        else if (booking.BookingType is BookingType.Bus or BookingType.Train or BookingType.Cab
+                 && !string.IsNullOrWhiteSpace(booking.TransportSnapshot))
+        {
+            var snap = JsonSerializer.Deserialize<TransportSnapshot>(booking.TransportSnapshot);
+            if (snap is null) return;
+
+            var passengers = booking.Passengers ?? 1;
+            var unitPrice  = passengers > 0 ? booking.TotalAmount / passengers : booking.TotalAmount;
+            var dur        = $"{snap.DurationMinutes / 60}h {snap.DurationMinutes % 60}m";
+
+            await _email.SendTransportBookingConfirmationAsync(
+                toEmail, toName, booking.BookingRef, booking.BookingType.ToString(),
+                snap.OperatorName, snap.VehicleType ?? snap.VehicleClass ?? "—",
+                snap.Origin, snap.Destination,
+                snap.DepartureTime.ToString("dd MMM yyyy, hh:mm tt"),
+                snap.ArrivalTime.ToString("dd MMM yyyy, hh:mm tt"),
+                dur, passengers, unitPrice,
+                booking.TotalAmount, booking.DiscountAmount, booking.CouponCode, booking.FinalAmount, ct);
+        }
     }
 
     private async Task<BookingDto> ToDtoAsync(Booking booking, CancellationToken ct)
@@ -203,6 +227,14 @@ public class BookingService : IBookingService
             roomType = matchedRoom?.RoomType;
         }
 
+        // Deserialize transport snapshot for Bus/Train/Cab
+        TransportSnapshot? transport = null;
+        if (booking.BookingType is BookingType.Bus or BookingType.Train or BookingType.Cab
+            && !string.IsNullOrWhiteSpace(booking.TransportSnapshot))
+        {
+            transport = JsonSerializer.Deserialize<TransportSnapshot>(booking.TransportSnapshot);
+        }
+
         return new BookingDto(
             booking.Id,
             booking.BookingRef,
@@ -221,22 +253,29 @@ public class BookingService : IBookingService
             booking.GuestName ?? user?.Name,
             booking.GuestEmail ?? user?.Email,
             booking.GuestPhone ?? user?.Phone,
+            // Flight fields
             flight?.Airline,
             flight?.FlightNumber,
-            flight?.Source,
-            MapCityName(flight?.Source),
-            flight?.Destination,
-            MapCityName(flight?.Destination),
-            flight?.DepartureTime,
-            flight?.ArrivalTime,
-            flight?.Duration,
+            flight?.Source ?? transport?.Origin,
+            MapCityName(flight?.Source) ?? transport?.Origin,
+            flight?.Destination ?? transport?.Destination,
+            MapCityName(flight?.Destination) ?? transport?.Destination,
+            flight?.DepartureTime ?? transport?.DepartureTime,
+            flight?.ArrivalTime ?? transport?.ArrivalTime,
+            flight?.Duration ?? transport?.DurationMinutes,
+            // Hotel fields
             hotel?.Name,
             hotel?.Address,
             hotel?.City,
             hotel?.StarRating,
             roomType,
             pricePerNight,
-            nights
+            nights,
+            // Transport fields
+            transport?.OperatorName,
+            transport?.VehicleType ?? transport?.VehicleClass,
+            transport?.Amenities,
+            transport?.DistanceKm
         );
     }
 

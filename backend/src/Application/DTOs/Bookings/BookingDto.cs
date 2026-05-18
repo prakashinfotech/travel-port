@@ -37,7 +37,12 @@ public record BookingDto(
     decimal? HotelStars = null,
     string? RoomType = null,
     decimal? PricePerNight = null,
-    int? NightsCount = null
+    int? NightsCount = null,
+    // Transport fields (Bus / Train / Cab)
+    string? TransportOperator = null,
+    string? TransportVehicleType = null,
+    string? TransportAmenities = null,
+    double? TransportDistanceKm = null
 );
 
 public record BookingCreatedResponse(

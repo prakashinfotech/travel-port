@@ -32,8 +32,7 @@
 ### Features Pending
 - [x] ✅ **Hotel Management Portal** — Admin can register hotels with manager email/password (credentials emailed). Hotel managers log in to `/hotel/*` portal to manage bookings, rooms, amenities, images, and hotel profile. Includes `RegisterHotelRequestValidator` and `CreateRoomRequestValidator` with 108 automated tests.
 - [ ] 🔴 **Multi-city flight search** — `FlightSearchRequest` supports origin/destination only. Add `MultiCity` trip type.
-- [ ] 🔴 **Bus & Train booking persistence** — buses and trains are mocked in-memory; they have no DB entity or booking endpoint. Add `Bus` and `Train` domain entities + booking flow.
-- [ ] 🔴 **Cab booking persistence** — same as buses/trains.
+- [x] ✅ **Bus & Train & Cab booking persistence** — Full DB persistence via `TransportSnapshot` JSON column. `BusService`, `TrainService`, `CabService` with coupon/wallet/email/PDF ticket support. Frontend booking pages (`BookBusPage`, `BookTrainPage`, `BookCabPage`) + BOOK buttons wired in search results. `BookingDetailPage` shows transport-specific details.
 - [ ] 🟡 **Email verification on registration** — OTP flow documented but `IsVerified` is set to `true` in seed; registration sets it `false` with no verification path yet.
 - [x] ✅ **Admin analytics endpoint** — `GET /admin/analytics` now returns real monthly revenue, bookings-by-type and bookings-by-status aggregations.
 - [ ] 🟡 **Server-side paginated flight search response** — frontend now paginates filtered results locally; move pagination and filter metadata fully into the API response for larger datasets.

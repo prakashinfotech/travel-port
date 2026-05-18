@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom'
-import { ArrowLeft, Calendar, CheckCircle, Download, Luggage, Mail, Phone, Plane, ShieldCheck, TicketPercent, UserRound } from 'lucide-react'
+import { ArrowLeft, Bus, Calendar, Car, CheckCircle, Download, Luggage, Mail, MapPin, Phone, Plane, ShieldCheck, TicketPercent, Train, UserRound } from 'lucide-react'
 import type { BookingDto, BookingStatus } from '@/types'
 import { bookingService } from '@/services/bookingService'
 import { Badge } from '@/components/ui/Badge'
@@ -179,7 +179,37 @@ export default function BookingDetailPage() {
       const blob = await bookingService.downloadInvoice(mergedBooking.id)
       downloadBlob(blob, `${mergedBooking.bookingReference}-invoice.pdf`)
     } catch {
+      const isTransport = mergedBooking.type === 'Bus' || mergedBooking.type === 'Train' || mergedBooking.type === 'Cab'
       const isHotel = bookingUi?.bookingType === 'Hotel' || mergedBooking.type === 'Hotel'
+      if (isTransport) {
+        const transportLines = [
+          `TravelPort ${mergedBooking.type} Ticket`,
+          '--------------------------------------------',
+          `Booking Reference: ${mergedBooking.bookingReference}`,
+          `Status: ${mergedBooking.status}`,
+          '',
+          'JOURNEY DETAILS',
+          `Operator: ${mergedBooking.transportOperator ?? '-'}`,
+          `Vehicle Type: ${mergedBooking.transportVehicleType ?? '-'}`,
+          `From: ${mergedBooking.origin ?? '-'}`,
+          `To: ${mergedBooking.destination ?? '-'}`,
+          `Departure: ${mergedBooking.departureTime ? formatDateTime(mergedBooking.departureTime) : '-'}`,
+          `Arrival: ${mergedBooking.arrivalTime ? formatDateTime(mergedBooking.arrivalTime) : '-'}`,
+          `Duration: ${mergedBooking.durationMinutes ? formatDuration(mergedBooking.durationMinutes) : '-'}`,
+          '',
+          'PASSENGER DETAILS',
+          `Name:  ${mergedBooking.userName ?? '-'}`,
+          `Email: ${mergedBooking.userEmail ?? '-'}`,
+          `Phone: ${mergedBooking.userPhone ?? '-'}`,
+          '',
+          'FARE SUMMARY',
+          `Total Paid: ${formatCurrency(mergedBooking.finalAmount || mergedBooking.totalAmount)}`,
+          '',
+          'Thank you for booking with TravelPort!',
+        ]
+        downloadBlob(buildPdfBlob(transportLines), `${mergedBooking.bookingReference}-ticket.pdf`)
+        return
+      }
       const fallbackLines = isHotel ? [
         'TravelPort Hotel Invoice',
         '--------------------------------------------',
@@ -309,7 +339,10 @@ export default function BookingDetailPage() {
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <h1 className="text-3xl font-extrabold text-gray-900">
-                    {mergedBooking.originCity ?? mergedBooking.origin ?? 'Flight'} → {mergedBooking.destinationCity ?? mergedBooking.destination ?? 'Trip'}
+                    {mergedBooking.type === 'Flight'
+                      ? `${mergedBooking.originCity ?? mergedBooking.origin ?? 'Flight'} → ${mergedBooking.destinationCity ?? mergedBooking.destination ?? 'Trip'}`
+                      : `${mergedBooking.origin ?? '-'} → ${mergedBooking.destination ?? '-'}`
+                    }
                   </h1>
                   <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-gray-600">
                     {mergedBooking.departureTime && (
@@ -318,7 +351,10 @@ export default function BookingDetailPage() {
                       </span>
                     )}
                     {mergedBooking.durationMinutes && <span>{formatDuration(mergedBooking.durationMinutes)}</span>}
-                    {mergedBooking.passengers && <span>{mergedBooking.passengers} traveller{mergedBooking.passengers > 1 ? 's' : ''}</span>}
+                    {mergedBooking.passengers && <span>{mergedBooking.passengers} passenger{mergedBooking.passengers > 1 ? 's' : ''}</span>}
+                    {mergedBooking.transportVehicleType && (
+                      <span className="rounded-md bg-gray-100 px-2 py-0.5 text-gray-600">{mergedBooking.transportVehicleType}</span>
+                    )}
                   </div>
                 </div>
                 <div className="text-right">
@@ -332,14 +368,36 @@ export default function BookingDetailPage() {
               <div className="mt-5 rounded-2xl bg-gray-50 p-5">
                 <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 pb-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
-                      <Plane className="h-5 w-5" />
+                    <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${
+                      mergedBooking.type === 'Bus' ? 'bg-green-50 text-green-700' :
+                      mergedBooking.type === 'Train' ? 'bg-blue-50 text-blue-700' :
+                      mergedBooking.type === 'Cab' ? 'bg-yellow-50 text-yellow-600' :
+                      'bg-orange-50 text-orange-600'
+                    }`}>
+                      {mergedBooking.type === 'Bus' ? <Bus className="h-5 w-5" /> :
+                       mergedBooking.type === 'Train' ? <Train className="h-5 w-5" /> :
+                       mergedBooking.type === 'Cab' ? <Car className="h-5 w-5" /> :
+                       <Plane className="h-5 w-5" />}
                     </div>
                     <div>
-                      <p className="text-lg font-bold text-gray-900">{mergedBooking.airline ?? 'TravelPort Flight'}</p>
+                      <p className="text-lg font-bold text-gray-900">
+                        {mergedBooking.type === 'Flight'
+                          ? (mergedBooking.airline ?? 'TravelPort Flight')
+                          : (mergedBooking.transportOperator ?? mergedBooking.type)}
+                      </p>
                       <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
-                        <span>{mergedBooking.flightNumber ?? mergedBooking.bookingReference}</span>
-                        <span className="rounded-full border border-gray-300 px-2 py-0.5">Economy</span>
+                        {mergedBooking.type === 'Flight' && (
+                          <>
+                            <span>{mergedBooking.flightNumber ?? mergedBooking.bookingReference}</span>
+                            <span className="rounded-full border border-gray-300 px-2 py-0.5">Economy</span>
+                          </>
+                        )}
+                        {mergedBooking.type !== 'Flight' && mergedBooking.transportVehicleType && (
+                          <span className="rounded-full border border-gray-300 px-2 py-0.5">{mergedBooking.transportVehicleType}</span>
+                        )}
+                        {mergedBooking.type === 'Cab' && mergedBooking.transportDistanceKm && (
+                          <span>{mergedBooking.transportDistanceKm} km</span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -369,31 +427,45 @@ export default function BookingDetailPage() {
                       <div className="relative">
                         <div className="absolute -left-[2.15rem] top-2 h-3 w-3 rounded-full border-2 border-gray-400 bg-white" />
                         <p className="text-2xl font-bold text-gray-900">{mergedBooking.originCity ?? mergedBooking.origin ?? '-'}</p>
-                        <p className="mt-1 text-sm text-gray-600">{mergedBooking.origin ?? '-'} Airport, Terminal 1</p>
+                        {mergedBooking.type === 'Flight'
+                          ? <p className="mt-1 text-sm text-gray-600">{mergedBooking.origin ?? '-'} Airport, Terminal 1</p>
+                          : <p className="mt-1 text-sm text-gray-600 flex items-center gap-1"><MapPin className="h-3 w-3" />{mergedBooking.origin ?? '-'}</p>
+                        }
                       </div>
                       <div className="relative">
                         <div className="absolute -left-[2.15rem] top-2 h-3 w-3 rounded-full border-2 border-gray-400 bg-white" />
                         <p className="text-2xl font-bold text-gray-900">{mergedBooking.destinationCity ?? mergedBooking.destination ?? '-'}</p>
-                        <p className="mt-1 text-sm text-gray-600">{mergedBooking.destination ?? '-'} Airport, Terminal 1</p>
+                        {mergedBooking.type === 'Flight'
+                          ? <p className="mt-1 text-sm text-gray-600">{mergedBooking.destination ?? '-'} Airport, Terminal 1</p>
+                          : <p className="mt-1 text-sm text-gray-600 flex items-center gap-1"><MapPin className="h-3 w-3" />{mergedBooking.destination ?? '-'}</p>
+                        }
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-5 grid gap-3 border-t border-gray-200 pt-4 md:grid-cols-2">
-                  <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                    <Luggage className="h-4 w-4 text-amber-500" />
-                    <span>Cabin Baggage: 7 Kgs (1 piece only) / Adult</span>
+                {mergedBooking.type === 'Flight' && (
+                  <div className="mt-5 grid gap-3 border-t border-gray-200 pt-4 md:grid-cols-2">
+                    <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                      <Luggage className="h-4 w-4 text-amber-500" />
+                      <span>Cabin Baggage: 7 Kgs (1 piece only) / Adult</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                      <Luggage className="h-4 w-4 text-amber-500" />
+                      <span>Check-In Baggage: 15 Kgs (1 piece only) / Adult</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                    <Luggage className="h-4 w-4 text-amber-500" />
-                    <span>Check-In Baggage: 15 Kgs (1 piece only) / Adult</span>
+                )}
+
+                {mergedBooking.type !== 'Flight' && mergedBooking.transportAmenities && (
+                  <div className="mt-5 border-t border-gray-200 pt-4">
+                    <p className="text-sm font-medium text-gray-700">Amenities: <span className="text-gray-500 font-normal">{mergedBooking.transportAmenities}</span></p>
                   </div>
-                </div>
+                )}
 
                 {mergedBooking.status !== 'Cancelled' && (
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm">
-                    <span className="font-medium text-emerald-800">Your e-ticket is valid for airport check-in and can be downloaded anytime from this page.</span>
+                    <span className="font-medium text-emerald-800">Your e-ticket is ready and can be downloaded anytime from this page.</span>
                     <button type="button" onClick={handleDownload} className="font-bold text-blue-600 hover:underline">Download now</button>
                   </div>
                 )}
@@ -401,15 +473,15 @@ export default function BookingDetailPage() {
             </section>
 
             <section className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-              <h2 className="text-2xl font-extrabold text-gray-900">Traveller & Contact Details</h2>
+              <h2 className="text-2xl font-extrabold text-gray-900">Passenger & Contact Details</h2>
 
               <div className="mt-5 grid gap-4 md:grid-cols-2">
                 <div className="rounded-2xl border border-gray-200 p-4">
                   <div className="flex items-center gap-2">
                     <UserRound className="h-5 w-5 text-cyan-700" />
-                    <p className="font-bold text-gray-900">{mergedBooking.userName ?? 'Primary Traveller'}</p>
+                    <p className="font-bold text-gray-900">{mergedBooking.userName ?? 'Primary Passenger'}</p>
                   </div>
-                  <p className="mt-2 text-sm text-gray-600">{mergedBooking.passengers ?? 1} traveller{(mergedBooking.passengers ?? 1) > 1 ? 's' : ''} booked on this itinerary</p>
+                  <p className="mt-2 text-sm text-gray-600">{mergedBooking.passengers ?? 1} passenger{(mergedBooking.passengers ?? 1) > 1 ? 's' : ''} on this booking</p>
                 </div>
 
                 <div className="rounded-2xl border border-gray-200 p-4">

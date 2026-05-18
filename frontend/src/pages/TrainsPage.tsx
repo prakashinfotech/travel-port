@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Train, Clock, Filter, AlertCircle, Users } from 'lucide-react'
 import { api } from '@/api/axios'
 import { endpoints } from '@/api/endpoints'
@@ -35,6 +35,7 @@ function availabilityColor(avail: string) {
 
 export default function TrainsPage() {
   const today = new Date().toISOString().split('T')[0]
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [origin, setOrigin]           = useState(searchParams.get('origin') || 'Mumbai')
   const [destination, setDestination] = useState(searchParams.get('destination') || 'Delhi')
@@ -221,7 +222,12 @@ export default function TrainsPage() {
                             <Users className="w-3 h-3" />{info.availableSeats}
                           </p>
                           {info.availability !== 'REGRET' && (
-                            <button className="mt-1.5 w-full bg-blue-700 text-white text-xs py-1 rounded-md hover:bg-blue-800 transition font-semibold">
+                            <button
+                              onClick={() => navigate('/trains/book', {
+                                state: { train, classInfo: info, className: cls, passengers }
+                              })}
+                              className="mt-1.5 w-full bg-blue-700 text-white text-xs py-1 rounded-md hover:bg-blue-800 transition font-semibold"
+                            >
                               BOOK
                             </button>
                           )}

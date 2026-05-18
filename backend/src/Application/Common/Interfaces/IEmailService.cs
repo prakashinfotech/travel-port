@@ -31,4 +31,13 @@ public interface IEmailService
         string toEmail, string toName,
         string hotelName, string loginEmail, string password,
         CancellationToken ct = default);
+
+    Task SendTransportBookingConfirmationAsync(
+        string toEmail, string toName, string bookingRef, string transportType,
+        string operatorName, string vehicleType,
+        string origin, string destination,
+        string departureTime, string arrivalTime, string duration,
+        int passengers, decimal unitPrice, decimal subtotal, decimal discount,
+        string? couponCode, decimal finalAmount,
+        CancellationToken ct = default);
 }

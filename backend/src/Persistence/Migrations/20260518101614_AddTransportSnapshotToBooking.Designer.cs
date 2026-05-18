@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TravelPort.Persistence.Context;
 
@@ -11,9 +12,11 @@ using TravelPort.Persistence.Context;
 namespace TravelPort.Persistence.Migrations
 {
     [DbContext(typeof(TravelPortDbContext))]
-    partial class TravelPortDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260518101614_AddTransportSnapshotToBooking")]
+    partial class AddTransportSnapshotToBooking
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

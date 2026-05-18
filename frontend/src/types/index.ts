@@ -211,9 +211,69 @@ export interface VerifyPaymentRequest {
   razorpaySignature: string
 }
 
+// ── Transport Booking Requests ────────────────────────────────────────────────
+export interface BookBusRequest {
+  busId: string
+  operator: string
+  busType: string
+  origin: string
+  destination: string
+  departureTime: string
+  arrivalTime: string
+  durationMinutes: number
+  price: number
+  amenities: string
+  seats?: number
+  couponCode?: string
+  useWallet?: boolean
+  savedCardId?: string
+  guestName?: string
+  guestEmail?: string
+  guestPhone?: string
+}
+
+export interface BookTrainRequest {
+  trainId: string
+  trainNumber: string
+  trainName: string
+  class: string
+  origin: string
+  destination: string
+  departureTime: string
+  arrivalTime: string
+  durationMinutes: number
+  price: number
+  passengers?: number
+  couponCode?: string
+  useWallet?: boolean
+  savedCardId?: string
+  guestName?: string
+  guestEmail?: string
+  guestPhone?: string
+}
+
+export interface BookCabRequest {
+  cabId: string
+  provider: string
+  cabType: string
+  carModel: string
+  origin: string
+  destination: string
+  pickupDateTime: string
+  durationMinutes: number
+  distanceKm: number
+  price: number
+  couponCode?: string
+  useWallet?: boolean
+  savedCardId?: string
+  guestName?: string
+  guestEmail?: string
+  guestPhone?: string
+}
+
 // ── Bookings ──────────────────────────────────────────────────────────────────
 export type BookingStatus = 'Pending' | 'Confirmed' | 'Cancelled' | 'Completed'
-export type BookingType = 'Flight' | 'Hotel'
+export type BookingType = 'Flight' | 'Hotel' | 'Bus' | 'Train' | 'Cab'
 
 export interface BookingDto {
   id: string
@@ -251,6 +311,11 @@ export interface BookingDto {
   roomType?: string
   pricePerNight?: number
   nightsCount?: number
+  // Transport fields (Bus / Train / Cab)
+  transportOperator?: string
+  transportVehicleType?: string
+  transportAmenities?: string
+  transportDistanceKm?: number
 }
 
 // ── Users ─────────────────────────────────────────────────────────────────────

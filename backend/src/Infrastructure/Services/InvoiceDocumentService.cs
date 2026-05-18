@@ -185,6 +185,83 @@ public class InvoiceDocumentService : IInvoiceDocumentService
         return Save(document);
     }
 
+    public byte[] GenerateTransportTicketPdf(BookingDto booking)
+    {
+        var document = CreateDocument();
+        var page = document.AddPage();
+        page.Width = PageWidth;
+        page.Height = PageHeight;
+
+        var gfx = XGraphics.FromPdfPage(page);
+        var ci = CultureInfo.InvariantCulture;
+
+        var transportType = booking.Type; // "Bus" | "Train" | "Cab"
+        var operator_     = booking.TransportOperator ?? "—";
+        var vehicleType   = booking.TransportVehicleType ?? "—";
+        var origin        = booking.Origin ?? "—";
+        var destination   = booking.Destination ?? "—";
+        var dep           = booking.DepartureTime?.ToString("dd MMM yyyy, hh:mm tt", ci) ?? "—";
+        var arr           = booking.ArrivalTime?.ToString("dd MMM yyyy, hh:mm tt", ci) ?? "—";
+        var dur           = FormatDuration(booking.DurationMinutes);
+        var passengers    = booking.Passengers ?? 1;
+
+        var y = 0d;
+        DrawTopHeader(gfx, ref y, "TravelPort", $"{transportType} Booking Confirmation");
+        DrawReferenceBar(gfx, ref y, booking.BookingReference, "BOOKED ON", booking.BookingDate.ToString("dd MMM yyyy, HH:mm", ci));
+        y += 16;
+
+        DrawSectionTable(
+            gfx, ref y, "JOURNEY DETAILS",
+            [160, 395],
+            ["FIELD", "DETAILS"],
+            [
+                ["From", origin],
+                ["To", destination],
+                ["Departure", dep],
+                ["Arrival / Est. Drop-off", arr],
+                ["Duration", dur],
+                ["Operator / Service", operator_],
+                ["Vehicle / Class", vehicleType],
+                ["Passengers", passengers.ToString()],
+            ]
+        );
+        y += 10;
+
+        DrawSectionTable(
+            gfx, ref y, "PASSENGER DETAILS",
+            [200, 195, 160],
+            ["NAME", "EMAIL", "PHONE"],
+            [[booking.UserName ?? "Passenger", booking.UserEmail ?? "—", booking.UserPhone ?? "—"]]
+        );
+        y += 10;
+
+        var baseFare = Math.Round(booking.TotalAmount * 0.9m, 0, MidpointRounding.AwayFromZero);
+        var taxes    = booking.TotalAmount - baseFare;
+        DrawSummarySection(
+            gfx, ref y, "FARE SUMMARY",
+            [
+                ("Base Fare", FormatCurrency(baseFare)),
+                ("Taxes & Charges", FormatCurrency(taxes)),
+                ("TOTAL AMOUNT PAID", FormatCurrency(booking.FinalAmount))
+            ],
+            booking.DiscountAmount > 0
+                ? ("Coupon Discount" + (string.IsNullOrWhiteSpace(booking.CouponCode) ? string.Empty : $" ({booking.CouponCode})"), $"-{FormatCurrency(booking.DiscountAmount)}")
+                : null
+        );
+        y += 10;
+
+        DrawSupportFooter(
+            gfx, ref y,
+            [
+                "This is an e-ticket. No physical ticket required.",
+                "Present this document at boarding if required.",
+                "Valid for the mentioned journey only."
+            ]
+        );
+
+        return Save(document);
+    }
+
     private static PdfDocument CreateDocument()
     {
         return new PdfDocument();

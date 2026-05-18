@@ -1,41 +1,10 @@
+using TravelPort.Application.Common.Interfaces;
+using TravelPort.Application.DTOs.Transport;
+
 namespace TravelPort.Infrastructure.ExternalProviders.Transport;
 
-public record TrainSearchRequest(
-    string Origin,
-    string Destination,
-    DateTime TravelDate,
-    string Class = "SL",
-    int Passengers = 1,
-    int Page = 1,
-    int PageSize = 20
-);
-
-public record TrainDto(
-    string Id,
-    string TrainNumber,
-    string TrainName,
-    string Origin,
-    string Destination,
-    DateTime DepartureTime,
-    DateTime ArrivalTime,
-    int DurationMinutes,
-    Dictionary<string, TrainClassDto> Classes,
-    bool RunsOnDate,
-    string RunningDays,
-    int AvailableSeats,
-    bool IsTatkal
-);
-
-public record TrainClassDto(
-    string ClassName,
-    int AvailableSeats,
-    decimal Price,
-    string Availability
-);
-
-public class TrainSearchProvider
+public class TrainSearchProvider : ITrainSearchProvider
 {
-    // Realistic named trains with typical numbers
     private static readonly (string Number, string Name, string[] Routes)[] TrainPool =
     [
         ("12951", "Mumbai Rajdhani Express",     ["BOM-DEL", "DEL-BOM"]),
@@ -79,7 +48,6 @@ public class TrainSearchProvider
         ("12560", "Shiv Ganga Return",           ["LKO-DEL", "DEL-LKO"]),
     ];
 
-    // Route-specific durations in minutes
     private static readonly Dictionary<string, int> RouteDuration = new(StringComparer.OrdinalIgnoreCase)
     {
         ["BOM-DEL"] = 960, ["DEL-BOM"] = 960,
@@ -106,9 +74,7 @@ public class TrainSearchProvider
     };
 
     private static readonly string[] ClassNames = ["SL", "3A", "2A", "1A", "CC"];
-    // Base prices indexed same as ClassNames; will be scaled by distance factor
     private static readonly decimal[] BasePrices = [350m, 950m, 1400m, 2600m, 650m];
-
     private static readonly string[] AvailStates = ["AVAILABLE", "AVAILABLE", "AVAILABLE", "AVAILABLE", "WL-3", "WL-8", "RAC-2"];
     private static readonly string[] RunDayOptions =
         ["Daily", "Daily", "Mon, Wed, Fri, Sun", "Tue, Thu, Sat", "Mon, Tue, Wed, Thu, Fri", "Sat, Sun"];
@@ -119,14 +85,11 @@ public class TrainSearchProvider
         var seed     = HashCode.Combine(req.Origin, req.Destination, req.TravelDate.DayOfYear);
         var rng      = new Random(seed);
 
-        var baseDur = RouteDuration.TryGetValue(routeKey, out var d) ? d : rng.Next(180, 1800);
-        // Price factor proportional to distance
+        var baseDur     = RouteDuration.TryGetValue(routeKey, out var d) ? d : rng.Next(180, 1800);
         var priceFactor = Math.Max(0.5m, baseDur / 600m);
 
         var count  = rng.Next(6, 15);
         var trains = new List<TrainDto>(count);
-
-        // Shuffle available train names
         var shuffled = TrainPool.OrderBy(_ => rng.Next()).ToArray();
 
         for (int i = 0; i < count; i++)
@@ -141,18 +104,14 @@ public class TrainSearchProvider
             var classes = new Dictionary<string, TrainClassDto>();
             for (int c = 0; c < ClassNames.Length; c++)
             {
-                var cls    = ClassNames[c];
-                var seats  = rng.Next(0, 60);
-                var price  = Math.Round(BasePrices[c] * priceFactor + rng.Next(-100, 200), 0);
+                var cls   = ClassNames[c];
+                var seats = rng.Next(0, 60);
+                var price = Math.Round(BasePrices[c] * priceFactor + rng.Next(-100, 200), 0);
                 string av;
-                if (seats == 0)
-                    av = "REGRET";
-                else if (seats < 5)
-                    av = $"WL-{rng.Next(1, 20)}";
-                else if (seats < 12)
-                    av = $"RAC-{rng.Next(1, 10)}";
-                else
-                    av = AvailStates[rng.Next(AvailStates.Length)];
+                if (seats == 0)         av = "REGRET";
+                else if (seats < 5)     av = $"WL-{rng.Next(1, 20)}";
+                else if (seats < 12)    av = $"RAC-{rng.Next(1, 10)}";
+                else                    av = AvailStates[rng.Next(AvailStates.Length)];
 
                 classes[cls] = new TrainClassDto(cls, seats, price, av);
             }

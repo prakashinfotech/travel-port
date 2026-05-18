@@ -5,5 +5,6 @@ public enum BookingType
     Flight,
     Hotel,
     Bus,
-    Train
+    Train,
+    Cab
 }

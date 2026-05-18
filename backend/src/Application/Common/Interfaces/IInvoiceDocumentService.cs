@@ -6,4 +6,5 @@ public interface IInvoiceDocumentService
 {
     byte[] GenerateBookingTicketPdf(BookingDto booking);
     byte[] GenerateHotelInvoicePdf(BookingDto booking);
+    byte[] GenerateTransportTicketPdf(BookingDto booking);
 }

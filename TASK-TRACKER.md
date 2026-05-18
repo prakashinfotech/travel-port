@@ -3,6 +3,37 @@
 > Day-by-day progress tracker for the Goibibo AI Assignment.
 > Status: ✅ Done · 🚧 In Progress · ❌ Not Started · ⚠️ Partial / Needs Work
 
+---
+
+## Phase 9 — Bus / Train / Cab Booking Persistence
+**Branch:** `Development`
+**Scope:** Full end-to-end booking flow for Bus, Train, and Cab modes — matching flight/hotel depth
+
+| # | Feature | Status | Notes |
+|---|---|---|---|
+| 9.1 | `BookingType.Cab = 4` added to domain enum | ✅ | `Bus=2, Train=3` already existed |
+| 9.2 | `Booking.TransportSnapshot` JSON column added | ✅ | Nullable `nvarchar(max)` stores serialised operator/route/vehicle details |
+| 9.3 | EF Core migration `AddTransportSnapshotToBooking` | ✅ | Applied to SQL Server; no schema breaking changes |
+| 9.4 | `TransportSnapshot` record (Application/DTOs/Transport) | ✅ | Serialisation target for bus/train/cab booking details |
+| 9.5 | `BookBusRequest`, `BookTrainRequest`, `BookCabRequest` DTOs | ✅ | With guest details, coupon, wallet, saved card fields |
+| 9.6 | Provider interfaces moved to Application layer | ✅ | `IBusSearchProvider`, `ITrainSearchProvider`, `ICabSearchProvider` |
+| 9.7 | Transport search DTOs moved to Application layer | ✅ | Resolves Clean Architecture circular-reference violation |
+| 9.8 | `IBusService`, `ITrainService`, `ICabService` interfaces | ✅ | Defined in Application/Services/Interfaces |
+| 9.9 | `BusService`, `TrainService`, `CabService` implementations | ✅ | Coupon + wallet + email + snapshot persistence |
+| 9.10 | `IEmailService.SendTransportBookingConfirmationAsync` | ✅ | Color-coded HTML email per transport type (green/blue/amber) |
+| 9.11 | `IInvoiceDocumentService.GenerateTransportTicketPdf` | ✅ | PdfSharpCore ticket with journey, passenger, fare tables |
+| 9.12 | `BusesController`, `TrainsController`, `CabsController` updated | ✅ | Now inject `IBusService` / `ITrainService` / `ICabService` with `[Authorize]` on book endpoints |
+| 9.13 | `BookingService.ToDtoAsync` handles transport snapshot fields | ✅ | Deserialises JSON and maps to `BookingDto.transportOperator/vehicleType/amenities/distanceKm` |
+| 9.14 | `BookingService.GetInvoiceAsync` routes transport to PDF generator | ✅ | `Bus \| Train \| Cab` → `GenerateTransportTicketPdf` |
+| 9.15 | `BookBusPage.tsx` — full booking page | ✅ | Journey summary, passenger form, coupon, payment selector, fare sidebar |
+| 9.16 | `BookTrainPage.tsx` — full booking page | ✅ | Shows train number/name/class, running days, passenger form |
+| 9.17 | `BookCabPage.tsx` — full booking page | ✅ | Shows pickup/drop, distance, duration, car model |
+| 9.18 | `BusesPage.tsx` — BOOK NOW button wired | ✅ | Navigates to `/buses/book` with bus + seats state |
+| 9.19 | `TrainsPage.tsx` — BOOK button per class wired | ✅ | Navigates to `/trains/book` with train + classInfo + className state |
+| 9.20 | `CabsPage.tsx` — BOOK CAB button wired | ✅ | Navigates to `/cabs/book` with cab + pickupTime + origin/destination state |
+| 9.21 | `AppRouter.tsx` — transport booking routes added | ✅ | `/buses/book`, `/trains/book`, `/cabs/book` |
+| 9.22 | `BookingDetailPage.tsx` — transport detail display | ✅ | Type-aware icon, operator, vehicle type, amenities, route, times |
+
 
 ---
 

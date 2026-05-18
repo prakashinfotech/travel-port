@@ -703,4 +703,112 @@ public class SmtpEmailService : IEmailService
             _logger.LogError(ex, "Email send failed — To: {To}, Subject: {Subject}", toEmail, subject);
         }
     }
+
+    public async Task SendTransportBookingConfirmationAsync(
+        string toEmail, string toName, string bookingRef, string transportType,
+        string operatorName, string vehicleType,
+        string origin, string destination,
+        string departureTime, string arrivalTime, string duration,
+        int passengers, decimal unitPrice, decimal subtotal, decimal discount,
+        string? couponCode, decimal finalAmount,
+        CancellationToken ct = default)
+    {
+        var iconMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Bus"]   = "🚌",
+            ["Train"] = "🚂",
+            ["Cab"]   = "🚕",
+        };
+        var icon       = iconMap.TryGetValue(transportType, out var ic) ? ic : "🎫";
+        var accentColor = transportType.ToLower() switch
+        {
+            "bus"   => "#16a34a",
+            "train" => "#2563eb",
+            "cab"   => "#d97706",
+            _       => "#6366f1",
+        };
+
+        var subject = $"{icon} {transportType} Booking Confirmed — {bookingRef}";
+        var body = $"""
+            {EmailHead()}
+            <body style="margin:0;padding:0;background-color:#f3f4f6;font-family:Arial,Helvetica,sans-serif">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" style="padding:24px 16px">
+                    <table width="600" cellpadding="0" cellspacing="0" border="0"
+                           style="background-color:#ffffff;border-radius:12px;overflow:hidden">
+
+                      {TopBar(accentColor,
+                          $"{icon} {transportType} Booking Confirmed!",
+                          $"Your {transportType.ToLower()} has been booked successfully.")}
+
+                      <tr>
+                        <td style="padding:24px 32px">
+                          {RefBadge(bookingRef)}
+
+                          {SectionTitle("JOURNEY DETAILS")}
+                          <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                                 style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
+                            {InfoRow("From", origin, false)}
+                            {InfoRow("To", destination, true)}
+                            {InfoRow("Departure", departureTime, false)}
+                            {InfoRow("Arrival", arrivalTime, true)}
+                            {InfoRow("Duration", duration, false)}
+                            {InfoRow("Operator / Service", operatorName, true)}
+                            {InfoRow("Vehicle / Class", vehicleType, false)}
+                            {InfoRow("Passengers", passengers.ToString(), true)}
+                          </table>
+
+                          {SectionTitle("PASSENGER DETAILS")}
+                          <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                                 style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
+                            {InfoRow("Passenger Name", toName, false)}
+                          </table>
+
+                          {SectionTitle("FARE SUMMARY")}
+                          <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                                 style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
+                            {InfoRow($"Base Fare × {passengers}", $"₹{unitPrice:N0} × {passengers}", false)}
+                            {InfoRow("Subtotal", $"₹{subtotal:N0}", true)}
+                            {(discount > 0 ? InfoRow($"Coupon ({couponCode})", $"- ₹{discount:N0}", false) : "")}
+                            <tr style="background-color:{accentColor}">
+                              <td style="padding:12px 14px;font-size:14px;color:#ffffff;font-weight:700">
+                                Amount Paid
+                              </td>
+                              <td style="padding:12px 14px;font-size:16px;color:#ffffff;font-weight:800;text-align:right">
+                                ₹{finalAmount:N0}
+                              </td>
+                            </tr>
+                          </table>
+
+                          <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                                 style="background-color:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;margin-top:20px">
+                            <tr>
+                              <td style="padding:16px 20px;font-size:13px;color:#15803d">
+                                ✅ Your booking is confirmed. You can view or cancel it from the My Bookings section.
+                              </td>
+                            </tr>
+                          </table>
+
+                          <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                                 style="background-color:#f9fafb;border-top:1px solid #e5e7eb;margin-top:32px">
+                            <tr>
+                              <td style="padding:20px 32px;text-align:center;font-size:12px;color:#9ca3af">
+                                © {DateTime.UtcNow.Year} TravelPort · India's Smart Travel Booking Portal<br>
+                                Need help? Contact support@travelport.in
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </body>
+            </html>
+            """;
+
+        await SendAsync(toEmail, toName, subject, body, ct);
+    }
 }

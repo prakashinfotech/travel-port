@@ -1,31 +1,9 @@
+using TravelPort.Application.Common.Interfaces;
+using TravelPort.Application.DTOs.Transport;
+
 namespace TravelPort.Infrastructure.ExternalProviders.Transport;
 
-public record CabSearchRequest(
-    string Origin,
-    string Destination,
-    DateTime PickupDateTime,
-    string TripType = "OneWay",   // OneWay, Outstation, RoundTrip, Local
-    int Page = 1,
-    int PageSize = 20
-);
-
-public record CabDto(
-    string Id,
-    string Provider,
-    string CabType,           // Mini, Sedan, SUV, Prime
-    string CarModel,
-    int Capacity,
-    decimal Price,
-    decimal PricePerKm,
-    int EstimatedDurationMinutes,
-    double EstimatedDistanceKm,
-    bool AcAvailable,
-    bool DriverIncluded,
-    string CancellationPolicy,
-    string? ImageUrl
-);
-
-public class CabSearchProvider
+public class CabSearchProvider : ICabSearchProvider
 {
     private static readonly (string Provider, string Type, string Model, int Cap, decimal Base, decimal PerKm)[] CabOptions =
     [
@@ -45,10 +23,14 @@ public class CabSearchProvider
 
     private static readonly Dictionary<(string, string), double> RouteDistances = new()
     {
-        [("Mumbai", "Pune")]     = 148, [("Delhi", "Agra")]         = 206,
-        [("Bangalore", "Mysore")]= 144, [("Hyderabad", "Vijayawada")]= 270,
-        [("Chennai", "Pondicherry")] = 154, [("Jaipur", "Jodhpur")] = 332,
-        [("Ahmedabad", "Surat")] = 266, [("Kolkata", "Digha")]      = 185,
+        [("Mumbai", "Pune")]            = 148,
+        [("Delhi", "Agra")]             = 206,
+        [("Bangalore", "Mysore")]       = 144,
+        [("Hyderabad", "Vijayawada")]   = 270,
+        [("Chennai", "Pondicherry")]    = 154,
+        [("Jaipur", "Jodhpur")]         = 332,
+        [("Ahmedabad", "Surat")]        = 266,
+        [("Kolkata", "Digha")]          = 185,
     };
 
     public (List<CabDto> Items, int Total) Search(CabSearchRequest req)
@@ -64,7 +46,7 @@ public class CabSearchProvider
         {
             var totalPrice = basePrice + (decimal)(dist * (double)perKm) + rng.Next(-200, 300);
             if (totalPrice < basePrice) totalPrice = basePrice;
-            var duration   = (int)(dist / 60 * 60 + rng.Next(10, 30)); // ~60 km/h avg
+            var duration   = (int)(dist / 60 * 60 + rng.Next(10, 30));
 
             cabs.Add(new CabDto(
                 Id:                      $"CAB_{prov}_{type}_{req.PickupDateTime:yyyyMMdd}_{cabs.Count}",

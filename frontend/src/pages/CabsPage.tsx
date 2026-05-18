@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Car, Clock, MapPin, Users, Filter, Shield } from 'lucide-react'
 import { api } from '@/api/axios'
 import { endpoints } from '@/api/endpoints'
@@ -25,6 +25,7 @@ export default function CabsPage() {
   now.setMinutes(now.getMinutes() + 30)
   const defaultPickup = now.toISOString().slice(0, 16)
 
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [origin, setOrigin]       = useState(searchParams.get('origin') || 'Mumbai')
   const [destination, setDest]    = useState(searchParams.get('destination') || 'Pune')
@@ -188,7 +189,12 @@ export default function CabsPage() {
                       <div className="text-right shrink-0">
                         <p className="text-2xl font-bold text-gray-800">₹{cab.price.toLocaleString()}</p>
                         <p className="text-xs text-gray-500 mb-2">estimated total</p>
-                        <button className="bg-yellow-500 text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-yellow-600 transition">
+                        <button
+                          onClick={() => navigate('/cabs/book', {
+                            state: { cab, pickupTime: pickup, origin, destination }
+                          })}
+                          className="bg-yellow-500 text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-yellow-600 transition"
+                        >
                           BOOK CAB
                         </button>
                       </div>
