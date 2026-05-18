@@ -856,7 +856,7 @@ export default function FlightsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Search bar */}
-      <div className="bg-blue-800 py-5 px-4 shadow-md">
+      <div className="py-5 px-4 shadow-md" style={{ background: 'linear-gradient(135deg, #0c1445 0%, #1e3a8a 40%, #0369a1 100%)' }}>
         {/* Trip type */}
         <div className="mx-auto max-w-6xl mb-3 flex gap-4">
           {(['oneway', 'roundtrip'] as TripType[]).map(t => (
@@ -941,7 +941,7 @@ export default function FlightsPage() {
                 className="flex items-center gap-2 rounded-full px-10 py-3 font-bold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-100 disabled:opacity-70 disabled:cursor-not-allowed"
                 style={{ background: 'linear-gradient(90deg, #1a56db, #f97316)' }}
               >
-                <Search className="h-5 w-5" /> {loading ? 'Searching...' : 'Search Flights'}
+                <Search className="h-5 w-5" /> {loading ? 'Searching...' : 'Search'}
               </button>
             </div>
           </div>

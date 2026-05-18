@@ -11,6 +11,7 @@ import { formatCurrency } from '@/utils/formatters'
 import { PaymentMethodSelector } from '@/components/common/PaymentMethodSelector'
 import { AddCardModal } from '@/components/common/AddCardModal'
 import type { PaymentChoice } from '@/components/common/PaymentMethodSelector'
+import { SavedTravellerPicker } from '@/components/common/SavedTravellerPicker'
 import { useAppSelector } from '@/hooks/useAppDispatch'
 import { userService } from '@/services/userService'
 import { useEffect } from 'react'
@@ -56,7 +57,7 @@ export default function BookTrainPage() {
   const [paymentChoice, setPaymentChoice] = useState<PaymentChoice>({ type: 'new_card' })
   const [showAddCard, setShowAddCard]     = useState(false)
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { email: authUser?.email ?? '', firstName: authUser?.name?.split(' ')[0] ?? '' },
   })
@@ -201,6 +202,17 @@ export default function BookTrainPage() {
               <Users size={18} className="text-blue-700" />
               Passenger Details
             </h3>
+            {isLoggedIn && (
+              <SavedTravellerPicker
+                accentColor="blue"
+                onFill={d => {
+                  setValue('firstName', d.firstName)
+                  setValue('lastName', d.lastName)
+                  setValue('email', d.email)
+                  setValue('phone', d.phone)
+                }}
+              />
+            )}
             <form id="book-form" onSubmit={handleSubmit(onSubmit)}>
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>

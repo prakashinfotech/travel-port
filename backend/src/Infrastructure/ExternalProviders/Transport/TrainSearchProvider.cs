@@ -79,7 +79,34 @@ public class TrainSearchProvider : ITrainSearchProvider
     private static readonly string[] RunDayOptions =
         ["Daily", "Daily", "Mon, Wed, Fri, Sun", "Tue, Thu, Sat", "Mon, Tue, Wed, Thu, Fri", "Sat, Sun"];
 
-    public (List<TrainDto> Items, int Total) Search(TrainSearchRequest req)
+    private static readonly Dictionary<string, string> RouteStops = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["BOM-DEL"] = "Surat · Vadodara · Ahmedabad · Jaipur",
+        ["DEL-BOM"] = "Jaipur · Ahmedabad · Vadodara · Surat",
+        ["BOM-BLR"] = "Pune · Kolhapur · Hubli",
+        ["BLR-BOM"] = "Hubli · Kolhapur · Pune",
+        ["BOM-HYD"] = "Pune · Solapur · Gulbarga",
+        ["HYD-BOM"] = "Gulbarga · Solapur · Pune",
+        ["BOM-MAA"] = "Pune · Kolhapur · Guntakal",
+        ["MAA-BOM"] = "Guntakal · Kolhapur · Pune",
+        ["DEL-BLR"] = "Mathura · Agra · Jhansi · Nagpur · Hyderabad",
+        ["BLR-DEL"] = "Hyderabad · Nagpur · Jhansi · Agra · Mathura",
+        ["DEL-HYD"] = "Agra · Jhansi · Nagpur",
+        ["HYD-DEL"] = "Nagpur · Jhansi · Agra",
+        ["DEL-CCU"] = "Kanpur · Allahabad · Varanasi · Dhanbad",
+        ["CCU-DEL"] = "Dhanbad · Varanasi · Allahabad · Kanpur",
+        ["DEL-AMD"] = "Jaipur · Abu Road",
+        ["AMD-DEL"] = "Abu Road · Jaipur",
+        ["BOM-PNQ"] = "Kalyan · Lonavala",
+        ["PNQ-BOM"] = "Lonavala · Kalyan",
+        ["BLR-MAA"] = "Jolarpettai · Vellore",
+        ["MAA-BLR"] = "Vellore · Jolarpettai",
+        ["DEL-LKO"] = "Kanpur",
+        ["LKO-DEL"] = "Kanpur",
+    };
+
+    public (List<TrainDto> Items, int Total) Search(
+        TrainSearchRequest req, Dictionary<string, int>? seatDeductions = null)
     {
         var routeKey = $"{req.Origin[..Math.Min(3, req.Origin.Length)]}-{req.Destination[..Math.Min(3, req.Destination.Length)]}".ToUpper();
         var seed     = HashCode.Combine(req.Origin, req.Destination, req.TravelDate.DayOfYear);
@@ -87,6 +114,7 @@ public class TrainSearchProvider : ITrainSearchProvider
 
         var baseDur     = RouteDuration.TryGetValue(routeKey, out var d) ? d : rng.Next(180, 1800);
         var priceFactor = Math.Max(0.5m, baseDur / 600m);
+        var stops       = RouteStops.TryGetValue(routeKey, out var s) ? s : null;
 
         var count  = rng.Next(6, 15);
         var trains = new List<TrainDto>(count);
@@ -95,6 +123,7 @@ public class TrainSearchProvider : ITrainSearchProvider
         for (int i = 0; i < count; i++)
         {
             var t        = shuffled[i % shuffled.Length];
+            var trainId  = $"TRAIN_{t.Number}_{req.TravelDate:yyyyMMdd}_{i}";
             var hour     = rng.Next(4, 23);
             var dur      = baseDur + rng.Next(-30, 60);
             var dep      = req.TravelDate.Date.AddHours(hour).AddMinutes(rng.Next(0, 4) * 15);
@@ -104,32 +133,35 @@ public class TrainSearchProvider : ITrainSearchProvider
             var classes = new Dictionary<string, TrainClassDto>();
             for (int c = 0; c < ClassNames.Length; c++)
             {
-                var cls   = ClassNames[c];
-                var seats = rng.Next(0, 60);
-                var price = Math.Round(BasePrices[c] * priceFactor + rng.Next(-100, 200), 0);
+                var cls        = ClassNames[c];
+                var baseSeats  = rng.Next(0, 60);
+                var booked     = seatDeductions?.GetValueOrDefault($"{trainId}_{cls}") ?? 0;
+                var seats      = Math.Max(0, baseSeats - booked);
+                var price      = Math.Round(BasePrices[c] * priceFactor + rng.Next(-100, 200), 0);
                 string av;
                 if (seats == 0)         av = "REGRET";
                 else if (seats < 5)     av = $"WL-{rng.Next(1, 20)}";
                 else if (seats < 12)    av = $"RAC-{rng.Next(1, 10)}";
-                else                    av = AvailStates[rng.Next(AvailStates.Length)];
+                else                    av = "AVAILABLE";
 
                 classes[cls] = new TrainClassDto(cls, seats, price, av);
             }
 
             trains.Add(new TrainDto(
-                Id:              $"TRAIN_{t.Number}_{req.TravelDate:yyyyMMdd}_{i}",
-                TrainNumber:     t.Number,
-                TrainName:       t.Name,
-                Origin:          req.Origin,
-                Destination:     req.Destination,
-                DepartureTime:   dep,
-                ArrivalTime:     arr,
-                DurationMinutes: dur,
-                Classes:         classes,
-                RunsOnDate:      true,
-                RunningDays:     runDays,
-                AvailableSeats:  classes.TryGetValue(req.Class, out var cl) ? cl.AvailableSeats : 0,
-                IsTatkal:        rng.Next(6) == 0
+                Id:                trainId,
+                TrainNumber:       t.Number,
+                TrainName:         t.Name,
+                Origin:            req.Origin,
+                Destination:       req.Destination,
+                DepartureTime:     dep,
+                ArrivalTime:       arr,
+                DurationMinutes:   dur,
+                Classes:           classes,
+                RunsOnDate:        true,
+                RunningDays:       runDays,
+                AvailableSeats:    classes.TryGetValue(req.Class, out var cl) ? cl.AvailableSeats : 0,
+                IsTatkal:          rng.Next(6) == 0,
+                IntermediateStops: stops
             ));
         }
 

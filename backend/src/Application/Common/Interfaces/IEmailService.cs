@@ -39,5 +39,10 @@ public interface IEmailService
         string departureTime, string arrivalTime, string duration,
         int passengers, decimal unitPrice, decimal subtotal, decimal discount,
         string? couponCode, decimal finalAmount,
+        string? pickupAddress = null, string? driverName = null, string? cabNumber = null,
+        string? companyPhone = null, decimal? driverRating = null,
+        string? pnr = null, string? coachNumber = null, string? seatNumbers = null, string? berthType = null,
+        string? busNumber = null, string? driverPhone = null,
+        string? boardingPoint = null, string? droppingPoint = null,
         CancellationToken ct = default);
 }

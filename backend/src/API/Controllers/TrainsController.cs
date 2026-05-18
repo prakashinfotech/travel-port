@@ -14,9 +14,10 @@ public class TrainsController : BaseApiController
     public TrainsController(ITrainService trains) => _trains = trains;
 
     [HttpGet("search")]
-    public ActionResult<ApiResponse<List<TrainDto>>> Search([FromQuery] TrainSearchRequest req)
+    public async Task<ActionResult<ApiResponse<List<TrainDto>>>> Search(
+        [FromQuery] TrainSearchRequest req, CancellationToken ct)
     {
-        var (items, total) = _trains.Search(req);
+        var (items, total) = await _trains.SearchAsync(req, ct);
         return Ok(ApiResponse<List<TrainDto>>.Paged(items, req.Page, req.PageSize, total));
     }
 

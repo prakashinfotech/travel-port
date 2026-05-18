@@ -34,6 +34,13 @@ public class CabService : ICabService
     public (List<CabDto> Items, int Total) Search(CabSearchRequest request)
         => _provider.Search(request);
 
+    private static readonly string[] _driverNames =
+    [
+        "Rajesh Kumar", "Amit Singh", "Suresh Patel", "Vikram Sharma",
+        "Rohit Verma", "Sanjay Gupta", "Manoj Yadav", "Dinesh Joshi",
+        "Pradeep Mishra", "Arun Pandey", "Naveen Chauhan", "Kiran Nair",
+    ];
+
     public async Task<BookingCreatedResponse> BookAsync(Guid userId, BookCabRequest req, CancellationToken ct = default)
     {
         var total = req.Price;
@@ -63,6 +70,12 @@ public class CabService : ICabService
         if (req.UseWallet)
             await _wallet.DeductAsync(userId, finalAmount, $"Cab booking {bookingRef}", Guid.NewGuid(), ct);
 
+        var refHash    = Math.Abs(bookingRef.GetHashCode());
+        var driverName = _driverNames[refHash % _driverNames.Length];
+        var district   = refHash % 31 + 1;
+        var serial     = refHash % 9000 + 1000;
+        var cabNumber  = $"MH {district:D2} {serial:D4}";
+
         var snapshot = new TransportSnapshot(
             OperatorName:    req.Provider,
             VehicleType:     req.CabType,
@@ -72,7 +85,12 @@ public class CabService : ICabService
             ArrivalTime:     req.PickupDateTime.AddMinutes(req.DurationMinutes),
             DurationMinutes: req.DurationMinutes,
             CarModel:        req.CarModel,
-            DistanceKm:      req.DistanceKm
+            DistanceKm:      req.DistanceKm,
+            PickupAddress:   req.PickupAddress,
+            DriverName:      driverName,
+            CabNumber:       cabNumber,
+            CompanyPhone:    req.CompanyPhone,
+            DriverRating:    req.DriverRating
         );
 
         var booking = new Booking
@@ -114,7 +132,10 @@ public class CabService : ICabService
                     $"{req.Provider} {req.CabType} ({req.CarModel})", $"{req.DistanceKm:F1} km",
                     req.Origin, req.Destination,
                     pickup, dropoff, dur,
-                    1, req.Price, total, discount, req.CouponCode, finalAmount, ct);
+                    1, req.Price, total, discount, req.CouponCode, finalAmount,
+                    pickupAddress: req.PickupAddress, driverName: driverName, cabNumber: cabNumber,
+                    companyPhone: req.CompanyPhone, driverRating: req.DriverRating,
+                    ct: ct);
             }
         }
 

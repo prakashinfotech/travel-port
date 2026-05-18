@@ -11,5 +11,20 @@ public record TransportSnapshot(
     string? Amenities = null,
     string? CarModel = null,
     double? DistanceKm = null,
-    string? VehicleClass = null
+    string? VehicleClass = null,
+    string? PickupAddress = null,
+    string? DriverName = null,
+    string? CabNumber = null,
+    string? CompanyPhone = null,
+    decimal? DriverRating = null,
+    string? TrainId = null,
+    string? Pnr = null,
+    string? CoachNumber = null,
+    string? SeatNumbers = null,
+    string? BerthType = null,
+    string? IntermediateStops = null,
+    string? BusNumber = null,
+    string? DriverPhone = null,
+    string? BoardingPoint = null,
+    string? DroppingPoint = null
 );

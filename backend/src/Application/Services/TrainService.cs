@@ -31,8 +31,30 @@ public class TrainService : ITrainService
         _coupons = coupons;
     }
 
-    public (List<TrainDto> Items, int Total) Search(TrainSearchRequest request)
-        => _provider.Search(request);
+    private static readonly string[] _berthTypes = ["LOWER", "MIDDLE", "UPPER", "SIDE LOWER", "SIDE UPPER"];
+    private static readonly string[] _coachPrefixes = ["S", "B", "A", "H", "C"];
+
+    public async Task<(List<TrainDto> Items, int Total)> SearchAsync(
+        TrainSearchRequest request, CancellationToken ct = default)
+    {
+        var existingBookings = await _bookings.GetTrainBookingsForDateAsync(request.TravelDate, ct);
+
+        var deductions = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var b in existingBookings)
+        {
+            if (string.IsNullOrWhiteSpace(b.TransportSnapshot)) continue;
+            try
+            {
+                var snap = System.Text.Json.JsonSerializer.Deserialize<TransportSnapshot>(b.TransportSnapshot);
+                if (snap?.TrainId == null || snap?.VehicleClass == null) continue;
+                var key = $"{snap.TrainId}_{snap.VehicleClass}";
+                deductions[key] = deductions.GetValueOrDefault(key) + (b.Passengers ?? 1);
+            }
+            catch { /* ignore deserialization errors */ }
+        }
+
+        return _provider.Search(request, deductions);
+    }
 
     public async Task<BookingCreatedResponse> BookAsync(Guid userId, BookTrainRequest req, CancellationToken ct = default)
     {
@@ -63,6 +85,17 @@ public class TrainService : ITrainService
         if (req.UseWallet)
             await _wallet.DeductAsync(userId, finalAmount, $"Train booking {bookingRef}", Guid.NewGuid(), ct);
 
+        var refHash    = Math.Abs(bookingRef.GetHashCode());
+        var pnr        = $"{(char)('A' + refHash % 26)}{(char)('A' + (refHash / 26) % 26)}{refHash % 10000000:D7}";
+        var coachPrefix= _coachPrefixes[refHash % _coachPrefixes.Length];
+        var coachNum   = refHash % 12 + 1;
+        var coachNumber= $"{coachPrefix}{coachNum}";
+        var startSeat  = refHash % 70 + 1;
+        var seatNumbers= req.Passengers == 1
+            ? startSeat.ToString()
+            : string.Join(", ", Enumerable.Range(startSeat, req.Passengers).Select(s => s.ToString()));
+        var berthType  = _berthTypes[refHash % _berthTypes.Length];
+
         var snapshot = new TransportSnapshot(
             OperatorName:    $"{req.TrainNumber} {req.TrainName}",
             VehicleType:     req.Class,
@@ -71,7 +104,12 @@ public class TrainService : ITrainService
             DepartureTime:   req.DepartureTime,
             ArrivalTime:     req.ArrivalTime,
             DurationMinutes: req.DurationMinutes,
-            VehicleClass:    req.Class
+            VehicleClass:    req.Class,
+            TrainId:         req.TrainId,
+            Pnr:             pnr,
+            CoachNumber:     coachNumber,
+            SeatNumbers:     seatNumbers,
+            BerthType:       berthType
         );
 
         var booking = new Booking
@@ -112,7 +150,9 @@ public class TrainService : ITrainService
                     req.DepartureTime.ToString("dd MMM yyyy, hh:mm tt"),
                     req.ArrivalTime.ToString("dd MMM yyyy, hh:mm tt"),
                     $"{req.DurationMinutes / 60}h {req.DurationMinutes % 60}m",
-                    req.Passengers, req.Price, total, discount, req.CouponCode, finalAmount, ct);
+                    req.Passengers, req.Price, total, discount, req.CouponCode, finalAmount,
+                    pnr: pnr, coachNumber: coachNumber, seatNumbers: seatNumbers, berthType: berthType,
+                    ct: ct);
             }
         }
 

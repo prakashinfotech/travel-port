@@ -17,5 +17,11 @@ public record BookBusRequest(
     Guid? SavedCardId = null,
     string? GuestName = null,
     string? GuestEmail = null,
-    string? GuestPhone = null
+    string? GuestPhone = null,
+    string? SelectedSeats = null,
+    string? BoardingPoint = null,
+    string? DroppingPoint = null,
+    string? AdditionalInfo = null,
+    string? BusNumber = null,
+    string? DriverPhone = null
 );

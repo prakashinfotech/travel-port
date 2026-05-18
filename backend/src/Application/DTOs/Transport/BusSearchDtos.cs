@@ -23,5 +23,11 @@ public record BusDto(
     bool AcAvailable,
     bool IsRefundable,
     string Amenities,
-    decimal Rating
+    decimal Rating,
+    string? IntermediateStops = null,
+    string? BusNumber = null,
+    string? DriverPhone = null,
+    string? BoardingPoints = null,
+    string? DroppingPoints = null,
+    int TotalSeats = 40
 );

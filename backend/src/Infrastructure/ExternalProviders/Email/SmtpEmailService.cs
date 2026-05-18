@@ -711,6 +711,11 @@ public class SmtpEmailService : IEmailService
         string departureTime, string arrivalTime, string duration,
         int passengers, decimal unitPrice, decimal subtotal, decimal discount,
         string? couponCode, decimal finalAmount,
+        string? pickupAddress = null, string? driverName = null, string? cabNumber = null,
+        string? companyPhone = null, decimal? driverRating = null,
+        string? pnr = null, string? coachNumber = null, string? seatNumbers = null, string? berthType = null,
+        string? busNumber = null, string? driverPhone = null,
+        string? boardingPoint = null, string? droppingPoint = null,
         CancellationToken ct = default)
     {
         var iconMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -751,13 +756,48 @@ public class SmtpEmailService : IEmailService
                                  style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
                             {InfoRow("From", origin, false)}
                             {InfoRow("To", destination, true)}
-                            {InfoRow("Departure", departureTime, false)}
-                            {InfoRow("Arrival", arrivalTime, true)}
-                            {InfoRow("Duration", duration, false)}
-                            {InfoRow("Operator / Service", operatorName, true)}
-                            {InfoRow("Vehicle / Class", vehicleType, false)}
-                            {InfoRow("Passengers", passengers.ToString(), true)}
+                            {(pickupAddress != null ? InfoRow("Pickup Address", pickupAddress, false) : "")}
+                            {InfoRow("Departure", departureTime, pickupAddress == null)}
+                            {InfoRow("Arrival", arrivalTime, pickupAddress != null)}
+                            {InfoRow("Duration", duration, pickupAddress == null)}
+                            {InfoRow("Operator / Service", operatorName, pickupAddress != null)}
+                            {InfoRow("Vehicle / Class", vehicleType, pickupAddress == null)}
+                            {InfoRow("Passengers", passengers.ToString(), pickupAddress != null)}
                           </table>
+
+                          {(transportType.Equals("Train", StringComparison.OrdinalIgnoreCase) && pnr != null ? $"""
+                          {SectionTitle("TICKET DETAILS")}
+                          <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                                 style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
+                            {InfoRow("PNR Number", pnr!, false)}
+                            {(coachNumber != null ? InfoRow("Coach",       coachNumber!, true)  : "")}
+                            {(seatNumbers != null ? InfoRow("Seat(s)",     seatNumbers!, false) : "")}
+                            {(berthType   != null ? InfoRow("Berth Type",  berthType!,   true)  : "")}
+                          </table>
+                          """ : "")}
+
+                          {(transportType.Equals("Bus", StringComparison.OrdinalIgnoreCase) && (busNumber != null || seatNumbers != null) ? $"""
+                          {SectionTitle("BUS TICKET DETAILS")}
+                          <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                                 style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
+                            {(busNumber     != null ? InfoRow("Bus Number",      busNumber,    false) : "")}
+                            {(seatNumbers   != null ? InfoRow("Seat(s)",         seatNumbers,  true)  : "")}
+                            {(boardingPoint != null ? InfoRow("Boarding Point",  boardingPoint, false) : "")}
+                            {(droppingPoint != null ? InfoRow("Dropping Point",  droppingPoint, true)  : "")}
+                            {(driverPhone   != null ? InfoRow("Driver Contact",  driverPhone,  false) : "")}
+                          </table>
+                          """ : "")}
+
+                          {(transportType.Equals("Cab", StringComparison.OrdinalIgnoreCase) && (driverName != null || cabNumber != null) ? $"""
+                          {SectionTitle("CAB DETAILS")}
+                          <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                                 style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
+                            {(driverName    != null ? InfoRow("Driver Name",     driverName,    false) : "")}
+                            {(cabNumber     != null ? InfoRow("Cab Number",      cabNumber,     true)  : "")}
+                            {(driverRating  != null ? InfoRow("Driver Rating",   $"⭐ {driverRating:F1} / 5.0", false) : "")}
+                            {(companyPhone  != null ? InfoRow("Company Helpline", companyPhone, true)  : "")}
+                          </table>
+                          """ : "")}
 
                           {SectionTitle("PASSENGER DETAILS")}
                           <table width="100%" cellpadding="0" cellspacing="0" border="0"

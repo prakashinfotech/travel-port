@@ -4,5 +4,5 @@ namespace TravelPort.Application.Common.Interfaces;
 
 public interface ITrainSearchProvider
 {
-    (List<TrainDto> Items, int Total) Search(TrainSearchRequest request);
+    (List<TrainDto> Items, int Total) Search(TrainSearchRequest request, Dictionary<string, int>? seatDeductions = null);
 }

@@ -77,4 +77,13 @@ public class BookingRepository : BaseRepository<Booking>, IBookingRepository
             .ToListAsync(cancellationToken);
         return (items, total);
     }
+
+    public async Task<IReadOnlyList<Booking>> GetTrainBookingsForDateAsync(
+        DateTime travelDate, CancellationToken cancellationToken = default)
+        => await _dbSet
+            .Where(b => b.BookingType == BookingType.Train
+                     && b.Status != BookingStatus.Cancelled
+                     && b.CheckIn != null
+                     && b.CheckIn.Value.Date == travelDate.Date)
+            .ToListAsync(cancellationToken);
 }

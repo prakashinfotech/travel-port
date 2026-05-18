@@ -135,6 +135,12 @@ export interface BusDto {
   isRefundable: boolean
   amenities: string
   rating: number
+  intermediateStops?: string
+  busNumber?: string
+  driverPhone?: string
+  boardingPoints?: string
+  droppingPoints?: string
+  totalSeats?: number
 }
 
 // ── Trains ────────────────────────────────────────────────────────────────────
@@ -168,6 +174,7 @@ export interface TrainDto {
   runningDays: string
   availableSeats: number
   isTatkal: boolean
+  intermediateStops?: string
 }
 
 // ── Cabs ──────────────────────────────────────────────────────────────────────
@@ -194,6 +201,9 @@ export interface CabDto {
   driverIncluded: boolean
   cancellationPolicy: string
   imageUrl?: string
+  companyPhone?: string
+  driverRating?: number
+  tollsIncluded?: boolean
 }
 
 // ── Payments ──────────────────────────────────────────────────────────────────
@@ -230,6 +240,12 @@ export interface BookBusRequest {
   guestName?: string
   guestEmail?: string
   guestPhone?: string
+  selectedSeats?: string
+  boardingPoint?: string
+  droppingPoint?: string
+  additionalInfo?: string
+  busNumber?: string
+  driverPhone?: string
 }
 
 export interface BookTrainRequest {
@@ -269,6 +285,9 @@ export interface BookCabRequest {
   guestName?: string
   guestEmail?: string
   guestPhone?: string
+  pickupAddress?: string
+  companyPhone?: string
+  driverRating?: number
 }
 
 // ── Bookings ──────────────────────────────────────────────────────────────────

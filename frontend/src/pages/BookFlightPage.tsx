@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { PaymentMethodSelector } from '@/components/common/PaymentMethodSelector'
 import { AddCardModal } from '@/components/common/AddCardModal'
 import type { PaymentChoice } from '@/components/common/PaymentMethodSelector'
+import { SavedTravellerPicker } from '@/components/common/SavedTravellerPicker'
 import { formatCurrency, formatDuration } from '@/utils/formatters'
 import { useAppSelector } from '@/hooks/useAppDispatch'
 
@@ -461,6 +462,21 @@ export default function BookFlightPage() {
                       </div>
                       <span className="text-sm font-semibold text-gray-500">{traveller.fullName.trim() ? 'Details added' : 'Pending details'}</span>
                     </div>
+
+                    {isLoggedIn && (
+                      <div className="px-5 pt-4">
+                        <SavedTravellerPicker
+                          accentColor="blue"
+                          onFill={d => {
+                            updateTraveller(index, { fullName: `${d.firstName} ${d.lastName}`.trim() })
+                            if (index === 0) {
+                              if (d.phone) setMobile(d.phone)
+                              if (d.email) setEmail(d.email)
+                            }
+                          }}
+                        />
+                      </div>
+                    )}
 
                     <div className="border-b border-amber-200 bg-amber-50 px-5 py-3 text-sm font-medium text-amber-800">
                       Important: Enter name as mentioned on your passport or Government approved IDs.

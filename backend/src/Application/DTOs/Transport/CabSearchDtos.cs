@@ -22,5 +22,8 @@ public record CabDto(
     bool AcAvailable,
     bool DriverIncluded,
     string CancellationPolicy,
-    string? ImageUrl
+    string? ImageUrl,
+    string? CompanyPhone = null,
+    decimal? DriverRating = null,
+    bool TollsIncluded = false
 );

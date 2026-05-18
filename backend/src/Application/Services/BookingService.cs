@@ -193,7 +193,11 @@ public class BookingService : IBookingService
                 snap.DepartureTime.ToString("dd MMM yyyy, hh:mm tt"),
                 snap.ArrivalTime.ToString("dd MMM yyyy, hh:mm tt"),
                 dur, passengers, unitPrice,
-                booking.TotalAmount, booking.DiscountAmount, booking.CouponCode, booking.FinalAmount, ct);
+                booking.TotalAmount, booking.DiscountAmount, booking.CouponCode, booking.FinalAmount,
+                pickupAddress: snap.PickupAddress, driverName: snap.DriverName, cabNumber: snap.CabNumber,
+                companyPhone: snap.CompanyPhone, driverRating: snap.DriverRating,
+                pnr: snap.Pnr, coachNumber: snap.CoachNumber, seatNumbers: snap.SeatNumbers, berthType: snap.BerthType,
+                ct: ct);
         }
     }
 

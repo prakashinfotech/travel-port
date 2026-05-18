@@ -16,5 +16,8 @@ public record BookCabRequest(
     Guid? SavedCardId = null,
     string? GuestName = null,
     string? GuestEmail = null,
-    string? GuestPhone = null
+    string? GuestPhone = null,
+    string? PickupAddress = null,
+    string? CompanyPhone = null,
+    decimal? DriverRating = null
 );

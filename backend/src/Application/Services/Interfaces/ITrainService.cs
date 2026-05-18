@@ -5,6 +5,6 @@ namespace TravelPort.Application.Services.Interfaces;
 
 public interface ITrainService
 {
-    (List<TrainDto> Items, int Total) Search(TrainSearchRequest request);
+    Task<(List<TrainDto> Items, int Total)> SearchAsync(TrainSearchRequest request, CancellationToken ct = default);
     Task<BookingCreatedResponse> BookAsync(Guid userId, BookTrainRequest request, CancellationToken ct = default);
 }

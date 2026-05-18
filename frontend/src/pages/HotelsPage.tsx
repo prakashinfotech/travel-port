@@ -492,7 +492,7 @@ export default function HotelsPage() {
     <div className="min-h-screen bg-gray-50">
 
       {/* ── Search Header ── */}
-      <div className="bg-orange-500 py-8 px-4">
+      <div className="py-8 px-4" style={{ background: 'linear-gradient(135deg, #7c2d12 0%, #c2410c 50%, #ea580c 100%)' }}>
         {/* Search form */}
         <form onSubmit={handleSearch} className="mx-auto max-w-6xl">
           <div className="rounded-2xl bg-white shadow-xl">

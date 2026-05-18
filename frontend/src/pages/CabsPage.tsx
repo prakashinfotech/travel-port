@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { Car, Clock, MapPin, Users, Filter, Shield } from 'lucide-react'
+import { Car, Clock, MapPin, Users, Filter, Star, Phone, Search } from 'lucide-react'
 import { api } from '@/api/axios'
 import { endpoints } from '@/api/endpoints'
 import type { CabDto, ApiResponse } from '@/types'
 import { CabCardSkeleton } from '@/components/ui/Skeleton'
+import { DatePickerInput } from '@/components/ui/DatePickerInput'
 
 const CITIES = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Hyderabad', 'Ahmedabad', 'Goa', 'Pune', 'Jaipur', 'Kolkata']
 const TRIP_TYPES = [
@@ -36,7 +37,9 @@ export default function CabsPage() {
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState('')
   const [searched, setSearched]   = useState(false)
-  const [filterAc, setFilterAc]   = useState(false)
+  const [filterAc, setFilterAc]         = useState(false)
+  const [filterCabType, setFilterCabType] = useState('')
+  const [filterProvider, setFilterProvider] = useState('')
   const [sortBy, setSortBy]       = useState<'price' | 'duration'>('price')
 
   useEffect(() => {
@@ -53,6 +56,8 @@ export default function CabsPage() {
       })
       let results = data.data ?? []
       if (filterAc) results = results.filter(c => c.acAvailable)
+      if (filterCabType) results = results.filter(c => c.cabType === filterCabType)
+      if (filterProvider) results = results.filter(c => c.provider === filterProvider)
       if (sortBy === 'duration') results = results.sort((a, b) => a.estimatedDurationMinutes - b.estimatedDurationMinutes)
       else results = results.sort((a, b) => a.price - b.price)
       setCabs(results)
@@ -68,7 +73,7 @@ export default function CabsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Search bar */}
-      <div className="bg-yellow-600 py-6 px-4">
+      <div className="py-6 px-4" style={{ background: 'linear-gradient(135deg, #78350f 0%, #b45309 50%, #d97706 100%)' }}>
         <div className="max-w-6xl mx-auto">
           <h1 className="text-white text-2xl font-bold mb-4 flex items-center gap-2">
             <Car className="w-6 h-6" /> Cab Booking
@@ -88,12 +93,15 @@ export default function CabsPage() {
                 {CITIES.map(c => <option key={c}>{c}</option>)}
               </select>
             </div>
-            <div className="flex-1 min-w-44">
-              <label className="block text-xs text-gray-500 mb-1">PICKUP DATE & TIME</label>
-              <input type="datetime-local" value={pickup}
-                onChange={e => setPickup(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500" />
-            </div>
+            <DatePickerInput
+              label="PICKUP DATE & TIME"
+              type="datetime-local"
+              value={pickup}
+              min={new Date().toISOString().slice(0, 16)}
+              onChange={setPickup}
+              accentColor="yellow"
+              className="flex-1 min-w-44"
+            />
             <div className="flex-1 min-w-36">
               <label className="block text-xs text-gray-500 mb-1">TRIP TYPE</label>
               <select value={tripType} onChange={e => setTripType(e.target.value)}
@@ -102,8 +110,8 @@ export default function CabsPage() {
               </select>
             </div>
             <button onClick={search}
-              className="bg-yellow-500 text-white px-8 py-2.5 rounded-lg font-semibold hover:bg-yellow-600 transition">
-              SEARCH CABS
+              className="flex items-center gap-2 bg-yellow-500 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-yellow-600 transition">
+              <Search className="w-4 h-4" /> Search
             </button>
           </div>
         </div>
@@ -122,7 +130,29 @@ export default function CabsPage() {
                 AC only
               </label>
             </div>
-            <div className="mt-4">
+            <div className="mt-3">
+              <label className="block text-xs text-gray-500 mb-1">Cab Type</label>
+              <select value={filterCabType} onChange={e => setFilterCabType(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm">
+                <option value="">All Types</option>
+                <option value="Mini">Mini</option>
+                <option value="Sedan">Sedan</option>
+                <option value="Prime">Prime</option>
+                <option value="SUV">SUV</option>
+              </select>
+            </div>
+            <div className="mt-3">
+              <label className="block text-xs text-gray-500 mb-1">Provider</label>
+              <select value={filterProvider} onChange={e => setFilterProvider(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm">
+                <option value="">All Providers</option>
+                <option value="Ola">Ola</option>
+                <option value="Uber">Uber</option>
+                <option value="Meru">Meru</option>
+                <option value="Zoom">Zoom</option>
+              </select>
+            </div>
+            <div className="mt-3">
               <label className="block text-xs text-gray-500 mb-1">Sort by</label>
               <select value={sortBy} onChange={e => setSortBy(e.target.value as typeof sortBy)}
                 className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm">
@@ -179,11 +209,20 @@ export default function CabsPage() {
                             <span className="flex items-center gap-1">
                               <Clock className="w-3 h-3" /> {formatDuration(cab.estimatedDurationMinutes)}
                             </span>
-                            <span className="flex items-center gap-1">
-                              <Shield className="w-3 h-3" /> {cab.cancellationPolicy}
-                            </span>
+                            {cab.driverRating && (
+                              <span className="flex items-center gap-1 text-amber-600 font-semibold">
+                                <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> {cab.driverRating.toFixed(1)}
+                              </span>
+                            )}
                           </div>
-                          <p className="text-xs text-gray-400 mt-1">₹{cab.pricePerKm}/km · Driver included</p>
+                          <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                            <span>₹{cab.pricePerKm}/km · Driver included</span>
+                            {cab.companyPhone && (
+                              <span className="flex items-center gap-1">
+                                <Phone className="w-3 h-3" />{cab.companyPhone}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <div className="text-right shrink-0">

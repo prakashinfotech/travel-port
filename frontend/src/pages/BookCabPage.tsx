@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
-import { ArrowLeft, Car, Clock, MapPin, Users, Tag, CreditCard, Shield, X } from 'lucide-react'
+import { ArrowLeft, Car, Clock, MapPin, Users, Tag, CreditCard, Shield, X, Star, Phone, AlertCircle, Info } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -11,16 +11,18 @@ import { formatCurrency } from '@/utils/formatters'
 import { PaymentMethodSelector } from '@/components/common/PaymentMethodSelector'
 import { AddCardModal } from '@/components/common/AddCardModal'
 import type { PaymentChoice } from '@/components/common/PaymentMethodSelector'
+import { SavedTravellerPicker } from '@/components/common/SavedTravellerPicker'
 import { useAppSelector } from '@/hooks/useAppDispatch'
 import { userService } from '@/services/userService'
 import { useEffect } from 'react'
 
 const schema = z.object({
-  firstName:  z.string().min(1, 'First name required'),
-  lastName:   z.string().min(1, 'Last name required'),
-  email:      z.string().email('Valid email required'),
-  phone:      z.string().min(10, 'Valid phone required'),
-  couponCode: z.string().optional(),
+  firstName:     z.string().min(1, 'First name required'),
+  lastName:      z.string().min(1, 'Last name required'),
+  email:         z.string().email('Valid email required'),
+  phone:         z.string().min(10, 'Valid phone required'),
+  pickupAddress: z.string().optional(),
+  couponCode:    z.string().optional(),
 })
 type FormValues = z.infer<typeof schema>
 
@@ -56,7 +58,7 @@ export default function BookCabPage() {
   const [paymentChoice, setPaymentChoice] = useState<PaymentChoice>({ type: 'new_card' })
   const [showAddCard, setShowAddCard]     = useState(false)
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { email: authUser?.email ?? '', firstName: authUser?.name?.split(' ')[0] ?? '' },
   })
@@ -125,6 +127,9 @@ export default function BookCabPage() {
         guestName:       `${values.firstName} ${values.lastName}`,
         guestEmail:      values.email,
         guestPhone:      values.phone,
+        pickupAddress:   values.pickupAddress || undefined,
+        companyPhone:    cab.companyPhone,
+        driverRating:    cab.driverRating,
       }
 
       const { data } = await api.post(endpoints.cabs.book, payload)
@@ -160,16 +165,37 @@ export default function BookCabPage() {
           {/* Ride summary */}
           <div className="bg-white rounded-xl border border-gray-200 p-4">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-14 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                <Car size={20} className="text-gray-400" />
+              <div className={`w-16 h-12 rounded-xl flex flex-col items-center justify-center shrink-0 ${
+                cab.provider === 'Ola'  ? 'bg-green-100'  :
+                cab.provider === 'Uber' ? 'bg-gray-900'   :
+                cab.provider === 'Meru' ? 'bg-teal-100'   : 'bg-orange-100'
+              }`}>
+                <Car size={20} className={
+                  cab.provider === 'Uber' ? 'text-white' : 'text-gray-700'
+                } />
+                <span className={`text-[9px] font-bold mt-0.5 ${
+                  cab.provider === 'Uber' ? 'text-white' : 'text-gray-600'
+                }`}>{cab.cabType.toUpperCase()}</span>
               </div>
-              <div>
+              <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-gray-800">{cab.provider}</span>
                   <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{cab.cabType}</span>
                   {cab.acAvailable && <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">AC</span>}
                 </div>
                 <p className="text-sm text-gray-500">{cab.carModel}</p>
+                <div className="flex items-center gap-3 mt-1">
+                  {cab.driverRating && (
+                    <span className="flex items-center gap-1 text-xs text-amber-600 font-semibold">
+                      <Star size={11} className="fill-amber-400 text-amber-400" />{cab.driverRating.toFixed(1)} driver rating
+                    </span>
+                  )}
+                  {cab.companyPhone && (
+                    <span className="flex items-center gap-1 text-xs text-gray-400">
+                      <Phone size={10} />{cab.companyPhone}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3 mt-3">
@@ -197,6 +223,17 @@ export default function BookCabPage() {
               <Users size={18} className="text-yellow-600" />
               Passenger Details
             </h3>
+            {isLoggedIn && (
+              <SavedTravellerPicker
+                accentColor="yellow"
+                onFill={d => {
+                  setValue('firstName', d.firstName)
+                  setValue('lastName', d.lastName)
+                  setValue('email', d.email)
+                  setValue('phone', d.phone)
+                }}
+              />
+            )}
             <form id="book-form" onSubmit={handleSubmit(onSubmit)}>
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
@@ -222,7 +259,52 @@ export default function BookCabPage() {
                   {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone.message}</p>}
                 </div>
               </div>
+              <div className="mt-4">
+                <label className="block text-sm text-gray-600 mb-1 flex items-center gap-1">
+                  <MapPin size={13} className="text-yellow-500" /> Pickup Address / Landmark
+                  <span className="text-gray-400 text-xs ml-1">(optional)</span>
+                </label>
+                <input
+                  {...register('pickupAddress')}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                  placeholder="e.g. Gate 3, Phoenix Mall, Navi Mumbai"
+                />
+              </div>
             </form>
+          </div>
+
+          {/* Journey info */}
+          <div className="bg-amber-50 rounded-xl border border-amber-200 p-4">
+            <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <Info size={18} className="text-amber-600" />
+              Journey Information
+            </h3>
+            <ul className="space-y-2 text-sm text-gray-600">
+              <li className="flex items-start gap-2">
+                <AlertCircle size={14} className="text-amber-500 mt-0.5 shrink-0" />
+                <span><strong>Toll charges not included</strong> — applicable tolls will be paid separately at the toll booth.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Shield size={14} className="text-green-500 mt-0.5 shrink-0" />
+                <span>Driver details will be shared <strong>1 hour before pickup</strong> via SMS/email.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Users size={14} className="text-blue-500 mt-0.5 shrink-0" />
+                <span>Luggage limit: <strong>2 bags per passenger</strong> (max 15 kg each).</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Clock size={14} className="text-gray-400 mt-0.5 shrink-0" />
+                <span>Waiting time: <strong>15 minutes free</strong>; ₹2/min charged thereafter.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Car size={14} className="text-red-400 mt-0.5 shrink-0" />
+                <span>No smoking inside the cab. Pets allowed only with prior consent.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <X size={14} className="text-red-500 mt-0.5 shrink-0" />
+                <span>Cancellation: <strong>free up to 1 hr before pickup</strong>; 50% charge within 1 hour.</span>
+              </li>
+            </ul>
           </div>
 
           {/* Coupon */}
@@ -296,6 +378,10 @@ export default function BookCabPage() {
               </div>
               <div className="flex justify-between text-gray-400 text-xs">
                 <span>₹{cab.pricePerKm}/km × {cab.estimatedDistanceKm} km</span>
+              </div>
+              <div className="flex justify-between text-amber-600 text-xs">
+                <span className="flex items-center gap-1"><AlertCircle size={10} /> Tolls not included</span>
+                <span>Pay at booth</span>
               </div>
               {discount > 0 && (
                 <div className="flex justify-between text-green-600">

@@ -73,7 +73,12 @@ public class BusService : IBusService
             DepartureTime:   req.DepartureTime,
             ArrivalTime:     req.ArrivalTime,
             DurationMinutes: req.DurationMinutes,
-            Amenities:       req.Amenities
+            Amenities:       req.Amenities,
+            SeatNumbers:     req.SelectedSeats,
+            BusNumber:       req.BusNumber,
+            DriverPhone:     req.DriverPhone,
+            BoardingPoint:   req.BoardingPoint,
+            DroppingPoint:   req.DroppingPoint
         );
 
         var booking = new Booking
@@ -114,7 +119,13 @@ public class BusService : IBusService
                     req.DepartureTime.ToString("dd MMM yyyy, hh:mm tt"),
                     req.ArrivalTime.ToString("dd MMM yyyy, hh:mm tt"),
                     $"{req.DurationMinutes / 60}h {req.DurationMinutes % 60}m",
-                    req.Seats, req.Price, total, discount, req.CouponCode, finalAmount, ct);
+                    req.Seats, req.Price, total, discount, req.CouponCode, finalAmount,
+                    seatNumbers:    req.SelectedSeats,
+                    busNumber:      req.BusNumber,
+                    driverPhone:    req.DriverPhone,
+                    boardingPoint:  req.BoardingPoint,
+                    droppingPoint:  req.DroppingPoint,
+                    ct: ct);
             }
         }
 

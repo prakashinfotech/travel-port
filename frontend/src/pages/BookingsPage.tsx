@@ -10,7 +10,7 @@ import { Link } from 'react-router-dom'
 const PAGE_SIZE = 10
 
 type StatusFilter = 'All' | 'Confirmed' | 'Cancelled'
-type TypeFilter   = 'All' | 'Flight' | 'Hotel'
+type TypeFilter   = 'All' | 'Flight' | 'Hotel' | 'Bus' | 'Train' | 'Cab'
 
 export default function BookingsPage() {
   const [bookings, setBookings] = useState<BookingDto[]>([])
@@ -99,8 +99,8 @@ export default function BookingsPage() {
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
-          {(['All', 'Flight', 'Hotel'] as TypeFilter[]).map(t => (
+        <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 flex-wrap">
+          {(['All', 'Flight', 'Hotel', 'Bus', 'Train', 'Cab'] as TypeFilter[]).map(t => (
             <button
               key={t}
               onClick={() => setTypeFilter(t)}

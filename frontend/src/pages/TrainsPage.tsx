@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { Train, Clock, Filter, AlertCircle, Users } from 'lucide-react'
+import { Train, Clock, Filter, AlertCircle, Users, MapPin, Search } from 'lucide-react'
 import { api } from '@/api/axios'
 import { endpoints } from '@/api/endpoints'
 import type { TrainDto, ApiResponse } from '@/types'
 import { TrainCardSkeleton } from '@/components/ui/Skeleton'
+import { DatePickerInput } from '@/components/ui/DatePickerInput'
 
 const CITIES = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Hyderabad', 'Ahmedabad', 'Goa', 'Pune', 'Jaipur', 'Kolkata']
 const CLASSES = [
@@ -48,6 +49,8 @@ export default function TrainsPage() {
   const [error, setError]             = useState('')
   const [searched, setSearched]       = useState(false)
   const [filterTatkal, setFilterTatkal] = useState(false)
+  const [filterDeptSlot, setFilterDeptSlot] = useState('')   // morning/afternoon/evening/night
+  const [filterMaxPrice, setFilterMaxPrice] = useState(0)
   const [sortBy, setSortBy]           = useState<'departure' | 'duration' | 'price'>('departure')
 
   useEffect(() => {
@@ -64,6 +67,21 @@ export default function TrainsPage() {
       })
       let results = data.data ?? []
       if (filterTatkal) results = results.filter(t => t.isTatkal)
+      if (filterDeptSlot) {
+        results = results.filter(t => {
+          const h = new Date(t.departureTime).getHours()
+          if (filterDeptSlot === 'morning')   return h >= 6  && h < 12
+          if (filterDeptSlot === 'afternoon') return h >= 12 && h < 17
+          if (filterDeptSlot === 'evening')   return h >= 17 && h < 21
+          if (filterDeptSlot === 'night')     return h >= 21 || h < 6
+          return true
+        })
+      }
+      if (filterMaxPrice > 0) {
+        results = results.filter(t =>
+          Object.values(t.classes).some(c => c.price <= filterMaxPrice)
+        )
+      }
       if (sortBy === 'duration') results = results.sort((a, b) => a.durationMinutes - b.durationMinutes)
       else if (sortBy === 'price') results = results.sort((a, b) => {
         const aPrice = Object.values(a.classes)[0]?.price ?? 0
@@ -84,7 +102,7 @@ export default function TrainsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Search bar */}
-      <div className="bg-blue-800 py-6 px-4">
+      <div className="py-6 px-4" style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 55%, #312e81 100%)' }}>
         <div className="max-w-6xl mx-auto">
           <h1 className="text-white text-2xl font-bold mb-4 flex items-center gap-2">
             <Train className="w-6 h-6" /> Train Tickets
@@ -104,12 +122,14 @@ export default function TrainsPage() {
                 {CITIES.map(c => <option key={c}>{c}</option>)}
               </select>
             </div>
-            <div className="flex-1 min-w-36">
-              <label className="block text-xs text-gray-500 mb-1">DATE</label>
-              <input type="date" value={date} min={today}
-                onChange={e => setDate(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
+            <DatePickerInput
+              label="DATE"
+              value={date}
+              min={today}
+              onChange={setDate}
+              accentColor="blue"
+              className="flex-1 min-w-36"
+            />
             <div className="flex-1 min-w-36">
               <label className="block text-xs text-gray-500 mb-1">CLASS</label>
               <select value={trainClass} onChange={e => setTrainClass(e.target.value)}
@@ -124,8 +144,8 @@ export default function TrainsPage() {
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <button onClick={search}
-              className="bg-blue-700 text-white px-8 py-2.5 rounded-lg font-semibold hover:bg-blue-800 transition">
-              SEARCH
+              className="flex items-center gap-2 bg-blue-700 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-blue-800 transition">
+              <Search className="w-4 h-4" /> Search
             </button>
           </div>
         </div>
@@ -144,7 +164,24 @@ export default function TrainsPage() {
                 Tatkal only
               </label>
             </div>
-            <div className="mt-4">
+            <div className="mt-3">
+              <label className="block text-xs text-gray-500 mb-1">Departure Time</label>
+              <select value={filterDeptSlot} onChange={e => setFilterDeptSlot(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm">
+                <option value="">Any Time</option>
+                <option value="morning">Morning (6AM–12PM)</option>
+                <option value="afternoon">Afternoon (12–5PM)</option>
+                <option value="evening">Evening (5–9PM)</option>
+                <option value="night">Night (9PM–6AM)</option>
+              </select>
+            </div>
+            <div className="mt-3">
+              <label className="block text-xs text-gray-500 mb-1">Max Price (₹)</label>
+              <input type="number" value={filterMaxPrice || ''} placeholder="e.g. 1200"
+                onChange={e => setFilterMaxPrice(Number(e.target.value))}
+                className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm" />
+            </div>
+            <div className="mt-3">
               <label className="block text-xs text-gray-500 mb-1">Sort by</label>
               <select value={sortBy} onChange={e => setSortBy(e.target.value as typeof sortBy)}
                 className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm">
@@ -200,6 +237,11 @@ export default function TrainsPage() {
                             </p>
                             <div className="h-px bg-gray-200 my-1" />
                             <p className="text-xs text-gray-400">{train.runningDays}</p>
+                            {train.intermediateStops && (
+                              <p className="text-xs text-blue-500 mt-1 flex items-center justify-center gap-0.5">
+                                <MapPin className="w-2.5 h-2.5" />via {train.intermediateStops}
+                              </p>
+                            )}
                           </div>
                           <div className="text-right">
                             <p className="text-lg font-bold">{formatTime(train.arrivalTime)}</p>
@@ -218,9 +260,11 @@ export default function TrainsPage() {
                           <p className={`text-xs mt-0.5 px-1.5 py-0.5 rounded-full inline-block font-medium ${availabilityColor(info.availability)}`}>
                             {info.availability}
                           </p>
-                          <p className="text-xs text-gray-400 mt-0.5 flex items-center justify-center gap-0.5">
-                            <Users className="w-3 h-3" />{info.availableSeats}
-                          </p>
+                          {info.availability === 'AVAILABLE' && info.availableSeats > 0 && (
+                            <p className="text-xs text-gray-400 mt-0.5 flex items-center justify-center gap-0.5">
+                              <Users className="w-3 h-3" />{info.availableSeats} seats
+                            </p>
+                          )}
                           {info.availability !== 'REGRET' && (
                             <button
                               onClick={() => navigate('/trains/book', {

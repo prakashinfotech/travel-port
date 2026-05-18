@@ -30,5 +30,6 @@ public record TrainDto(
     bool RunsOnDate,
     string RunningDays,
     int AvailableSeats,
-    bool IsTatkal
+    bool IsTatkal,
+    string? IntermediateStops = null
 );
