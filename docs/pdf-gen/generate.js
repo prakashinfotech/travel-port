@@ -338,11 +338,11 @@ function srsHTML() {
 
     <div class="sub-section">
       <h3>1.2 Scope</h3>
-      <p>TravelPort provides end-to-end travel booking capabilities including flight search and booking, paginated flight discovery, a lowest-fare date strip and fare calendar, hotel discovery and reservation, bus/train/cab search (deterministic mock), digital wallet, coupon system, toast-based user feedback, resilient error recovery, PDF invoice generation, and a role-based admin panel.</p>
+      <p>TravelPort provides end-to-end travel booking capabilities including: a multi-mode homepage (Flights / Hotels / Buses / Trains / Cabs) with per-mode hero gradients and form state; city autocomplete with 65 Indian cities; a themed DatePicker (no browser format, click-anywhere to open); flight search with Goibibo-style fare popup, date strip, and fare calendar; hotel discovery and reservation; full Bus/Train/Cab search with booking persistence (<code>TransportSnapshot</code> JSON column) and extended filter sidebars matching flight depth; digital wallet; coupon system; Saved Traveller quick-fill across all booking pages; toast notifications; resilient error recovery; PDF invoices; and a role-based admin and hotel-manager portal.</p>
       <div class="card-grid-3">
         <div class="stat-card"><div class="num">900+</div><div class="label">Seed Flights</div></div>
-        <div class="stat-card"><div class="num">60+</div><div class="label">Hotels</div></div>
-        <div class="stat-card"><div class="num">53+</div><div class="label">API Endpoints</div></div>
+        <div class="stat-card"><div class="num">60+</div><div class="label">Hotels (12 cities)</div></div>
+        <div class="stat-card"><div class="num">225+</div><div class="label">Features Delivered</div></div>
       </div>
     </div>
 
@@ -424,8 +424,9 @@ function srsHTML() {
           <thead><tr><th>Role</th><th>Description</th><th>Access Level</th></tr></thead>
           <tbody>
             <tr><td><span class="badge badge-blue">Guest</span></td><td>Unauthenticated visitor; can search flights, hotels, buses, trains, cabs and validate coupons</td><td>Read-only search</td></tr>
-            <tr><td><span class="badge badge-green">User</span></td><td>Registered traveller; can book, pay, cancel, download invoices and manage wallet</td><td>Full self-service</td></tr>
-            <tr><td><span class="badge badge-pink">Admin</span></td><td>System operator; can view analytics, manage users (block/unblock), manage all bookings and CRUD coupons</td><td>Full system access</td></tr>
+            <tr><td><span class="badge badge-green">User</span></td><td>Registered traveller; can book all transport modes, pay via wallet/card/UPI, cancel, download invoices, use SavedTravellerPicker, and manage wallet &amp; saved cards</td><td>Full self-service</td></tr>
+            <tr><td><span class="badge badge-pink">Admin</span></td><td>System operator; manages analytics, users (block/unblock), all bookings, coupons CRUD, and hotel registration (credentials emailed to manager)</td><td>Full system access</td></tr>
+            <tr><td><span class="badge badge-orange">Hotel Manager</span></td><td>Hotel-scoped operator; manages own hotel's bookings, room types, amenities, images and profile via <code>/hotel/*</code> portal. JWT includes <code>hotelId</code> claim — all queries automatically scoped.</td><td>Hotel-scoped portal</td></tr>
           </tbody>
         </table>
       </div>
@@ -539,12 +540,19 @@ function srsHTML() {
 
     <div class="sub-section">
       <h3>3.4 Transport Module (Bus / Train / Cab)</h3>
-      <p>Bus, Train and Cab search returns deterministic mock data — no database persistence. Results are consistent per route (same operator, pricing, schedule) across calls.</p>
-      <div class="callout callout-info">
-        <div class="callout-icon">ℹ</div>
+      <p>Bus, Train and Cab search uses deterministic in-memory providers — consistent results per route. Full end-to-end booking is implemented via <code>BusService</code>, <code>TrainService</code>, and <code>CabService</code> with coupon, wallet, email, and PDF ticket support. Journey details are stored in a nullable <code>TransportSnapshot</code> JSON column on the <code>Booking</code> entity.</p>
+      <div class="callout callout-success">
+        <div class="callout-icon">✓</div>
         <div class="callout-content">
-          <div class="callout-title">Mock Data Note</div>
-          <div class="callout-text">Bus (14 operators, 10–22 results/route), Train (39 named trains, 5 classes, 6–15 results/route) and Cab (Ola/Uber/Meru/Zoom, distance-based pricing) are implemented as in-memory search providers. Booking endpoints for these modes are a planned future feature.</div>
+          <div class="callout-title">Full Booking Flow Implemented</div>
+          <div class="callout-text">Bus (14 operators, 10–22 results/route) · Train (39 named trains, 5 classes, 6–15 results/route) · Cab (Ola/Uber/Meru/Zoom, distance-based pricing). Each has a dedicated booking page, backend service, PDF ticket generator, HTML email template, and <code>BookingDetailPage</code> transport view. Booking references use BU/TR/CB prefixes.</div>
+        </div>
+      </div>
+      <div class="callout callout-info" style="margin-top:10px">
+        <div class="callout-icon">⚙</div>
+        <div class="callout-content">
+          <div class="callout-title">Extended Filter Sidebars (Phase 12)</div>
+          <div class="callout-text">All three listing pages now have filter sidebars on par with Flights and Hotels: sort tabs (Cheapest/Fastest/Earliest or Top Rated), departure time slot buttons (🌙🌅☀️🌆), multi-select type/class/provider checkboxes, min driver rating (Cabs), max price, and a Clear all control.</div>
         </div>
       </div>
     </div>
@@ -867,19 +875,29 @@ function technicalHTML() {
 │   ├── <span class="string">axios.ts</span>          <span class="comment">← Axios instance + JWT interceptor (auto-refresh)</span>
 │   └── <span class="string">endpoints.ts</span>      <span class="comment">← All API URL constants (no hardcoded URLs elsewhere)</span>
 ├── components/
-│   ├── common/           <span class="comment">← Button, Select, Modal, Skeleton, ConfirmDialog</span>
-│   └── ui/               <span class="comment">← Design system primitives</span>
+│   ├── common/           <span class="comment">← SavedTravellerPicker, Button, Modal, Skeleton, ConfirmDialog</span>
+│   ├── search/           <span class="comment">← CitySearch (autocomplete, 65 cities, themed per mode)</span>
+│   ├── ui/               <span class="comment">← DatePickerInput (showPicker, themed, formatted display)</span>
+│   └── layout/           <span class="comment">← Navbar (profile dropdown, wallet), HotelLayout</span>
+├── data/
+│   └── <span class="string">cities.ts</span>         <span class="comment">← 65 Indian cities, searchCities(), POPULAR_CITIES</span>
 ├── features/
-│   ├── auth/             <span class="comment">← authSlice (Redux), LoginForm, RegisterForm</span>
-│   ├── flights/          <span class="comment">← FilterSidebar, FlightCard, FarePopup, TravellerDetails</span>
-│   ├── hotels/           <span class="comment">← HotelCard, HotelFilters, RoomSelector</span>
-│   ├── bookings/         <span class="comment">← BookingCard, BookingDetailPage, PDFDownload</span>
-│   └── admin/            <span class="comment">← AdminPage (4 tabs: Dashboard, Users, Bookings, Coupons)</span>
-├── pages/                <span class="comment">← Route-level components (FlightsPage, HotelsPage, etc.)</span>
-├── services/             <span class="comment">← flightService, hotelService, bookingService, userService</span>
+│   └── auth/             <span class="comment">← authSlice (Redux), LoginForm, RegisterForm</span>
+├── pages/
+│   ├── <span class="string">HomePage.tsx</span>      <span class="comment">← Multi-mode tabs (Flights/Hotels/Buses/Trains/Cabs), per-mode forms</span>
+│   ├── <span class="string">FlightsPage.tsx</span>   <span class="comment">← Goibibo-style filters, sort tabs, fare popup, date strip</span>
+│   ├── <span class="string">HotelsPage.tsx</span>    <span class="comment">← Filter sidebar, HotelCard, HotelDetailPage</span>
+│   ├── <span class="string">BusesPage.tsx</span>     <span class="comment">← Extended filter sidebar (sort tabs, time slots, type, operator)</span>
+│   ├── <span class="string">TrainsPage.tsx</span>    <span class="comment">← Extended filter sidebar (sort tabs, time slots, class checkboxes)</span>
+│   ├── <span class="string">CabsPage.tsx</span>      <span class="comment">← Extended filter sidebar (sort tabs, cab type cards, rating, provider)</span>
+│   ├── <span class="string">BookBusPage.tsx</span>   <span class="comment">← Seat layout preview, boarding/drop points, SavedTravellerPicker</span>
+│   ├── <span class="string">BookTrainPage.tsx</span> <span class="comment">← Class info, running days, passenger form, SavedTravellerPicker</span>
+│   ├── <span class="string">BookCabPage.tsx</span>   <span class="comment">← Pickup/drop, distance/duration, SavedTravellerPicker</span>
+│   └── <span class="string">AdminPage.tsx</span>     <span class="comment">← 5-tab dashboard (Dashboard, Users, Bookings, Coupons, Hotels)</span>
+├── services/             <span class="comment">← flightService, hotelService, bookingService, userService, adminService</span>
 ├── store/                <span class="comment">← Redux store + authSlice</span>
 ├── types/index.ts        <span class="comment">← All shared TypeScript interfaces</span>
-└── routes/               <span class="comment">← AppRouter, PrivateRoute, AdminRoute</span></pre>
+└── routes/               <span class="comment">← AppRouter, PrivateRoute, AdminRoute, HotelRoute</span></pre>
     </div>
 
     <div class="sub-section">
@@ -912,6 +930,9 @@ api.interceptors.response.use(
               ['Build tool', 'Vite 6', 'Fast HMR; native ESM; proxy config for /api → backend'],
               ['HTTP', 'Axios', 'Interceptor support for JWT refresh; typed response wrapper'],
               ['Named exports', 'All components', 'Avoids default-export aliasing confusion at import sites'],
+              ['Date picker', 'showPicker() + sr-only input', 'Styled wrapper div calls showPicker() on click; native input hidden with sr-only; no browser format text shown; formatted en-IN display string rendered in the wrapper'],
+              ['City autocomplete', 'CitySearch + cities.ts', '65 Indian cities client-side; popular cities on focus; themed per travel mode; click-outside to close; no API call needed'],
+              ['Multi-mode homepage', 'switchMode() + isolated state', 'Each travel mode has separate form state; switchMode() resets all state on tab change; recent searches filtered per mode'],
             ].map(([d, c, r]) => `<tr><td>${d}</td><td><code>${c}</code></td><td>${r}</td></tr>`).join('')}
           </tbody>
         </table>

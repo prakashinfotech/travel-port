@@ -1,12 +1,13 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Plane, Hotel, Bus, Train, Car,
-  Search, ArrowLeftRight,
+  Search, ArrowLeftRight, CalendarDays,
   ChevronDown, ChevronUp, Clock, MapPin, TrendingUp,
   Shield, HeadphonesIcon, Tag, BadgePercent, Zap, X
 } from 'lucide-react'
 import { AirportSearch } from '@/components/search/AirportSearch'
+import { CitySearch } from '@/components/search/CitySearch'
 import { TravellerSelector, type TravellerConfig } from '@/components/search/TravellerSelector'
 import { AuthModal } from '@/components/home/AuthModal'
 
@@ -132,6 +133,48 @@ const MODE_ICON_COLOR: Record<string, string> = {
   cab:    'text-yellow-500',
 }
 
+// ── Hero date picker — underline style, opens system picker on full-div click ─
+function HeroDatePicker({ label, value, onChange, min, type = 'date' }: {
+  label: string; value: string; onChange: (v: string) => void; min?: string; type?: 'date' | 'datetime-local'
+}) {
+  const ref = useRef<HTMLInputElement>(null)
+  const openPicker = () => { try { ref.current?.showPicker() } catch { ref.current?.focus() } }
+
+  const display = value
+    ? type === 'datetime-local'
+      ? new Date(value).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
+      : new Date(value + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })
+    : null
+
+  return (
+    <div className="flex-1 min-w-[130px] px-4 py-2">
+      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{label}</label>
+      <div
+        role="button" tabIndex={0}
+        onClick={openPicker}
+        onKeyDown={e => e.key === 'Enter' && openPicker()}
+        className="flex items-center gap-1.5 border-b-2 border-gray-300 focus-within:border-blue-600 pb-1 cursor-pointer select-none"
+      >
+        <CalendarDays className="h-4 w-4 text-gray-400 shrink-0" />
+        <span className={`text-sm font-medium flex-1 ${display ? 'text-gray-900' : 'text-gray-400'}`}>
+          {display ?? (type === 'datetime-local' ? 'Select date & time' : 'Select date')}
+        </span>
+        <input
+          ref={ref}
+          type={type}
+          value={value}
+          min={min}
+          onChange={e => onChange(e.target.value)}
+          onKeyDown={e => e.stopPropagation()}
+          className="sr-only"
+          tabIndex={-1}
+          aria-hidden
+        />
+      </div>
+    </div>
+  )
+}
+
 // ── Input helper ─────────────────────────────────────────────────────────────
 function HeroInput({ label, value, onChange, type = 'text', placeholder, min }: {
   label: string; value: string; onChange: (v: string) => void
@@ -184,6 +227,17 @@ export default function HomePage() {
   const [cabDateTime, setCabDateTime] = useState('')
 
   const theme = MODE_THEME[mode]
+
+  const switchMode = (next: TravelMode) => {
+    setMode(next)
+    // Reset all search form state so each mode starts blank
+    setFlightOrigin(''); setFlightOriginCity(''); setFlightDest(''); setFlightDestCity('')
+    setDepartureDate(''); setReturnDate('')
+    setFlightTravellers({ adults: 1, children: 0, infants: 0, cabinClass: 'Economy' })
+    setHotelCity(''); setCheckIn(''); setCheckOut(''); setHotelRooms('1'); setHotelGuests('1')
+    setTOrigin(''); setTDest(''); setTDate(''); setTPass('1')
+    setTrainClass('Sleeper'); setCabDateTime('')
+  }
 
   // ── Search handlers ────────────────────────────────────────────────────────
   const handleFlightSearch = (e: React.FormEvent) => {
@@ -279,7 +333,7 @@ export default function HomePage() {
             {MODES.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
-                onClick={() => setMode(id)}
+                onClick={() => switchMode(id)}
                 className={[
                   'flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap',
                   mode === id
@@ -324,9 +378,9 @@ export default function HomePage() {
                         onChange={(code, city) => { setFlightDest(code); setFlightDestCity(city) }}
                       />
                     </div>
-                    <HeroInput label="Departure" type="date" value={departureDate} min={TODAY} onChange={setDepartureDate} />
+                    <HeroDatePicker label="Departure" value={departureDate} min={TODAY} onChange={setDepartureDate} />
                     {tripType === 'roundtrip' && (
-                      <HeroInput label="Return" type="date" value={returnDate} min={departureDate || TODAY} onChange={setReturnDate} />
+                      <HeroDatePicker label="Return" value={returnDate} min={departureDate || TODAY} onChange={setReturnDate} />
                     )}
                     <div className="flex-1 min-w-[200px] px-4 py-2">
                       <TravellerSelector value={flightTravellers} onChange={setFlightTravellers} />
@@ -347,11 +401,13 @@ export default function HomePage() {
             <form onSubmit={handleHotelSearch}>
               <div className="bg-white rounded-2xl shadow-2xl p-4">
                 <div className="flex flex-wrap gap-0 divide-x divide-gray-200">
-                  <HeroInput label="City / Destination" placeholder="e.g. Mumbai, Goa" value={hotelCity} onChange={setHotelCity} />
-                  <HeroInput label="Check-in"  type="date" value={checkIn}  min={TODAY}       onChange={setCheckIn}  />
-                  <HeroInput label="Check-out" type="date" value={checkOut} min={checkIn || TODAY} onChange={setCheckOut} />
-                  <HeroInput label="Rooms"     type="number" placeholder="1" value={hotelRooms}  onChange={setHotelRooms}  />
-                  <HeroInput label="Guests"    type="number" placeholder="1" value={hotelGuests} onChange={setHotelGuests} />
+                  <div className="flex-1 min-w-[180px] px-4 py-2">
+                    <CitySearch label="City / Destination" placeholder="e.g. Mumbai, Goa" value={hotelCity} onChange={setHotelCity} focusColor="orange" />
+                  </div>
+                  <HeroDatePicker label="Check-in"  value={checkIn}  min={TODAY}            onChange={setCheckIn}  />
+                  <HeroDatePicker label="Check-out" value={checkOut} min={checkIn || TODAY}  onChange={setCheckOut} />
+                  <HeroInput label="Rooms"     type="number" placeholder="1" value={hotelRooms}    onChange={setHotelRooms}  />
+                  <HeroInput label="Guests"    type="number" placeholder="1" value={hotelGuests}   onChange={setHotelGuests} />
                 </div>
                 <div className="mt-4 flex justify-center">
                   <button type="submit" className="flex items-center gap-2 rounded-full px-10 py-3 font-bold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-100" style={{ background: `linear-gradient(90deg, #c2410c, ${theme.accent})` }}>
@@ -367,14 +423,18 @@ export default function HomePage() {
             <form onSubmit={handleBusSearch}>
               <div className="bg-white rounded-2xl shadow-2xl p-4">
                 <div className="flex flex-wrap gap-0 divide-x divide-gray-200">
-                  <HeroInput label="From" placeholder="e.g. Mumbai" value={tOrigin} onChange={setTOrigin} />
+                  <div className="flex-1 min-w-[160px] px-4 py-2">
+                    <CitySearch label="From" placeholder="e.g. Mumbai" value={tOrigin} onChange={setTOrigin} focusColor="green" />
+                  </div>
                   <div className="flex items-center px-2">
                     <button type="button" onClick={swapTransport} className="h-8 w-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-green-300 transition-colors">
                       <ArrowLeftRight className="h-4 w-4 text-gray-400" />
                     </button>
                   </div>
-                  <HeroInput label="To"   placeholder="e.g. Pune"   value={tDest} onChange={setTDest} />
-                  <HeroInput label="Date" type="date" value={tDate}  min={TODAY}   onChange={setTDate} />
+                  <div className="flex-1 min-w-[160px] px-4 py-2">
+                    <CitySearch label="To" placeholder="e.g. Pune" value={tDest} onChange={setTDest} focusColor="green" />
+                  </div>
+                  <HeroDatePicker label="Date" value={tDate}  min={TODAY}   onChange={setTDate} />
                   <HeroInput label="Passengers" type="number" placeholder="1" value={tPassengers} onChange={setTPass} />
                 </div>
                 <div className="mt-4 flex justify-center">
@@ -391,14 +451,18 @@ export default function HomePage() {
             <form onSubmit={handleTrainSearch}>
               <div className="bg-white rounded-2xl shadow-2xl p-4">
                 <div className="flex flex-wrap gap-0 divide-x divide-gray-200">
-                  <HeroInput label="From" placeholder="e.g. Delhi"    value={tOrigin} onChange={setTOrigin} />
+                  <div className="flex-1 min-w-[160px] px-4 py-2">
+                    <CitySearch label="From" placeholder="e.g. Delhi" value={tOrigin} onChange={setTOrigin} focusColor="indigo" />
+                  </div>
                   <div className="flex items-center px-2">
                     <button type="button" onClick={swapTransport} className="h-8 w-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-indigo-300 transition-colors">
                       <ArrowLeftRight className="h-4 w-4 text-gray-400" />
                     </button>
                   </div>
-                  <HeroInput label="To"   placeholder="e.g. Mumbai"   value={tDest}  onChange={setTDest}  />
-                  <HeroInput label="Date" type="date" value={tDate}    min={TODAY}    onChange={setTDate}  />
+                  <div className="flex-1 min-w-[160px] px-4 py-2">
+                    <CitySearch label="To" placeholder="e.g. Mumbai" value={tDest} onChange={setTDest} focusColor="indigo" />
+                  </div>
+                  <HeroDatePicker label="Date" value={tDate}    min={TODAY}    onChange={setTDate}  />
                   <HeroInput label="Passengers" type="number" placeholder="1" value={tPassengers} onChange={setTPass} />
                   <div className="flex-1 min-w-[130px] px-4 py-2">
                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Class</label>
@@ -421,23 +485,18 @@ export default function HomePage() {
             <form onSubmit={handleCabSearch}>
               <div className="bg-white rounded-2xl shadow-2xl p-4">
                 <div className="flex flex-wrap gap-0 divide-x divide-gray-200">
-                  <HeroInput label="Pickup City"  placeholder="e.g. Delhi"  value={tOrigin} onChange={setTOrigin} />
+                  <div className="flex-1 min-w-[160px] px-4 py-2">
+                    <CitySearch label="Pickup City" placeholder="e.g. Delhi" value={tOrigin} onChange={setTOrigin} focusColor="yellow" />
+                  </div>
                   <div className="flex items-center px-2">
                     <button type="button" onClick={swapTransport} className="h-8 w-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-yellow-300 transition-colors">
                       <ArrowLeftRight className="h-4 w-4 text-gray-400" />
                     </button>
                   </div>
-                  <HeroInput label="Drop City"    placeholder="e.g. Agra"   value={tDest} onChange={setTDest} />
-                  <div className="flex-1 min-w-[200px] px-4 py-2">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Pickup Date & Time</label>
-                    <input
-                      type="datetime-local"
-                      value={cabDateTime}
-                      min={TODAY}
-                      onChange={e => setCabDateTime(e.target.value)}
-                      className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none border-b-2 border-gray-300 focus:border-yellow-500 pb-1"
-                    />
+                  <div className="flex-1 min-w-[160px] px-4 py-2">
+                    <CitySearch label="Drop City" placeholder="e.g. Agra" value={tDest} onChange={setTDest} focusColor="yellow" />
                   </div>
+                  <HeroDatePicker label="Pickup Date & Time" type="datetime-local" value={cabDateTime} min={TODAY} onChange={setCabDateTime} />
                 </div>
                 <div className="mt-4 flex justify-center">
                   <button type="submit" className="flex items-center gap-2 rounded-full px-10 py-3 font-bold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-100" style={{ background: `linear-gradient(90deg, #b45309, ${theme.accent})` }}>

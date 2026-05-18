@@ -25,11 +25,14 @@ TravelPort covers:
 - Goibibo-style Flight Fare Popup + Fare-family Booking Flow
 - Paginated flight search results with filters and sorting preserved between pages
 - Lowest-fare date strip and monthly fare calendar on flight search
-- Home page recent searches persist and reopen saved result pages
+- Multi-mode Home Page — Flights / Hotels / Buses / Trains / Cabs tabs with per-mode search forms, dynamic hero gradients, and mode-specific recent searches
+- City autocomplete with 65 Indian cities across all search pages (Hotels, Buses, Trains, Cabs)
+- Themed DatePicker — click anywhere on the field to open, formatted display (no browser date format), color-accented per search mode
 - Hotel Search & Booking with Guest Details (name/email/phone stored per booking)
-- Bus Search (deterministic mock — realistic Indian operators & routes)
-- Train Search (deterministic mock — real train names, 5 classes, availability statuses)
-- Cab Search (deterministic mock — Ola/Uber/Meru/Zoom, distance-based pricing)
+- Bus Search (deterministic mock — realistic Indian operators & routes) with extended filter sidebar (sort tabs, departure time slots, bus type, operator, price)
+- Train Search (deterministic mock — real train names, 5 classes, availability statuses) with extended filter sidebar (sort tabs, time slots, class checkboxes, Tatkal, price)
+- Cab Search (deterministic mock — Ola/Uber/Meru/Zoom, distance-based pricing) with extended filter sidebar (sort tabs, visual cab type cards, provider checkboxes, min driver rating, price)
+- Saved Traveller quick-fill on all booking pages (Bus, Train, Cab, Flight) — one click fills passenger form from saved profile
 - User Authentication (JWT + Refresh Tokens)
 - Booking Management, Cancellation & PDF Invoice Download (Flight e-ticket + Hotel invoice, A4)
 - Wallet System — top-up, balance deduction at booking, automatic 90% refund on cancellation

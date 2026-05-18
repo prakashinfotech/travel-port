@@ -10,8 +10,8 @@
 |---|---|---|---|
 | 1 | Test all flight filter combinations end-to-end | 🔴 | Especially combined stop + airline + time filters |
 | 2 | Verify TravellerSelector popup closes correctly on mobile | 🟡 | `overflow-hidden` fix applied; test touch events |
-| 3 | ~~Verify SMTP email delivery end-to-end~~ | ✅ | Fixed: `EMAIL_ENABLED=true` + credentials added to `.env`; booking confirmation emails confirmed working from Docker |
-| 4 | Wire Razorpay live key for Card payment in production | 🟡 | Card/UPI/NetBanking pages currently use mock API; real Razorpay needs live key in appsettings |
+| 3 | Wire Razorpay live key for Card payment in production | 🟡 | Card/UPI/NetBanking pages currently use mock API; real Razorpay needs live key in appsettings |
+| 4 | Mobile-responsive filter drawer — slide-over panel for filters on screens < 1024px | 🔴 | All listing pages (Flights/Hotels/Buses/Trains/Cabs) hide the left sidebar on mobile |
 
 ---
 
@@ -40,6 +40,8 @@
 - [ ] 🟢 **Real Razorpay webhook handler** — for production, handle `payment.failed` and `order.paid` webhooks to update booking status asynchronously.
 - [x] ✅ **Rate limiting** — fixed: API rate-limiting middleware is active in `Program.cs`.
 - [ ] 🟢 **Refresh token rotation** — currently refresh tokens are single-use but rotation isn't enforced; expired tokens should be revoked from DB.
+- [x] ✅ **Multi-city trip type removed from HomePage** — unimplemented option removed; search form is clean.
+- [x] ✅ **SavedTravellerPicker on all booking pages** — one-click fill from saved traveller profiles on BookBusPage, BookTrainPage, BookCabPage, BookFlightPage.
 
 ### Technical Debt
 - [ ] 🟡 **`RazorpayService._logger` warning** — `_logger` field is declared but never used. Either inject and use `ILogger`, or remove the field.
@@ -67,12 +69,16 @@
 
 ### Features Pending
 - [x] ✅ **HomePage buses/trains/cabs search** — Added full search forms for each mode; replaced "Coming soon" block; each form navigates with URL params and auto-triggers search.
-- [x] ✅ **Recent searches** — clickable chips navigate to saved results; ✕ button removes entry.
+- [x] ✅ **Recent searches** — clickable chips navigate to saved results; ✕ button removes entry; filtered per travel mode.
 - [ ] 🔴 **Mobile-responsive filter drawer** — slide-over panel for filters on screens < 1024px.
 - [x] ✅ **Hotel search filter sidebar** — HotelsPage FilterSidebar implemented: star rating (exact match), price range, amenities (OR logic), popular filters (OR logic).
-- [ ] 🟡 **Trains page booking flow** — TrainsPage shows results but the BOOK button is not wired to a booking endpoint (no train booking API yet).
-- [ ] 🟡 **Buses page booking flow** — same as trains.
-- [ ] 🟡 **Cabs page booking flow** — same as trains.
+- [x] ✅ **Trains page booking flow** — Full `BookTrainPage` with passenger form, coupon, payment method; BOOK button wired in TrainsPage; `TransportSnapshot` persisted to DB.
+- [x] ✅ **Buses page booking flow** — Full `BookBusPage` with seat layout preview, boarding/dropping points, BOOK NOW wired.
+- [x] ✅ **Cabs page booking flow** — Full `BookCabPage` with pickup/drop, distance/duration display, BOOK CAB wired.
+- [x] ✅ **Bus/Train/Cab extended filter sidebars** — Sort tabs, departure time slot buttons, multi-select type/class/provider checkboxes, min rating (Cabs), max price, and Clear all — matching Flight and Hotel filter depth.
+- [x] ✅ **CitySearch autocomplete** — 65 Indian cities with state; popular cities on focus; themed per travel mode; used on Hotels/Buses/Trains/Cabs forms.
+- [x] ✅ **Themed DatePickerInput** — click-anywhere to open picker; formatted `en-IN` date display; colored border+background when a date is set; 5 accent themes.
+- [x] ✅ **Multi-mode HomePage** — mode tabs (Flights/Hotels/Buses/Trains/Cabs); per-mode hero gradients; per-mode form state that resets on tab switch; mode-filtered recent searches.
 - [x] ✅ **Profile page improvements** — upgraded with account overview, wallet feedback, safer delete confirmation, and better status handling.
 - [x] ✅ **Saved travellers management** — profile UI now supports add/delete flows with inline form validation and confirmation.
 - [x] ✅ **Admin panel UI** — full 4-tab dashboard (Dashboard, Users, Bookings, Coupons) with real API integration; `CouponModal`, block/unblock users, `ConfirmDialog` for destructive actions.
@@ -98,6 +104,13 @@
 
 ## Recently Completed ✅
 
+- [x] **Multi-mode HomePage** — mode tabs (Flights/Hotels/Buses/Trains/Cabs) with per-mode hero gradients, form state isolation, city autocomplete, HeroDatePicker, and mode-filtered recent searches
+- [x] **CitySearch autocomplete** — `CitySearch` component with 65 Indian cities (`cities.ts`); popular cities on focus; themed per mode; used on Hotel/Bus/Train/Cab search forms
+- [x] **DatePickerInput rewrite** — click-anywhere-to-open; no browser date format; formatted `en-IN` display; themed colored border+background when filled; 5 accent variants
+- [x] **Bus filter sidebar** — sort tabs + departure time slots + AC/Refundable + Bus Type checkboxes + Operator checkboxes + Max Price + Clear all
+- [x] **Train filter sidebar** — sort tabs + departure time slots + Tatkal + Class checkboxes (SL/3A/2A/1A/CC) + Max Price + Clear all
+- [x] **Cab filter sidebar** — sort tabs (incl. Top Rated) + AC + visual Cab Type cards + Provider checkboxes + Min Driver Rating + Max Price + Clear all
+- [x] **SavedTravellerPicker** — integrated on all 4 booking pages (Bus/Train/Cab/Flight); one-click fills passenger form from saved profile
 - [x] **Wallet refund persistence fix** — `BookingService.CancelAsync` was missing `_uow.SaveChangesAsync` after `RefundAsync`; wallet balance now correctly persists after cancellation
 - [x] **Saved credit cards** — `SavedCard` entity + EF migration; `GET/POST/DELETE /users/cards` + set-default endpoint; last 4 digits only stored; gradient card UI in profile
 - [x] **Payment method at booking** — `PaymentMethodSelector` component; wallet / saved card / new card choice on `BookFlightPage` + `BookHotelPage`

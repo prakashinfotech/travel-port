@@ -133,36 +133,51 @@ frontend/src/
 │
 ├── api/                        ← Axios instance + JWT interceptor + endpoint constants
 ├── components/
-│   ├── common/                 ← Reusable UI primitives (Button, Input, Select, Skeleton)
-│   ├── ui/                     ← ConfirmDialog, Toast
-│   ├── layout/
-│   │   ├── HotelLayout.tsx     ← Sidebar layout for /hotel/* routes (Dashboard, Bookings, Rooms, Profile)
-│   │   └── MainLayout.tsx
-│   └── forms/
+│   ├── common/                 ← SavedTravellerPicker, Button, Input, Select, Skeleton
+│   ├── search/
+│   │   └── CitySearch.tsx      ← Autocomplete dropdown — 65 Indian cities, themed per mode
+│   ├── ui/
+│   │   ├── ConfirmDialog.tsx   ← Themed modal (danger/warning variants, loading state)
+│   │   ├── DatePickerInput.tsx ← showPicker() wrapper — themed, formatted en-IN display, no browser format
+│   │   └── Toast.tsx
+│   └── layout/
+│       ├── Navbar.tsx          ← Profile dropdown with wallet balance; mode links
+│       ├── HotelLayout.tsx     ← Sidebar layout for /hotel/* routes
+│       └── MainLayout.tsx
+├── data/
+│   └── cities.ts               ← 65 Indian cities, searchCities(), POPULAR_CITIES
 ├── features/
 │   └── auth/                   ← Redux slice, LoginForm (hotel-role → /hotel/dashboard redirect)
 ├── pages/
-│   ├── FlightsPage.tsx
-│   ├── HotelsPage.tsx
-│   ├── BookingsPage.tsx
+│   ├── HomePage.tsx            ← Multi-mode tabs (Flights/Hotels/Buses/Trains/Cabs); switchMode() resets state
+│   ├── FlightsPage.tsx         ← Goibibo-style filters, sort tabs, date strip, calendar, fare popup
+│   ├── HotelsPage.tsx          ← Filter sidebar, HotelCard, HotelDetailPage
+│   ├── BusesPage.tsx           ← Extended filter sidebar (sort tabs, time slots, bus type, operator checkboxes)
+│   ├── TrainsPage.tsx          ← Extended filter sidebar (sort tabs, time slots, class checkboxes, Tatkal)
+│   ├── CabsPage.tsx            ← Extended filter sidebar (sort tabs, cab type cards, provider, min rating)
+│   ├── BookBusPage.tsx         ← Seat layout preview, SavedTravellerPicker, coupon + payment
+│   ├── BookTrainPage.tsx       ← Class/running-days display, SavedTravellerPicker, coupon + payment
+│   ├── BookCabPage.tsx         ← Pickup/drop/distance/duration, SavedTravellerPicker, coupon + payment
+│   ├── BookFlightPage.tsx      ← Per-traveller SavedTravellerPicker, Razorpay checkout
+│   ├── BookingsPage.tsx        ← Numbered pagination, status/type filters
 │   ├── AdminPage.tsx           ← 5-tab: Dashboard, Users, Bookings, Coupons, Hotels
 │   ├── ProfilePage.tsx
 │   └── hotel/
-│       ├── HotelDashboardPage.tsx   ← 8 stat cards + summary grid
-│       ├── HotelBookingsPage.tsx    ← Paginated bookings table with status filter
-│       ├── HotelRoomsPage.tsx       ← Room cards + add/edit modal + delete confirm
-│       └── HotelProfilePage.tsx     ← Edit hotel details + image gallery preview
+│       ├── HotelDashboardPage.tsx
+│       ├── HotelBookingsPage.tsx
+│       ├── HotelRoomsPage.tsx
+│       └── HotelProfilePage.tsx
 ├── routes/
-│   ├── AppRouter.tsx           ← Nested /hotel/* route block
+│   ├── AppRouter.tsx           ← Nested /hotel/*, /buses/book, /trains/book, /cabs/book routes
 │   ├── PrivateRoute.tsx
-│   └── HotelRoute.tsx          ← Redirects non-Hotel roles away from /hotel/*
+│   └── HotelRoute.tsx
 ├── services/
 │   ├── flightService.ts
 │   ├── hotelService.ts
 │   ├── bookingService.ts
 │   ├── adminService.ts
-│   ├── hotelManagerService.ts  ← getDashboard, getBookings, getProfile, updateProfile, room CRUD
-│   └── userService.ts
+│   ├── hotelManagerService.ts
+│   └── userService.ts          ← getTravellers() used by SavedTravellerPicker
 ├── store/                      ← Redux slices (auth)
 ├── types/                      ← index.ts — UserToken includes role: 'Hotel' and hotelId
 └── utils/                      ← formatters, helpers
@@ -327,6 +342,10 @@ Both extend `BackgroundService` (IHostedService) and use `IServiceScopeFactory` 
 | Validation | FluentValidation + Zod | Backend + frontend both validated |
 | Auth | JWT + Refresh Tokens | Stateless, scalable |
 | Email | SMTP (Office365) via `SmtpEmailService` | Table-based HTML for Gmail/Outlook compatibility |
+| Date picker | `showPicker()` + `sr-only` hidden input | Styled wrapper calls `showPicker()` on click; no browser date format shown; formatted `en-IN` display |
+| City autocomplete | `CitySearch` + `cities.ts` (client-side) | 65 Indian cities; popular cities on focus; no API call; themed per mode |
+| Multi-mode homepage | `switchMode()` + isolated state per mode | All form state resets on tab change; recent searches filtered by mode |
+| Transport booking | `TransportSnapshot` JSON column | Nullable `nvarchar(max)` stores operator/route/vehicle per booking; no separate transport tables |
 
 ---
 

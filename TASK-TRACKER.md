@@ -440,16 +440,49 @@
 
 ---
 
+## Phase 12 — Multi-Mode Homepage, Search UX, Extended Filters & Saved Traveller Integration
+**Branch:** `fix/city-search-autocomplete-and-tab-reset`
+**Date:** 2026-05-18
+**Scope:** Full multi-mode homepage rewrite, city autocomplete, themed date picker, feature-parity filter sidebars on Bus/Train/Cab pages, SavedTravellerPicker across all booking pages
+
+| # | Feature | Status | Notes |
+|---|---|---|---|
+| 12.1 | `HomePage` — multi-mode tab bar (Flights / Hotels / Buses / Trains / Cabs) | ✅ | Per-mode hero gradients; `switchMode()` resets all form state on tab switch |
+| 12.2 | `HomePage` — mode-specific search forms | ✅ | Separate form state per mode; Bus/Train/Cab forms use CitySearch + HeroDatePicker |
+| 12.3 | `HomePage` — per-mode recent searches | ✅ | `filteredRecent` filtered by `s.type === mode`; only shows searches relevant to current tab |
+| 12.4 | `HomePage` — popular routes section per mode | ✅ | Mode-specific popular-destination tiles rendered conditionally |
+| 12.5 | `HeroDatePicker` component (inline in HomePage) | ✅ | `showPicker()` on click anywhere on field; formatted `en-IN` display; no browser date format |
+| 12.6 | `DatePickerInput` component — full rewrite | ✅ | Themed border+background per `accentColor` when value set; `showPicker()` on any click; formatted display; 5 accent themes (blue/green/yellow/orange/indigo) |
+| 12.7 | `CitySearch` component (`frontend/src/components/search/CitySearch.tsx`) | ✅ | Autocomplete dropdown; popular cities on focus; type-to-search; click-outside to close; themed per `focusColor` |
+| 12.8 | `cities.ts` data file (`frontend/src/data/cities.ts`) | ✅ | 65 Indian cities with state; `searchCities()` filters by name or state; `POPULAR_CITIES` top-10 list |
+| 12.9 | `HomePage` — Hotel city field replaced with `CitySearch` | ✅ | `focusColor="blue"`; city value resets on mode switch |
+| 12.10 | `HomePage` — Bus origin/destination replaced with `CitySearch` | ✅ | `focusColor="green"`; both fields reset on mode switch |
+| 12.11 | `HomePage` — Train origin/destination replaced with `CitySearch` | ✅ | `focusColor="indigo"`; both fields reset on mode switch |
+| 12.12 | `HomePage` — Cab origin/destination replaced with `CitySearch` | ✅ | `focusColor="orange"`; both fields reset on mode switch |
+| 12.13 | `Navbar` — profile dropdown with user initials + wallet balance | ✅ | Lazy-fetches wallet on open; My Bookings + Profile links; click-outside handler |
+| 12.14 | `SavedTravellerPicker` integration — `BookBusPage` | ✅ | `accentColor="green"`; fills firstName/lastName/email/phone via `setValue` |
+| 12.15 | `SavedTravellerPicker` integration — `BookTrainPage` | ✅ | `accentColor="blue"`; same `setValue` pattern |
+| 12.16 | `SavedTravellerPicker` integration — `BookCabPage` | ✅ | `accentColor="yellow"`; same `setValue` pattern |
+| 12.17 | `SavedTravellerPicker` integration — `BookFlightPage` | ✅ | Per-traveller card; fills `fullName`; also sets mobile/email for first traveller |
+| 12.18 | `BusesPage` — extended filter sidebar | ✅ | Sort tabs (Cheapest/Earliest/Fastest); departure time slot buttons (🌙🌅☀️🌆); AC + Refundable checkboxes; Bus Type checkboxes (Sleeper/Semi-Sleeper/Seater/Volvo); Operator checkboxes (6 operators); Max Price; Clear all |
+| 12.19 | `TrainsPage` — extended filter sidebar | ✅ | Sort tabs (Earliest/Fastest/Cheapest); departure time slot buttons; Tatkal checkbox; Train Class checkboxes (SL/3A/2A/1A/CC); Max Price; Clear all |
+| 12.20 | `CabsPage` — extended filter sidebar | ✅ | Sort tabs (Cheapest/Fastest/Top Rated); AC checkbox; Cab Type visual cards (Mini🛺/Sedan🚗/Prime🚙/SUV🚐) with capacity; Provider checkboxes (Ola/Uber/Meru/Zoom); Min Driver Rating buttons (3+/3.5+/4+/4.5+); Max Price; Clear all |
+| 12.21 | `CabsPage` — rating sort added | ✅ | New `'rating'` sort option; `sortBy === 'rating'` sorts by `driverRating` descending |
+| 12.22 | `CabsPage` — `filterProviders: string[]` replaces single `filterProvider` | ✅ | Multi-select provider checkboxes; array filter applied client-side |
+| 12.23 | TypeScript build — zero errors | ✅ | `npx tsc --noEmit` exits clean after all changes |
+
+---
+
 ## Upcoming / Planned
 
 | # | Feature | Priority | Phase |
 |---|---|---|---|
-| 12.1 | Bus / Train / Cab booking — persistence + API | 🔴 High | Phase 12 |
-| 12.2 | Email verification flow (OTP) | 🟡 Medium | Phase 12 |
-| 12.3 | HTTPS with Let's Encrypt (Nginx + Certbot sidecar) | 🟡 Medium | Phase 12 |
-| 12.4 | Unit tests for FlightService, HotelService, WalletService | 🟢 Low | Phase 12 |
-| 12.5 | Redis cache (replace in-memory IMemoryCache) | 🟢 Low | Phase 12 |
-| 12.6 | Real Razorpay webhook handler for production | 🟢 Low | Phase 12 |
+| 13.1 | Email verification flow (OTP) | 🟡 Medium | Phase 13 |
+| 13.2 | HTTPS with Let's Encrypt (Nginx + Certbot sidecar) | 🟡 Medium | Phase 13 |
+| 13.3 | Mobile-responsive filter drawer (slide-over panel < 1024px) | 🔴 High | Phase 13 |
+| 13.4 | Unit tests for FlightService, HotelService, WalletService | 🟢 Low | Phase 13 |
+| 13.5 | Redis cache (replace in-memory IMemoryCache) | 🟢 Low | Phase 13 |
+| 13.6 | Real Razorpay webhook handler for production | 🟢 Low | Phase 13 |
 
 ---
 
@@ -469,17 +502,20 @@ dotnet run --project src/API --launch-profile https
 
 | Metric | Value |
 |---|---|
-| Total phases completed | 11 |
-| Total features delivered | 200+ |
+| Total phases completed | 12 |
+| Total features delivered | 225+ |
 | Flights in seed DB | 900+ (dynamic demand-based pricing) |
 | Hotels in seed DB | 60+ (12 cities) |
 | Coupons | 11 (5 original + 6 new: FLYSAVER, FLYOFF200, FLYDEAL15, HOTELOFF15, STAYMORE, HOTELDEAL) |
 | API endpoints | 53+ |
-| Frontend pages | 15 |
+| Frontend pages | 18+ |
+| Frontend components | 30+ (DatePickerInput, CitySearch, SavedTravellerPicker, HeroDatePicker, ...) |
+| Searchable cities | 65 Indian cities with state (autocomplete) |
 | Airlines covered | 7 |
 | Routes covered | 42 bidirectional |
 | External API integrations | 3 (Duffel, Razorpay, SMTP/Office365) |
 | PDF invoices | 2 types (Flight e-ticket A4, Hotel invoice A4) |
-| Email events covered | 3 (booking confirmed, booking cancelled, password reset) |
+| Email events covered | 4 (flight booking, hotel booking, transport booking, cancellation, password reset) |
 | Payment methods | 3 (Credit/Debit Card, UPI with QR, Net Banking) |
 | Wallet features | Top-up, deduction at booking, 90% refund on cancellation (auto-credited) |
+| Search filter depth | Full (Flights + Hotels + Buses + Trains + Cabs — all with sort tabs, time slots, multi-select filters) |

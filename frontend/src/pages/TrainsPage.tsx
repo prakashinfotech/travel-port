@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { Train, Clock, Filter, AlertCircle, Users, MapPin, Search } from 'lucide-react'
+import { Train, Clock, Filter, AlertCircle, Users, MapPin, Search, X } from 'lucide-react'
 import { api } from '@/api/axios'
 import { endpoints } from '@/api/endpoints'
 import type { TrainDto, ApiResponse } from '@/types'
@@ -48,10 +48,11 @@ export default function TrainsPage() {
   const [loading, setLoading]         = useState(false)
   const [error, setError]             = useState('')
   const [searched, setSearched]       = useState(false)
-  const [filterTatkal, setFilterTatkal] = useState(false)
-  const [filterDeptSlot, setFilterDeptSlot] = useState('')   // morning/afternoon/evening/night
+  const [filterTatkal, setFilterTatkal]     = useState(false)
+  const [filterDeptSlot, setFilterDeptSlot] = useState('')
   const [filterMaxPrice, setFilterMaxPrice] = useState(0)
-  const [sortBy, setSortBy]           = useState<'departure' | 'duration' | 'price'>('departure')
+  const [filterClasses, setFilterClasses]   = useState<string[]>([])
+  const [sortBy, setSortBy]                 = useState<'departure' | 'duration' | 'price'>('departure')
 
   useEffect(() => {
     if (searchParams.get('origin')) search()
@@ -67,13 +68,14 @@ export default function TrainsPage() {
       })
       let results = data.data ?? []
       if (filterTatkal) results = results.filter(t => t.isTatkal)
+      if (filterClasses.length) results = results.filter(t => filterClasses.some(c => Object.keys(t.classes).includes(c)))
       if (filterDeptSlot) {
         results = results.filter(t => {
           const h = new Date(t.departureTime).getHours()
+          if (filterDeptSlot === 'night')     return h >= 0  && h < 6
           if (filterDeptSlot === 'morning')   return h >= 6  && h < 12
-          if (filterDeptSlot === 'afternoon') return h >= 12 && h < 17
-          if (filterDeptSlot === 'evening')   return h >= 17 && h < 21
-          if (filterDeptSlot === 'night')     return h >= 21 || h < 6
+          if (filterDeptSlot === 'afternoon') return h >= 12 && h < 18
+          if (filterDeptSlot === 'evening')   return h >= 18 && h < 24
           return true
         })
       }
@@ -153,42 +155,72 @@ export default function TrainsPage() {
 
       <div className="max-w-6xl mx-auto px-4 py-6 flex gap-6">
         {/* Filters */}
-        <div className="w-56 shrink-0">
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-              <Filter className="w-4 h-4" /> Filters
-            </h3>
-            <div className="space-y-2 text-sm">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={filterTatkal} onChange={e => setFilterTatkal(e.target.checked)} className="accent-blue-700" />
-                Tatkal only
+        <div className="w-60 shrink-0">
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="font-bold text-gray-800 flex items-center gap-2 text-sm"><Filter className="w-4 h-4" /> Filters</h3>
+              {(filterTatkal || filterClasses.length > 0 || filterDeptSlot || filterMaxPrice > 0) && (
+                <button onClick={() => { setFilterTatkal(false); setFilterClasses([]); setFilterDeptSlot(''); setFilterMaxPrice(0) }}
+                  className="text-xs text-blue-600 font-semibold flex items-center gap-0.5 hover:text-red-500"><X className="w-3 h-3" />Clear</button>
+              )}
+            </div>
+
+            {/* Sort tabs */}
+            <div className="px-4 pt-4 pb-2">
+              <p className="text-xs font-bold text-gray-500 uppercase mb-2">Sort By</p>
+              <div className="grid grid-cols-3 gap-1">
+                {([['departure', '⏰', 'Earliest'], ['duration', '⚡', 'Fastest'], ['price', '₹', 'Cheapest']] as [typeof sortBy, string, string][]).map(([k, icon, label]) => (
+                  <button key={k} onClick={() => setSortBy(k)}
+                    className={`flex flex-col items-center py-2 px-1 rounded-lg border text-xs font-semibold transition-all ${sortBy === k ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-500 hover:border-blue-300'}`}>
+                    <span className="text-sm">{icon}</span><span className="mt-0.5 leading-tight text-center">{label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Departure time slots */}
+            <div className="px-4 py-3 border-t border-gray-100">
+              <p className="text-xs font-bold text-gray-500 uppercase mb-2">Departure Time</p>
+              <div className="grid grid-cols-2 gap-1">
+                {[['night','🌙','Before 6 AM'],['morning','🌅','6 AM–12 PM'],['afternoon','☀️','12 PM–6 PM'],['evening','🌆','After 6 PM']].map(([k, icon, lbl]) => (
+                  <button key={k} onClick={() => setFilterDeptSlot(s => s === k ? '' : k)}
+                    className={`flex flex-col items-center py-2 rounded-lg border text-xs font-medium transition-all ${filterDeptSlot === k ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-500 hover:border-blue-300'}`}>
+                    <span>{icon}</span><span className="mt-0.5 text-center leading-tight">{lbl}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Popular filters */}
+            <div className="px-4 py-3 border-t border-gray-100">
+              <p className="text-xs font-bold text-gray-500 uppercase mb-2">Popular Filters</p>
+              <label className="flex items-center gap-2 cursor-pointer py-0.5">
+                <input type="checkbox" checked={filterTatkal} onChange={e => setFilterTatkal(e.target.checked)} className="w-4 h-4 accent-blue-700 shrink-0" />
+                <span className="text-sm text-gray-700">Tatkal only</span>
               </label>
             </div>
-            <div className="mt-3">
-              <label className="block text-xs text-gray-500 mb-1">Departure Time</label>
-              <select value={filterDeptSlot} onChange={e => setFilterDeptSlot(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm">
-                <option value="">Any Time</option>
-                <option value="morning">Morning (6AM–12PM)</option>
-                <option value="afternoon">Afternoon (12–5PM)</option>
-                <option value="evening">Evening (5–9PM)</option>
-                <option value="night">Night (9PM–6AM)</option>
-              </select>
+
+            {/* Train class */}
+            <div className="px-4 py-3 border-t border-gray-100">
+              <p className="text-xs font-bold text-gray-500 uppercase mb-2">Train Class</p>
+              <div className="space-y-2">
+                {['SL', '3A', '2A', '1A', 'CC'].map(cls => (
+                  <label key={cls} className="flex items-center gap-2 cursor-pointer py-0.5">
+                    <input type="checkbox" checked={filterClasses.includes(cls)}
+                      onChange={e => setFilterClasses(prev => e.target.checked ? [...prev, cls] : prev.filter(c => c !== cls))}
+                      className="w-4 h-4 accent-blue-700 shrink-0" />
+                    <span className="text-sm text-gray-700">{CLASSES.find(c => c.code === cls)?.label ?? cls}</span>
+                  </label>
+                ))}
+              </div>
             </div>
-            <div className="mt-3">
-              <label className="block text-xs text-gray-500 mb-1">Max Price (₹)</label>
+
+            {/* Max price */}
+            <div className="px-4 py-3 border-t border-gray-100 pb-4">
+              <p className="text-xs font-bold text-gray-500 uppercase mb-2">Max Price (₹)</p>
               <input type="number" value={filterMaxPrice || ''} placeholder="e.g. 1200"
                 onChange={e => setFilterMaxPrice(Number(e.target.value))}
-                className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm" />
-            </div>
-            <div className="mt-3">
-              <label className="block text-xs text-gray-500 mb-1">Sort by</label>
-              <select value={sortBy} onChange={e => setSortBy(e.target.value as typeof sortBy)}
-                className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm">
-                <option value="departure">Departure</option>
-                <option value="duration">Duration</option>
-                <option value="price">Price</option>
-              </select>
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
           </div>
         </div>

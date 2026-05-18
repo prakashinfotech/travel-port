@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { Car, Clock, MapPin, Users, Filter, Star, Phone, Search } from 'lucide-react'
+import { Car, Clock, MapPin, Users, Filter, Star, Phone, Search, X } from 'lucide-react'
 import { api } from '@/api/axios'
 import { endpoints } from '@/api/endpoints'
 import type { CabDto, ApiResponse } from '@/types'
@@ -37,10 +37,12 @@ export default function CabsPage() {
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState('')
   const [searched, setSearched]   = useState(false)
-  const [filterAc, setFilterAc]         = useState(false)
-  const [filterCabType, setFilterCabType] = useState('')
-  const [filterProvider, setFilterProvider] = useState('')
-  const [sortBy, setSortBy]       = useState<'price' | 'duration'>('price')
+  const [filterAc, setFilterAc]               = useState(false)
+  const [filterCabType, setFilterCabType]     = useState('')
+  const [filterProviders, setFilterProviders] = useState<string[]>([])
+  const [filterMinRating, setFilterMinRating] = useState(0)
+  const [filterMaxPrice, setFilterMaxPrice]   = useState(0)
+  const [sortBy, setSortBy]                   = useState<'price' | 'duration' | 'rating'>('price')
 
   useEffect(() => {
     if (searchParams.get('origin')) search()
@@ -57,8 +59,11 @@ export default function CabsPage() {
       let results = data.data ?? []
       if (filterAc) results = results.filter(c => c.acAvailable)
       if (filterCabType) results = results.filter(c => c.cabType === filterCabType)
-      if (filterProvider) results = results.filter(c => c.provider === filterProvider)
+      if (filterProviders.length) results = results.filter(c => filterProviders.includes(c.provider))
+      if (filterMinRating > 0) results = results.filter(c => (c.driverRating ?? 0) >= filterMinRating)
+      if (filterMaxPrice > 0) results = results.filter(c => c.price <= filterMaxPrice)
       if (sortBy === 'duration') results = results.sort((a, b) => a.estimatedDurationMinutes - b.estimatedDurationMinutes)
+      else if (sortBy === 'rating') results = results.sort((a, b) => (b.driverRating ?? 0) - (a.driverRating ?? 0))
       else results = results.sort((a, b) => a.price - b.price)
       setCabs(results)
       setTotal(data.meta?.total ?? results.length)
@@ -119,46 +124,87 @@ export default function CabsPage() {
 
       <div className="max-w-6xl mx-auto px-4 py-6 flex gap-6">
         {/* Filters */}
-        <div className="w-56 shrink-0">
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-              <Filter className="w-4 h-4" /> Filters
-            </h3>
-            <div className="space-y-2 text-sm">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={filterAc} onChange={e => setFilterAc(e.target.checked)} className="accent-yellow-600" />
-                AC only
+        <div className="w-60 shrink-0">
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="font-bold text-gray-800 flex items-center gap-2 text-sm"><Filter className="w-4 h-4" /> Filters</h3>
+              {(filterAc || filterCabType || filterProviders.length > 0 || filterMinRating > 0 || filterMaxPrice > 0) && (
+                <button onClick={() => { setFilterAc(false); setFilterCabType(''); setFilterProviders([]); setFilterMinRating(0); setFilterMaxPrice(0) }}
+                  className="text-xs text-yellow-600 font-semibold flex items-center gap-0.5 hover:text-red-500"><X className="w-3 h-3" />Clear</button>
+              )}
+            </div>
+
+            {/* Sort tabs */}
+            <div className="px-4 pt-4 pb-2">
+              <p className="text-xs font-bold text-gray-500 uppercase mb-2">Sort By</p>
+              <div className="grid grid-cols-3 gap-1">
+                {([['price', '₹', 'Cheapest'], ['duration', '⚡', 'Fastest'], ['rating', '⭐', 'Top Rated']] as [typeof sortBy, string, string][]).map(([k, icon, label]) => (
+                  <button key={k} onClick={() => setSortBy(k)}
+                    className={`flex flex-col items-center py-2 px-1 rounded-lg border text-xs font-semibold transition-all ${sortBy === k ? 'border-yellow-500 bg-yellow-50 text-yellow-700' : 'border-gray-200 text-gray-500 hover:border-yellow-300'}`}>
+                    <span className="text-sm">{icon}</span><span className="mt-0.5 leading-tight text-center">{label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Popular filters */}
+            <div className="px-4 py-3 border-t border-gray-100">
+              <p className="text-xs font-bold text-gray-500 uppercase mb-2">Popular Filters</p>
+              <label className="flex items-center gap-2 cursor-pointer py-0.5">
+                <input type="checkbox" checked={filterAc} onChange={e => setFilterAc(e.target.checked)} className="w-4 h-4 accent-yellow-600 shrink-0" />
+                <span className="text-sm text-gray-700">AC only</span>
               </label>
             </div>
-            <div className="mt-3">
-              <label className="block text-xs text-gray-500 mb-1">Cab Type</label>
-              <select value={filterCabType} onChange={e => setFilterCabType(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm">
-                <option value="">All Types</option>
-                <option value="Mini">Mini</option>
-                <option value="Sedan">Sedan</option>
-                <option value="Prime">Prime</option>
-                <option value="SUV">SUV</option>
-              </select>
+
+            {/* Cab type cards */}
+            <div className="px-4 py-3 border-t border-gray-100">
+              <p className="text-xs font-bold text-gray-500 uppercase mb-2">Cab Type</p>
+              <div className="grid grid-cols-2 gap-1.5">
+                {[['Mini', '🛺', '4 seats'], ['Sedan', '🚗', '4 seats'], ['Prime', '🚙', '4 seats'], ['SUV', '🚐', '6 seats']].map(([type, icon, cap]) => (
+                  <button key={type} onClick={() => setFilterCabType(t => t === type ? '' : type)}
+                    className={`flex flex-col items-center py-2.5 rounded-xl border text-xs font-semibold transition-all ${filterCabType === type ? 'border-yellow-500 bg-yellow-50 text-yellow-700' : 'border-gray-200 text-gray-500 hover:border-yellow-300'}`}>
+                    <span className="text-xl mb-0.5">{icon}</span>
+                    <span>{type}</span>
+                    <span className="text-gray-400 font-normal">{cap}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="mt-3">
-              <label className="block text-xs text-gray-500 mb-1">Provider</label>
-              <select value={filterProvider} onChange={e => setFilterProvider(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm">
-                <option value="">All Providers</option>
-                <option value="Ola">Ola</option>
-                <option value="Uber">Uber</option>
-                <option value="Meru">Meru</option>
-                <option value="Zoom">Zoom</option>
-              </select>
+
+            {/* Provider checkboxes */}
+            <div className="px-4 py-3 border-t border-gray-100">
+              <p className="text-xs font-bold text-gray-500 uppercase mb-2">Provider</p>
+              <div className="space-y-2">
+                {['Ola', 'Uber', 'Meru', 'Zoom'].map(p => (
+                  <label key={p} className="flex items-center gap-2 cursor-pointer py-0.5">
+                    <input type="checkbox" checked={filterProviders.includes(p)}
+                      onChange={e => setFilterProviders(prev => e.target.checked ? [...prev, p] : prev.filter(x => x !== p))}
+                      className="w-4 h-4 accent-yellow-600 shrink-0" />
+                    <span className="text-sm text-gray-700">{p}</span>
+                  </label>
+                ))}
+              </div>
             </div>
-            <div className="mt-3">
-              <label className="block text-xs text-gray-500 mb-1">Sort by</label>
-              <select value={sortBy} onChange={e => setSortBy(e.target.value as typeof sortBy)}
-                className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm">
-                <option value="price">Price</option>
-                <option value="duration">Duration</option>
-              </select>
+
+            {/* Min driver rating */}
+            <div className="px-4 py-3 border-t border-gray-100">
+              <p className="text-xs font-bold text-gray-500 uppercase mb-2">Min Driver Rating</p>
+              <div className="flex gap-1">
+                {[3, 3.5, 4, 4.5].map(r => (
+                  <button key={r} onClick={() => setFilterMinRating(v => v === r ? 0 : r)}
+                    className={`flex-1 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center justify-center gap-0.5 ${filterMinRating === r ? 'border-yellow-500 bg-yellow-50 text-yellow-700' : 'border-gray-200 text-gray-500 hover:border-yellow-300'}`}>
+                    <Star className="w-2.5 h-2.5 fill-current" />{r}+
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Max price */}
+            <div className="px-4 py-3 border-t border-gray-100 pb-4">
+              <p className="text-xs font-bold text-gray-500 uppercase mb-2">Max Price (₹)</p>
+              <input type="number" value={filterMaxPrice || ''} placeholder="e.g. 2000"
+                onChange={e => setFilterMaxPrice(Number(e.target.value))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500" />
             </div>
           </div>
         </div>

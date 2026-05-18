@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { Bus, Clock, Wifi, Star, Filter, MapPin, Search, ChevronDown, ChevronUp } from 'lucide-react'
+import { Bus, Clock, Wifi, Star, Filter, MapPin, Search, ChevronDown, ChevronUp, X } from 'lucide-react'
 import { api } from '@/api/axios'
 import { endpoints } from '@/api/endpoints'
 import type { BusDto, ApiResponse } from '@/types'
@@ -222,10 +222,12 @@ export default function BusesPage() {
   const [loading, setLoading]         = useState(false)
   const [error, setError]             = useState('')
   const [searched, setSearched]       = useState(false)
-  const [sortBy, setSortBy]           = useState<'price' | 'departure' | 'duration'>('price')
-  const [filterAc, setFilterAc]       = useState(false)
-  const [filterRefund, setFilterRefund] = useState(false)
-  const [filterOperator, setFilterOperator] = useState('')
+  const [sortBy, setSortBy]               = useState<'price' | 'departure' | 'duration'>('price')
+  const [filterAc, setFilterAc]           = useState(false)
+  const [filterRefund, setFilterRefund]   = useState(false)
+  const [filterOperators, setFilterOps]   = useState<string[]>([])
+  const [filterBusTypes, setFilterTypes]  = useState<string[]>([])
+  const [filterDeptSlot, setFilterSlot]   = useState('')
   const [filterMaxPrice, setFilterMaxPrice] = useState(0)
 
   useEffect(() => {
@@ -241,10 +243,21 @@ export default function BusesPage() {
         params: { origin, destination, travelDate: date, seats, pageSize: 30 }
       })
       let results = data.data ?? []
-      if (filterAc)     results = results.filter(b => b.acAvailable)
-      if (filterRefund) results = results.filter(b => b.isRefundable)
-      if (filterOperator) results = results.filter(b => b.operator === filterOperator)
-      if (filterMaxPrice > 0) results = results.filter(b => b.price <= filterMaxPrice)
+      if (filterAc)                  results = results.filter(b => b.acAvailable)
+      if (filterRefund)              results = results.filter(b => b.isRefundable)
+      if (filterOperators.length)    results = results.filter(b => filterOperators.includes(b.operator))
+      if (filterBusTypes.length)     results = results.filter(b => filterBusTypes.some(t => b.busType.toLowerCase().includes(t.toLowerCase())))
+      if (filterMaxPrice > 0)        results = results.filter(b => b.price <= filterMaxPrice)
+      if (filterDeptSlot) {
+        results = results.filter(b => {
+          const h = new Date(b.departureTime).getHours()
+          if (filterDeptSlot === 'early')     return h >= 0  && h < 6
+          if (filterDeptSlot === 'morning')   return h >= 6  && h < 12
+          if (filterDeptSlot === 'afternoon') return h >= 12 && h < 18
+          if (filterDeptSlot === 'evening')   return h >= 18 && h < 24
+          return true
+        })
+      }
       if (sortBy === 'departure') results = results.sort((a, b) => a.departureTime.localeCompare(b.departureTime))
       else if (sortBy === 'duration') results = results.sort((a, b) => a.durationMinutes - b.durationMinutes)
       else results = results.sort((a, b) => a.price - b.price)
@@ -305,48 +318,91 @@ export default function BusesPage() {
 
       <div className="max-w-6xl mx-auto px-4 py-6 flex gap-6">
         {/* Filters */}
-        <div className="w-56 shrink-0">
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-              <Filter className="w-4 h-4" /> Filters
-            </h3>
-            <div className="space-y-2 text-sm">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={filterAc} onChange={e => setFilterAc(e.target.checked)} className="accent-green-600" />
-                AC only
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={filterRefund} onChange={e => setFilterRefund(e.target.checked)} className="accent-green-600" />
-                Refundable
-              </label>
+        <div className="w-60 shrink-0">
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="font-bold text-gray-800 flex items-center gap-2 text-sm"><Filter className="w-4 h-4" /> Filters</h3>
+              {(filterAc || filterRefund || filterOperators.length > 0 || filterBusTypes.length > 0 || filterDeptSlot || filterMaxPrice > 0) && (
+                <button onClick={() => { setFilterAc(false); setFilterRefund(false); setFilterOps([]); setFilterTypes([]); setFilterSlot(''); setFilterMaxPrice(0) }}
+                  className="text-xs text-green-600 font-semibold flex items-center gap-0.5 hover:text-red-500"><X className="w-3 h-3" />Clear</button>
+              )}
             </div>
-            <div className="mt-3">
-              <label className="block text-xs text-gray-500 mb-1">Operator</label>
-              <select value={filterOperator} onChange={e => setFilterOperator(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm">
-                <option value="">All Operators</option>
-                <option value="VRL Travels">VRL Travels</option>
-                <option value="Orange Travels">Orange Travels</option>
-                <option value="MSRTC">MSRTC</option>
-                <option value="KSRTC">KSRTC</option>
-                <option value="IntrCity SmartBus">IntrCity SmartBus</option>
-                <option value="Neeta Travels">Neeta Travels</option>
-              </select>
+
+            {/* Sort tabs */}
+            <div className="px-4 pt-4 pb-2">
+              <p className="text-xs font-bold text-gray-500 uppercase mb-2">Sort By</p>
+              <div className="grid grid-cols-3 gap-1">
+                {([['price', '₹', 'Cheapest'], ['departure', '⏰', 'Earliest'], ['duration', '⚡', 'Fastest']] as [typeof sortBy, string, string][]).map(([k, icon, label]) => (
+                  <button key={k} onClick={() => setSortBy(k)}
+                    className={`flex flex-col items-center py-2 px-1 rounded-lg border text-xs font-semibold transition-all ${sortBy === k ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 text-gray-500 hover:border-green-300'}`}>
+                    <span className="text-sm">{icon}</span><span className="mt-0.5 leading-tight text-center">{label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="mt-3">
-              <label className="block text-xs text-gray-500 mb-1">Max Price (₹)</label>
+
+            {/* Departure time slots */}
+            <div className="px-4 py-3 border-t border-gray-100">
+              <p className="text-xs font-bold text-gray-500 uppercase mb-2">Departure Time</p>
+              <div className="grid grid-cols-2 gap-1">
+                {[['early','🌙','Before 6 AM'],['morning','🌅','6 AM–12 PM'],['afternoon','☀️','12 PM–6 PM'],['evening','🌆','After 6 PM']].map(([k, icon, lbl]) => (
+                  <button key={k} onClick={() => setFilterSlot(s => s === k ? '' : k)}
+                    className={`flex flex-col items-center py-2 rounded-lg border text-xs font-medium transition-all ${filterDeptSlot === k ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 text-gray-500 hover:border-green-300'}`}>
+                    <span>{icon}</span><span className="mt-0.5 text-center leading-tight">{lbl}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Popular filters */}
+            <div className="px-4 py-3 border-t border-gray-100">
+              <p className="text-xs font-bold text-gray-500 uppercase mb-2">Popular Filters</p>
+              <div className="space-y-2">
+                {[['AC Bus', filterAc, setFilterAc], ['Refundable', filterRefund, setFilterRefund]].map(([lbl, val, set]) => (
+                  <label key={lbl as string} className="flex items-center gap-2 cursor-pointer py-0.5">
+                    <input type="checkbox" checked={val as boolean} onChange={e => (set as (v: boolean) => void)(e.target.checked)} className="w-4 h-4 accent-green-600 shrink-0" />
+                    <span className="text-sm text-gray-700">{lbl as string}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Bus type */}
+            <div className="px-4 py-3 border-t border-gray-100">
+              <p className="text-xs font-bold text-gray-500 uppercase mb-2">Bus Type</p>
+              <div className="space-y-2">
+                {['Sleeper', 'Semi-Sleeper', 'Seater', 'Volvo'].map(t => (
+                  <label key={t} className="flex items-center gap-2 cursor-pointer py-0.5">
+                    <input type="checkbox" checked={filterBusTypes.includes(t)}
+                      onChange={e => setFilterTypes(prev => e.target.checked ? [...prev, t] : prev.filter(x => x !== t))}
+                      className="w-4 h-4 accent-green-600 shrink-0" />
+                    <span className="text-sm text-gray-700">{t}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Operator */}
+            <div className="px-4 py-3 border-t border-gray-100">
+              <p className="text-xs font-bold text-gray-500 uppercase mb-2">Operator</p>
+              <div className="space-y-2">
+                {['VRL Travels','Orange Travels','MSRTC','KSRTC','IntrCity SmartBus','Neeta Travels'].map(op => (
+                  <label key={op} className="flex items-center gap-2 cursor-pointer py-0.5">
+                    <input type="checkbox" checked={filterOperators.includes(op)}
+                      onChange={e => setFilterOps(prev => e.target.checked ? [...prev, op] : prev.filter(x => x !== op))}
+                      className="w-4 h-4 accent-green-600 shrink-0" />
+                    <span className="text-sm text-gray-700">{op}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Max price */}
+            <div className="px-4 py-3 border-t border-gray-100 pb-4">
+              <p className="text-xs font-bold text-gray-500 uppercase mb-2">Max Price (₹)</p>
               <input type="number" value={filterMaxPrice || ''} placeholder="e.g. 1500"
                 onChange={e => setFilterMaxPrice(Number(e.target.value))}
-                className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm" />
-            </div>
-            <div className="mt-3">
-              <label className="block text-xs text-gray-500 mb-1">Sort by</label>
-              <select value={sortBy} onChange={e => setSortBy(e.target.value as typeof sortBy)}
-                className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm">
-                <option value="price">Price</option>
-                <option value="departure">Departure</option>
-                <option value="duration">Duration</option>
-              </select>
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
             </div>
           </div>
         </div>
