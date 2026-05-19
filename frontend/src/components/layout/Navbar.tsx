@@ -34,12 +34,12 @@ export function Navbar() {
 
   // Fetch wallet balance when dropdown opens
   useEffect(() => {
-    if (profileOpen && walletBalance === null && isAuthenticated) {
+    if (profileOpen && isAuthenticated) {
       userService.getWallet()
         .then(r => setWalletBalance(r.data?.balance ?? 0))
         .catch(() => setWalletBalance(0))
     }
-  }, [profileOpen, isAuthenticated, walletBalance])
+  }, [profileOpen, isAuthenticated])
 
   const handleLogout = () => {
     logout()

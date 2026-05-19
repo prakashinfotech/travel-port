@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft, Bus, Clock, MapPin, Users, Tag, CreditCard, Shield, X, CheckCircle, ChevronRight } from 'lucide-react'
 import { useForm } from 'react-hook-form'
@@ -43,10 +43,11 @@ interface SeatLayoutProps {
   bus: BusDto
   seats: number
   selected: number[]
+  lockedByOthers: number[]
   onSelect: (seats: number[]) => void
 }
 
-function SeatLayout({ bus, seats, selected, onSelect }: SeatLayoutProps) {
+function SeatLayout({ bus, seats, selected, lockedByOthers, onSelect }: SeatLayoutProps) {
   const totalSeats   = bus.totalSeats ?? 40
   const seatsPerDeck = Math.floor(totalSeats / 2)    // 20
   const rowsPerDeck  = Math.ceil(seatsPerDeck / 4)   // 5
@@ -77,7 +78,7 @@ function SeatLayout({ bus, seats, selected, onSelect }: SeatLayoutProps) {
   const isWindow = (n: number) => { const p = (n - 1) % 4; return p === 0 || p === 3 }
 
   const toggle = (n: number) => {
-    if (bookedSet.has(n)) return
+    if (bookedSet.has(n) || lockedByOthers.includes(n)) return
     if (selected.includes(n)) {
       onSelect(selected.filter(s => s !== n))
     } else if (selected.length < seats) {
@@ -86,10 +87,11 @@ function SeatLayout({ bus, seats, selected, onSelect }: SeatLayoutProps) {
   }
 
   const seatCls = (n: number) => {
-    if (selected.includes(n)) return 'bg-green-600 border-green-700 text-white shadow-sm'
-    if (bookedSet.has(n))     return 'bg-red-100 border-red-200 text-red-400 cursor-not-allowed'
-    if (femaleSeats.has(n))   return 'bg-pink-100 border-pink-300 text-pink-700 hover:bg-pink-200 cursor-pointer'
-    if (isWindow(n))          return 'bg-yellow-50 border-yellow-400 text-yellow-700 hover:bg-yellow-100 cursor-pointer'
+    if (selected.includes(n))        return 'bg-green-600 border-green-700 text-white shadow-sm'
+    if (bookedSet.has(n))            return 'bg-red-100 border-red-200 text-red-400 cursor-not-allowed'
+    if (lockedByOthers.includes(n))  return 'bg-amber-100 border-amber-400 text-amber-700 cursor-not-allowed'
+    if (femaleSeats.has(n))          return 'bg-pink-100 border-pink-300 text-pink-700 hover:bg-pink-200 cursor-pointer'
+    if (isWindow(n))                 return 'bg-yellow-50 border-yellow-400 text-yellow-700 hover:bg-yellow-100 cursor-pointer'
     return 'bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100 cursor-pointer'
   }
 
@@ -109,14 +111,14 @@ function SeatLayout({ bus, seats, selected, onSelect }: SeatLayoutProps) {
           <div key={row} className="flex items-center gap-1 mb-1.5">
             <span className="text-xs text-gray-400 w-4 text-right shrink-0">{row + 1}</span>
             {[s, s + 1].map(n => (
-              <button key={n} onClick={() => toggle(n)} disabled={bookedSet.has(n)}
-                title={bookedSet.has(n) ? 'Booked' : femaleSeats.has(n) ? `Seat ${n} · Female` : isWindow(n) ? `Seat ${n} · Window (+₹50)` : `Seat ${n}`}
+              <button key={n} onClick={() => toggle(n)} disabled={bookedSet.has(n) || lockedByOthers.includes(n)}
+                title={bookedSet.has(n) ? 'Booked' : lockedByOthers.includes(n) ? 'Locked by another user' : femaleSeats.has(n) ? `Seat ${n} · Female` : isWindow(n) ? `Seat ${n} · Window (+₹50)` : `Seat ${n}`}
                 className={`w-9 h-8 rounded border text-xs font-bold transition-colors ${seatCls(n)}`}>{n}</button>
             ))}
             <div className="w-6 flex items-center justify-center text-gray-200 select-none">|</div>
             {[s + 2, s + 3].map(n => (
-              <button key={n} onClick={() => toggle(n)} disabled={bookedSet.has(n)}
-                title={bookedSet.has(n) ? 'Booked' : femaleSeats.has(n) ? `Seat ${n} · Female` : isWindow(n) ? `Seat ${n} · Window (+₹50)` : `Seat ${n}`}
+              <button key={n} onClick={() => toggle(n)} disabled={bookedSet.has(n) || lockedByOthers.includes(n)}
+                title={bookedSet.has(n) ? 'Booked' : lockedByOthers.includes(n) ? 'Locked by another user' : femaleSeats.has(n) ? `Seat ${n} · Female` : isWindow(n) ? `Seat ${n} · Window (+₹50)` : `Seat ${n}`}
                 className={`w-9 h-8 rounded border text-xs font-bold transition-colors ${seatCls(n)}`}>{n}</button>
             ))}
           </div>
@@ -132,6 +134,7 @@ function SeatLayout({ bus, seats, selected, onSelect }: SeatLayoutProps) {
         <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded bg-gray-50 border border-gray-300 shrink-0" />Available</span>
         <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded bg-green-600 border border-green-700 shrink-0" />Selected</span>
         <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded bg-red-100 border border-red-200 shrink-0" />Booked</span>
+        <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded bg-amber-100 border border-amber-400 shrink-0" />Locked</span>
         <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded bg-yellow-50 border border-yellow-400 shrink-0" />Window (+₹50)</span>
         <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded bg-pink-100 border border-pink-300 shrink-0" />Female</span>
       </div>
@@ -163,12 +166,45 @@ export default function BookBusPage() {
   const authUser   = useAppSelector(s => s.auth.user)
   const isLoggedIn = !!authUser
 
-  const [step, setStep]                     = useState(1)
-  const [selectedSeats, setSelectedSeats]   = useState<number[]>([])
-  const [boardingPoint, setBoardingPoint]   = useState('')
-  const [droppingPoint, setDroppingPoint]   = useState('')
-  const [submitting, setSubmitting]         = useState(false)
-  const [apiError, setApiError]             = useState<string | null>(null)
+  const [step, setStep]                       = useState(1)
+  const [selectedSeats, setSelectedSeats]     = useState<number[]>([])
+  const [lockedByOthers, setLockedByOthers]   = useState<number[]>([])
+  const [boardingPoint, setBoardingPoint]     = useState('')
+  const [droppingPoint, setDroppingPoint]     = useState('')
+  const [submitting, setSubmitting]           = useState(false)
+  const [apiError, setApiError]               = useState<string | null>(null)
+
+  // Refs for the unmount cleanup (avoids stale closures)
+  const selectedSeatsRef = useRef<number[]>([])
+  const busIdRef = useRef<string | undefined>(bus?.id)
+  const isLoggedInRef = useRef(isLoggedIn)
+  useEffect(() => { selectedSeatsRef.current = selectedSeats }, [selectedSeats])
+  useEffect(() => { isLoggedInRef.current = isLoggedIn }, [isLoggedIn])
+
+  // Poll locked seats every 4 s while on the seat-selection step
+  useEffect(() => {
+    if (!bus || !isLoggedIn) return
+    const fetchLocked = async () => {
+      try {
+        const { data } = await api.get(endpoints.buses.lockedSeats(bus.id))
+        setLockedByOthers((data.data ?? []).map(Number))
+      } catch {}
+    }
+    fetchLocked()
+    const id = setInterval(fetchLocked, 4000)
+    return () => clearInterval(id)
+  }, [bus?.id, isLoggedIn]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Release all selected seat locks when navigating away
+  useEffect(() => {
+    return () => {
+      const seats = selectedSeatsRef.current
+      const bid   = busIdRef.current
+      if (seats.length > 0 && bid && isLoggedInRef.current) {
+        api.delete(endpoints.buses.lockSeats(bid), { data: { seatNumbers: seats.map(String) } }).catch(() => {})
+      }
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const [discount, setDiscount]             = useState(0)
   const [couponApplied, setCouponApplied]   = useState(false)
   const [couponLoading, setCouponLoading]   = useState(false)
@@ -285,6 +321,19 @@ export default function BookBusPage() {
     } finally { setSubmitting(false) }
   }
 
+  const handleSeatSelect = async (newSeats: number[]) => {
+    const added   = newSeats.filter(s => !selectedSeats.includes(s))
+    const removed = selectedSeats.filter(s => !newSeats.includes(s))
+    setSelectedSeats(newSeats)
+    if (!isLoggedIn || !bus) return
+    try {
+      if (added.length > 0)
+        await api.post(endpoints.buses.lockSeats(bus.id), { seatNumbers: added.map(String) })
+      if (removed.length > 0)
+        await api.delete(endpoints.buses.lockSeats(bus.id), { data: { seatNumbers: removed.map(String) } })
+    } catch {}
+  }
+
   const canProceedStep1 = selectedSeats.length === seats
   const canProceedStep2 = !!boardingPoint && !!droppingPoint
 
@@ -376,7 +425,7 @@ export default function BookBusPage() {
                 <span className="w-6 h-6 rounded-full bg-green-600 text-white text-xs flex items-center justify-center font-bold">1</span>
                 Select Your Seat{seats > 1 ? 's' : ''} ({seats} required)
               </h3>
-              <SeatLayout bus={bus} seats={seats} selected={selectedSeats} onSelect={setSelectedSeats} />
+              <SeatLayout bus={bus} seats={seats} selected={selectedSeats} lockedByOthers={lockedByOthers} onSelect={handleSeatSelect} />
               <button
                 onClick={() => canProceedStep1 && setStep(2)}
                 disabled={!canProceedStep1}

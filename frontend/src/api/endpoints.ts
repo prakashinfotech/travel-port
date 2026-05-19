@@ -22,8 +22,10 @@ export const endpoints = {
     book:    '/hotels/book',
   },
   buses: {
-    search: '/buses/search',
-    book:   '/buses/book',
+    search:       '/buses/search',
+    book:         '/buses/book',
+    lockSeats:    (busId: string) => `/buses/${busId}/seats/lock`,
+    lockedSeats:  (busId: string) => `/buses/${busId}/seats/locked`,
   },
   trains: {
     search: '/trains/search',

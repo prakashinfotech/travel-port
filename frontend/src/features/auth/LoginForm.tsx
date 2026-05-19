@@ -42,6 +42,8 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         navigate('/bus-operator/dashboard', { replace: true })
       } else if (user?.role === 'CabOperator') {
         navigate('/cab-operator/dashboard', { replace: true })
+      } else if (user?.role === 'Admin') {
+        navigate('/admin', { replace: true })
       } else {
         const from = (location.state as { from?: Location })?.from
         const redirect = from ? `${from.pathname}${from.search ?? ''}` : '/'
