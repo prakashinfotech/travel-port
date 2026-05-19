@@ -170,19 +170,6 @@ function AirlineDot({ airline }: { airline: string }) {
   )
 }
 
-function formatSearchDate(value: string): string {
-  if (!value) return 'Select date'
-  try {
-    return new Date(`${value}T00:00:00`).toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    })
-  } catch {
-    return value
-  }
-}
-
 function FilterSection({
   title, children, defaultOpen = true,
 }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
