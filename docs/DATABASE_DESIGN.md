@@ -8,6 +8,7 @@ Users ──────────────────────── B
   │                          ┌────┴──────┐
   │                          │           │
   │                       Flights     Hotels ──── HotelRooms
+  │                                      └───── HotelReviews ←── Users
   │
   └── SavedTravellers
   └── SavedCards
@@ -15,6 +16,7 @@ Users ──────────────────────── B
   └── RefreshTokens
 
 Hotels  ─── HotelRooms
+Hotels  ─── HotelReviews
 Coupons (global — referenced by Bookings.CouponCode)
 ```
 
@@ -56,11 +58,13 @@ CREATE TABLE Flights (
     Duration      INT               NOT NULL,  -- minutes
     TotalSeats    INT               NOT NULL,
     AvailableSeats INT              NOT NULL,
-    EconomyPrice  DECIMAL(10,2)     NOT NULL,
-    BusinessPrice DECIMAL(10,2),
-    Stops         INT               NOT NULL DEFAULT 0,
-    IsActive      BIT               NOT NULL DEFAULT 1,
-    CreatedAt     DATETIME2         NOT NULL DEFAULT GETUTCDATE(),
+    EconomyPrice           DECIMAL(10,2)     NOT NULL,
+    BusinessPrice          DECIMAL(10,2),
+    Stops                  INT               NOT NULL DEFAULT 0,
+    LayoverAirport         NVARCHAR(10)      NULL,  -- IATA code, populated when Stops = 1
+    LayoverDurationMinutes INT               NULL,  -- minutes, populated when Stops = 1
+    IsActive               BIT               NOT NULL DEFAULT 1,
+    CreatedAt              DATETIME2         NOT NULL DEFAULT GETUTCDATE(),
     INDEX IX_Flights_Route (Source, Destination),
     INDEX IX_Flights_Departure (DepartureTime)
 );
@@ -87,6 +91,24 @@ CREATE TABLE Hotels (
     INDEX IX_Hotels_Rating (StarRating)
 );
 ```
+
+### HotelReviews
+```sql
+CREATE TABLE HotelReviews (
+    Id        UNIQUEIDENTIFIER  PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
+    HotelId   UNIQUEIDENTIFIER  NOT NULL REFERENCES Hotels(Id),
+    UserId    UNIQUEIDENTIFIER  NOT NULL REFERENCES Users(Id),
+    Rating    INT               NOT NULL,  -- 1–5
+    Comment   NVARCHAR(MAX)     NOT NULL,
+    CreatedAt DATETIME2         NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2,
+    DeletedAt DATETIME2         NULL,
+    INDEX IX_HotelReviews_Hotel (HotelId),
+    INDEX IX_HotelReviews_User  (UserId)
+);
+```
+
+One review per user per hotel enforced at the service layer. `Hotels.ReviewScore` and `Hotels.ReviewCount` are updated atomically when a review is created or deleted.
 
 ### HotelRooms
 ```sql
@@ -247,6 +269,8 @@ CREATE TABLE RefreshTokens (
 | User → SavedTravellers | 1:N | Soft-deleted |
 | User → Hotel (HotelId) | N:1 (nullable) | Only Hotel-role users have this set |
 | Hotel → HotelRooms | 1:N | Soft-deleted |
+| Hotel → HotelReviews | 1:N | One per user per hotel; score/count denormalised on Hotel |
+| HotelReview → User | N:1 | |
 | Hotel → User (manager) | 1:1 (via HotelId) | One manager per hotel |
 | Booking → User | N:1 | |
 | Booking → Flight/Hotel | N:1 (via ReferenceId) | Polymorphic reference |
@@ -300,3 +324,6 @@ public abstract class BaseEntity {
 | `AddHotelGuestDetails` | `Bookings.GuestName`, `GuestEmail`, `GuestPhone` |
 | `AddSavedCards` | `SavedCards` table |
 | `AddHotelPortal` | `Users.HotelId` (nullable FK), `Hotels.Images`, `HotelRooms.Images` |
+| `AddOperatorPortal` | `FlightCompanies`, `BusCompanies`, `CabCompanies` tables; `Flight.FlightCompanyId` FK; `User.OperatorCompanyId` |
+| `AddHotelReviewsTable` | `HotelReviews` table with FK to Hotels + Users |
+| `AddFlightLayoverFields` | `Flights.LayoverAirport`, `Flights.LayoverDurationMinutes` |

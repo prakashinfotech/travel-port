@@ -155,8 +155,9 @@ Response 201:
 | Method | Endpoint                | Auth | Description        |
 |--------|-------------------------|------|--------------------|
 | GET    | `/hotels/search`        | ❌   | Search hotels      |
-| GET    | `/hotels/:id`           | ❌   | Hotel details      |
+| GET    | `/hotels/:id`           | ❌   | Hotel details (includes reviews array) |
 | GET    | `/hotels/:id/rooms`     | ❌   | Available rooms    |
+| POST   | `/hotels/:id/reviews`   | ✅   | Submit a hotel review (requires completed stay) |
 | POST   | `/hotels/book`          | ✅   | Book a hotel       |
 
 ### GET /hotels/search
@@ -165,6 +166,62 @@ Query Params:
   city=Mumbai&checkin=2024-12-01&checkout=2024-12-03&guests=2&rooms=1
   &minPrice=500&maxPrice=5000&rating=4&sort=price&page=1&limit=10
 ```
+
+### GET /hotels/:id
+Returns full hotel details including a `reviews` array ordered by most recent.
+
+```json
+Response 200:
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "name": "The Grand Palace",
+    "city": "Mumbai",
+    "reviewScore": 4.3,
+    "reviewCount": 5,
+    "rooms": [...],
+    "reviews": [
+      {
+        "id": "uuid",
+        "userId": "uuid",
+        "userName": "John Doe",
+        "rating": 5,
+        "comment": "Excellent stay, very clean rooms.",
+        "createdAt": "2026-05-10T10:00:00Z"
+      }
+    ]
+  }
+}
+```
+
+### POST /hotels/:id/reviews
+Authenticated user must have a **completed** hotel stay (CheckOut in the past, status Confirmed) at this hotel. One review per user per hotel.
+
+```json
+Request:
+{ "rating": 5, "comment": "Excellent stay, very clean rooms." }
+
+Response 201:
+{
+  "success": true,
+  "message": "Review submitted successfully.",
+  "data": {
+    "id": "uuid",
+    "userId": "uuid",
+    "userName": "John Doe",
+    "rating": 5,
+    "comment": "Excellent stay, very clean rooms.",
+    "createdAt": "2026-05-19T10:00:00Z"
+  }
+}
+```
+
+**Validation rules:**
+- `rating` must be 1–5 (integer)
+- `comment` must be non-empty
+- User must have a confirmed, checked-out booking for this hotel
+- User can only submit one review per hotel (returns 422 if duplicate)
 
 ---
 
@@ -298,8 +355,19 @@ Response 200:
 | POST   | `/bookings/:id/cancel`  | ✅   | Cancel booking        |
 | GET    | `/bookings/:id/invoice` | ✅   | Download invoice      |
 
+### GET /bookings/:id
+Returns booking details. The `BookingDto` includes transport-specific fields for bus bookings:
+
+| Field | Type | Description |
+|---|---|---|
+| `transportSeatNumbers` | string? | Assigned seat number(s) |
+| `transportBusNumber` | string? | Bus registration number |
+| `transportDriverPhone` | string? | Driver contact number |
+| `transportBoardingPoint` | string? | Pickup stop name |
+| `transportDroppingPoint` | string? | Drop-off stop name |
+
 ### GET /bookings/:id/invoice
-Returns a downloadable PDF e-ticket for the authenticated user's booking.
+Returns a downloadable PDF e-ticket for the authenticated user's booking. For bus bookings, the PDF includes seat number, boarding point, and dropping point.
 
 Response:
 - `200 OK`
@@ -447,6 +515,7 @@ All admin endpoints require `[Authorize(Roles = "Admin")]`. Enums serialize as s
 | GET    | `/admin/hotels`                 | ✅    | Admin | List all registered hotels           |
 | POST   | `/admin/hotels`                 | ✅    | Admin | Register hotel + create manager account + send credentials email |
 | POST   | `/admin/hotels/:id/toggle`      | ✅    | Admin | Toggle hotel active/inactive         |
+| DELETE | `/admin/hotels/reviews/:id`     | ✅    | Admin | Hard-delete a hotel review           |
 
 ### GET /admin/dashboard
 ```json
@@ -626,6 +695,13 @@ Response 200:
 { "success": true, "data": { "id": "uuid", "name": "The Grand Palace", "isActive": false } }
 ```
 
+### DELETE /admin/hotels/reviews/:id — Delete Hotel Review
+Permanently removes a hotel review and recalculates the hotel's `ReviewScore` and `ReviewCount`.
+```json
+Response 200:
+{ "success": true, "message": "Hotel review deleted." }
+```
+
 ### POST /admin/hotels — Register Hotel
 ```json
 Request:
@@ -764,9 +840,20 @@ Request:
   "totalSeats": 180,
   "economyPrice": 3500,
   "businessPrice": null,
-  "stops": 0
+  "stops": 0,
+  "layoverAirport": null,
+  "layoverDurationMinutes": null
 }
 ```
+
+**Validation rules:**
+- `source` and `destination` must differ
+- `arrivalTime` must be after `departureTime`
+- `stops` must be 0 or 1 (only non-stop and 1-stop flights supported)
+- When `stops = 1`: `layoverAirport` is required and must differ from source/destination; `layoverDurationMinutes` must be > 0
+- When `stops = 0`: `layoverAirport` and `layoverDurationMinutes` are ignored
+
+`layoverAirport` is stored uppercase (e.g., `"HYD"`).
 
 ---
 

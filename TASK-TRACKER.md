@@ -5,6 +5,45 @@
 
 ---
 
+## Phase 12 — Hotel Reviews, Bus Ticket Details, Flight Layover Support
+**Branch:** `feature/bus-booking-confirmation-ticket-details`
+**Scope:** Hotel guest reviews system, bus booking confirmation page with full ticket details, flight layover fields for 1-stop flights in operator portal.
+
+| # | Feature | Status | Notes |
+|---|---|---|---|
+| 12.1 | `HotelReview` domain entity (HotelId, UserId, Rating, Comment) | ✅ | Domain/Entities/HotelReview.cs |
+| 12.2 | `Hotel` entity — `ICollection<HotelReview> Reviews` navigation added | ✅ | |
+| 12.3 | `HotelReviewConfiguration` — EF mapping + FK constraints + index | ✅ | Persistence/Configurations/HotelReviewConfiguration.cs |
+| 12.4 | `TravelPortDbContext` — `HotelReviews` DbSet added | ✅ | |
+| 12.5 | EF Core migration `AddHotelReviewsTable` | ✅ | |
+| 12.6 | `HotelReviewDto` + `CreateHotelReviewRequest` DTOs | ✅ | Application/DTOs/Hotels/HotelReviewDtos.cs |
+| 12.7 | `HotelDto` — `Reviews?: HotelReviewDto[]` field added | ✅ | Full reviews array returned on GET /hotels/:id |
+| 12.8 | `CreateHotelReviewRequestValidator` — rating 1–5, comment non-empty | ✅ | Application/Validators/Hotels/ |
+| 12.9 | `IHotelService.CreateReviewAsync` interface method | ✅ | |
+| 12.10 | `HotelService.CreateReviewAsync` — validates completed stay, enforces one-review-per-user, updates ReviewScore/ReviewCount atomically | ✅ | |
+| 12.11 | `HotelService.ToDtoAsync` — fetches and embeds reviews with user names on GET by ID | ✅ | Replaces simple `ToDto` for single-hotel fetch |
+| 12.12 | `HotelsController` — `POST /hotels/{id}/reviews` endpoint (201) | ✅ | Authenticated users only |
+| 12.13 | `IAdminService.DeleteHotelReviewAsync` + `AdminService` implementation | ✅ | Hard-delete review; recalculates hotel score |
+| 12.14 | `AdminController` — `DELETE /admin/hotels/reviews/{reviewId}` endpoint | ✅ | Admin only |
+| 12.15 | `Flight` entity — `LayoverAirport: string?` + `LayoverDurationMinutes: int?` | ✅ | Domain/Entities/Flight.cs |
+| 12.16 | `FlightConfiguration` — EF mapping for layover fields | ✅ | Persistence/Configurations/FlightConfiguration.cs |
+| 12.17 | EF Core migration `AddFlightLayoverFields` | ✅ | |
+| 12.18 | `FlightOperatorService` — `ValidateFlightRequest` helper (source≠dest, arrival>departure, stops 0/1, layover rules) | ✅ | Applied on Create and Update |
+| 12.19 | `FlightOperatorService` — layover fields wired into Create/Update/ToFlightDto | ✅ | `LayoverAirport` stored uppercase |
+| 12.20 | `BookingDto` — 5 new transport fields: `TransportSeatNumbers`, `TransportBusNumber`, `TransportDriverPhone`, `TransportBoardingPoint`, `TransportDroppingPoint` | ✅ | |
+| 12.21 | `BookingService` — bus-specific snapshot fields mapped to BookingDto | ✅ | |
+| 12.22 | `BusBookingConfirmPage.tsx` — dedicated bus booking confirmation page | ✅ | Route: `/bookings/bus/:id`; shows operator, route, seat, bus number, boarding/dropping points, driver phone, fare summary, PDF download |
+| 12.23 | `AppRouter.tsx` — `/bookings/bus/:id` route added | ✅ | |
+| 12.24 | `HotelDetailPage.tsx` — hotel reviews section with star selector, submit form, review list, admin delete button | ✅ | Shows per-user review state; prevents duplicate review submission |
+| 12.25 | `FlightOperatorFlightsPage.tsx` — layover airport + duration fields in Add/Edit flight form (shown when stops = 1) | ✅ | |
+| 12.26 | Frontend types — `HotelReviewDto`, `CreateHotelReviewRequest`, `HotelDto.reviews`, `BookingDto` transport fields, `OperatorFlightDto/CreateFlightRequest/UpdateFlightRequest` layover fields | ✅ | frontend/src/types/index.ts |
+| 12.27 | `endpoints.ts` — `hotels.reviews(id)` + `admin.deleteHotelReview(id)` | ✅ | |
+| 12.28 | `hotelService.ts` — `createReview(hotelId, req)` method | ✅ | |
+| 12.29 | `adminService.ts` — `deleteHotelReview(reviewId)` method | ✅ | |
+| 12.30 | `HotelReviews.sql` — raw SQL reference file for HotelReviews table | ✅ | backend/src/Database/Tables/ |
+
+---
+
 ## Phase 11 — Operator Portal (Flight / Bus / Cab)
 **Branch:** `feat/operator-portal`
 **Scope:** Full multi-role operator system — admin registers airline/bus/cab operators, operators log in to dedicated dashboards. Flight operators manage flights + view bookings; Bus/Cab operators view their booking stats.

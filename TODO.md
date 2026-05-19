@@ -30,6 +30,9 @@
 
 
 ### Features Pending
+- [x] ✅ **Hotel Reviews** — Users who have completed a stay can submit a 1–5 star review with a comment. One review per user per hotel enforced. ReviewScore/ReviewCount updated atomically. Reviews displayed on HotelDetailPage with admin delete capability. `POST /hotels/:id/reviews`, `DELETE /admin/hotels/reviews/:id`.
+- [x] ✅ **Bus booking confirmation page** — Dedicated `BusBookingConfirmPage` at `/bookings/bus/:id` showing operator, route, seat number, bus number, boarding point, dropping point, driver phone, fare summary, and PDF e-ticket download.
+- [x] ✅ **Flight layover fields** — `Flight` entity extended with `LayoverAirport` and `LayoverDurationMinutes`; `FlightOperatorService` validates layover rules (required for 1-stop, must differ from source/dest); operator portal UI shows layover fields when stops = 1.
 - [x] ✅ **Operator Portal** — Admin registers Flight/Bus/Cab operators; operators log into role-specific dashboards. Flight operators add/edit/delete flights and view passenger bookings. Bus/Cab operators view booking stats. Operator credentials emailed on registration. `FlightOperator=3`, `BusOperator=4`, `CabOperator=5` roles + JWT claim `operatorCompanyId`. New DB tables: FlightCompanies, BusCompanies, CabCompanies.
 - [x] ✅ **Hotel Management Portal** — Admin can register hotels with manager email/password (credentials emailed). Hotel managers log in to `/hotel/*` portal to manage bookings, rooms, amenities, images, and hotel profile. Includes `RegisterHotelRequestValidator` and `CreateRoomRequestValidator` with 108 automated tests.
 - [ ] 🔴 **Multi-city flight search** — `FlightSearchRequest` supports origin/destination only. Add `MultiCity` trip type.
@@ -105,6 +108,9 @@
 
 ## Recently Completed ✅
 
+- [x] **Hotel Reviews** — `HotelReview` entity + EF migration; `POST /hotels/:id/reviews` (completed-stay check, one-per-user); `DELETE /admin/hotels/reviews/:id`; `HotelDetailPage` review form + list + admin delete
+- [x] **Bus booking confirmation page** — `BusBookingConfirmPage` with seat, bus number, boarding/dropping points, driver phone, PDF download
+- [x] **Flight layover support** — `LayoverAirport` + `LayoverDurationMinutes` on `Flight` entity + migration; operator validation + portal UI
 - [x] **Multi-mode HomePage** — mode tabs (Flights/Hotels/Buses/Trains/Cabs) with per-mode hero gradients, form state isolation, city autocomplete, HeroDatePicker, and mode-filtered recent searches
 - [x] **CitySearch autocomplete** — `CitySearch` component with 65 Indian cities (`cities.ts`); popular cities on focus; themed per mode; used on Hotel/Bus/Train/Cab search forms
 - [x] **DatePickerInput rewrite** — click-anywhere-to-open; no browser date format; formatted `en-IN` display; themed colored border+background when filled; 5 accent variants
