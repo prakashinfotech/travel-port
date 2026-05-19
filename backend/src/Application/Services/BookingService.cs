@@ -197,6 +197,8 @@ public class BookingService : IBookingService
                 pickupAddress: snap.PickupAddress, driverName: snap.DriverName, cabNumber: snap.CabNumber,
                 companyPhone: snap.CompanyPhone, driverRating: snap.DriverRating,
                 pnr: snap.Pnr, coachNumber: snap.CoachNumber, seatNumbers: snap.SeatNumbers, berthType: snap.BerthType,
+                busNumber: snap.BusNumber, driverPhone: snap.DriverPhone,
+                boardingPoint: snap.BoardingPoint, droppingPoint: snap.DroppingPoint,
                 ct: ct);
         }
     }
@@ -279,7 +281,12 @@ public class BookingService : IBookingService
             transport?.OperatorName,
             transport?.VehicleType ?? transport?.VehicleClass,
             transport?.Amenities,
-            transport?.DistanceKm
+            transport?.DistanceKm,
+            transport?.SeatNumbers,
+            transport?.BusNumber,
+            transport?.DriverPhone,
+            transport?.BoardingPoint,
+            transport?.DroppingPoint
         );
     }
 

@@ -11,6 +11,7 @@ public class TravelPortDbContext : DbContext
     public DbSet<Flight> Flights => Set<Flight>();
     public DbSet<Hotel> Hotels => Set<Hotel>();
     public DbSet<HotelRoom> HotelRooms => Set<HotelRoom>();
+    public DbSet<HotelReview> HotelReviews => Set<HotelReview>();
     public DbSet<Booking> Bookings => Set<Booking>();
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<Wallet> Wallets => Set<Wallet>();
@@ -34,6 +35,7 @@ public class TravelPortDbContext : DbContext
         modelBuilder.Entity<Flight>().HasQueryFilter(e => e.DeletedAt == null);
         modelBuilder.Entity<Hotel>().HasQueryFilter(e => e.DeletedAt == null);
         modelBuilder.Entity<HotelRoom>().HasQueryFilter(e => e.DeletedAt == null);
+        modelBuilder.Entity<HotelReview>().HasQueryFilter(e => e.DeletedAt == null);
         modelBuilder.Entity<Booking>().HasQueryFilter(e => e.DeletedAt == null);
         modelBuilder.Entity<Payment>().HasQueryFilter(e => e.DeletedAt == null);
         modelBuilder.Entity<Wallet>().HasQueryFilter(e => e.DeletedAt == null);

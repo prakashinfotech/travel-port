@@ -492,9 +492,9 @@ export default function HotelsPage() {
     <div className="min-h-screen bg-gray-50">
 
       {/* ── Search Header ── */}
-      <div className="py-8 px-4" style={{ background: 'linear-gradient(135deg, #7c2d12 0%, #c2410c 50%, #ea580c 100%)' }}>
+      <div className="relative z-30 py-8 px-4" style={{ background: 'linear-gradient(135deg, #7c2d12 0%, #c2410c 50%, #ea580c 100%)' }}>
         {/* Search form */}
-        <form onSubmit={handleSearch} className="mx-auto max-w-6xl">
+        <form onSubmit={handleSearch} className="relative mx-auto max-w-6xl">
           <div className="rounded-2xl bg-white shadow-xl">
             <div className="flex flex-col divide-y divide-gray-200 lg:flex-row lg:items-stretch lg:divide-x lg:divide-y-0">
 
@@ -547,7 +547,7 @@ export default function HotelsPage() {
       </div>
 
       {/* ── Results ── */}
-      <div className="mx-auto max-w-6xl px-4 py-4">
+      <div className="relative z-10 mx-auto max-w-6xl px-4 py-4">
 
         <nav className="flex items-center gap-1 text-xs text-gray-400 mb-4">
           <Link to="/" className="hover:text-orange-600 flex items-center gap-1"><Home className="h-3 w-3" /> Home</Link>

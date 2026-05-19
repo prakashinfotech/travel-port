@@ -271,7 +271,11 @@ export default function BookBusPage() {
       const { data } = await api.post(endpoints.buses.book, payload)
       const bookingId = data.data?.id
       if (paymentChoice.type === 'new_card' && bookingId) {
-        navigate(`/payment?bookingId=${bookingId}&amount=${finalPrice}`)
+        navigate(`/payment?bookingId=${bookingId}&amount=${finalPrice}&bookingType=bus`)
+        return
+      }
+      if (bookingId) {
+        navigate(`/buses/booking/${bookingId}/confirm?new=true`)
         return
       }
       navigate('/bookings', { state: { bookingRef: data.data?.bookingReference } })

@@ -21,6 +21,7 @@ public interface IAdminService
     Task<List<AdminHotelListDto>> GetHotelsAsync(CancellationToken ct = default);
     Task<AdminHotelListDto> RegisterHotelAsync(RegisterHotelRequest req, CancellationToken ct = default);
     Task<AdminHotelListDto> ToggleHotelActiveAsync(Guid hotelId, CancellationToken ct = default);
+    Task DeleteHotelReviewAsync(Guid reviewId, CancellationToken ct = default);
 
     // Operator management
     Task<List<FlightOperatorListDto>> GetFlightOperatorsAsync(CancellationToken ct = default);

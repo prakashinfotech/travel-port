@@ -26,6 +26,7 @@ const HotelsPage                = lazy(() => import('@/pages/HotelsPage'))
 const HotelDetailPage           = lazy(() => import('@/pages/HotelDetailPage'))
 const BookHotelPage             = lazy(() => import('@/pages/BookHotelPage'))
 const HotelBookingConfirmPage   = lazy(() => import('@/pages/HotelBookingConfirmPage'))
+const BusBookingConfirmPage     = lazy(() => import('@/pages/BusBookingConfirmPage'))
 
 const BookingsPage         = lazy(() => import('@/pages/BookingsPage'))
 const BookingDetailPage    = lazy(() => import('@/pages/BookingDetailPage'))
@@ -84,6 +85,7 @@ export function AppRouter() {
               {/* Transport */}
               <Route path="buses"       element={<BusesPage />} />
               <Route path="buses/book"  element={<BookBusPage />} />
+              <Route path="buses/booking/:id/confirm" element={<PrivateRoute><BusBookingConfirmPage /></PrivateRoute>} />
               <Route path="trains"      element={<TrainsPage />} />
               <Route path="trains/book" element={<BookTrainPage />} />
               <Route path="cabs"        element={<CabsPage />} />

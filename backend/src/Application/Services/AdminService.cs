@@ -18,10 +18,12 @@ public class AdminService : IAdminService
     private readonly ICouponRepository _coupons;
     private readonly IFlightRepository _flights;
     private readonly IHotelRepository _hotels;
+    private readonly IRepository<HotelReview> _reviews;
     private readonly IFlightCompanyRepository _flightCompanies;
     private readonly IBusCompanyRepository _busCompanies;
     private readonly ICabCompanyRepository _cabCompanies;
     private readonly IEmailService _email;
+    private readonly ICacheService _cache;
     private readonly IUnitOfWork _uow;
 
     public AdminService(
@@ -30,10 +32,12 @@ public class AdminService : IAdminService
         ICouponRepository coupons,
         IFlightRepository flights,
         IHotelRepository hotels,
+        IRepository<HotelReview> reviews,
         IFlightCompanyRepository flightCompanies,
         IBusCompanyRepository busCompanies,
         ICabCompanyRepository cabCompanies,
         IEmailService email,
+        ICacheService cache,
         IUnitOfWork uow)
     {
         _users          = users;
@@ -41,10 +45,12 @@ public class AdminService : IAdminService
         _coupons        = coupons;
         _flights        = flights;
         _hotels         = hotels;
+        _reviews        = reviews;
         _flightCompanies = flightCompanies;
         _busCompanies   = busCompanies;
         _cabCompanies   = cabCompanies;
         _email          = email;
+        _cache          = cache;
         _uow            = uow;
     }
 
@@ -328,6 +334,27 @@ public class AdminService : IAdminService
 
         var manager = await _users.GetHotelManagerAsync(hotelId, ct);
         return ToAdminHotelDto(hotel, manager);
+    }
+
+    public async Task DeleteHotelReviewAsync(Guid reviewId, CancellationToken ct = default)
+    {
+        var review = await _reviews.GetByIdAsync(reviewId, ct)
+            ?? throw new NotFoundException("HotelReview", reviewId);
+
+        var hotel = await _hotels.GetByIdAsync(review.HotelId, ct)
+            ?? throw new NotFoundException("Hotel", review.HotelId);
+
+        await _reviews.DeleteAsync(review, ct);
+
+        var remainingReviews = await _reviews.FindAsync(r => r.HotelId == review.HotelId && r.Id != reviewId, ct);
+        hotel.ReviewCount = remainingReviews.Count;
+        hotel.ReviewScore = remainingReviews.Count == 0
+            ? 0m
+            : Math.Round(remainingReviews.Average(r => (decimal)r.Rating), 1);
+
+        await _hotels.UpdateAsync(hotel, ct);
+        await _uow.SaveChangesAsync(ct);
+        await _cache.RemoveAsync($"hotel:{review.HotelId}", ct);
     }
 
     // ── Flight Operators ─────────────────────────────────────────────────────

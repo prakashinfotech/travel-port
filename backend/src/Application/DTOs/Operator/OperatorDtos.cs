@@ -115,7 +115,9 @@ public record CreateFlightRequest(
     int TotalSeats,
     decimal EconomyPrice,
     decimal? BusinessPrice,
-    int Stops
+    int Stops,
+    string? LayoverAirport,
+    int? LayoverDurationMinutes
 );
 
 public record UpdateFlightRequest(
@@ -128,6 +130,8 @@ public record UpdateFlightRequest(
     decimal? EconomyPrice,
     decimal? BusinessPrice,
     int? Stops,
+    string? LayoverAirport,
+    int? LayoverDurationMinutes,
     bool? IsActive
 );
 
@@ -144,6 +148,8 @@ public record OperatorFlightDto(
     decimal EconomyPrice,
     decimal? BusinessPrice,
     int Stops,
+    string? LayoverAirport,
+    int? LayoverDurationMinutes,
     bool IsActive,
     DateTime CreatedAt
 );

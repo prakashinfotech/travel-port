@@ -15,10 +15,11 @@ export const endpoints = {
     popular: '/flights/popular',
   },
   hotels: {
-    search: '/hotels/search',
-    byId:   (id: string) => `/hotels/${id}`,
-    rooms:  (id: string) => `/hotels/${id}/rooms`,
-    book:   '/hotels/book',
+    search:  '/hotels/search',
+    byId:    (id: string) => `/hotels/${id}`,
+    rooms:   (id: string) => `/hotels/${id}/rooms`,
+    reviews: (id: string) => `/hotels/${id}/reviews`,
+    book:    '/hotels/book',
   },
   buses: {
     search: '/buses/search',
@@ -59,6 +60,7 @@ export const endpoints = {
     coupon:                 (id: string) => `/admin/coupons/${id}`,
     hotels:                 '/admin/hotels',
     toggleHotel:            (id: string) => `/admin/hotels/${id}/toggle`,
+    deleteHotelReview:      (id: string) => `/admin/hotels/reviews/${id}`,
     flightOperators:        '/admin/flight-operators',
     toggleFlightOperator:   (id: string) => `/admin/flight-operators/${id}/toggle`,
     busOperators:           '/admin/bus-operators',

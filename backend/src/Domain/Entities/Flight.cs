@@ -16,6 +16,8 @@ public class Flight : BaseEntity
     public decimal EconomyPrice { get; set; }
     public decimal? BusinessPrice { get; set; }
     public int Stops { get; set; } = 0;
+    public string? LayoverAirport { get; set; }
+    public int? LayoverDurationMinutes { get; set; }
     public bool IsActive { get; set; } = true;
     public Guid? FlightCompanyId { get; set; }
     public FlightCompany? FlightCompany { get; set; }

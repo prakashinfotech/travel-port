@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react'
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom'
 import {
   Star, MapPin, Wifi, Dumbbell, Waves, Car, Coffee, ArrowLeft,
-  Users, CheckCircle, ChevronRight, Home, Info,
+  Users, CheckCircle, ChevronRight, Home, Info, Trash2,
 } from 'lucide-react'
-import type { HotelDto, HotelRoomDto } from '@/types'
+import type { HotelDto, HotelRoomDto, HotelReviewDto } from '@/types'
 import { hotelService } from '@/services/hotelService'
+import { adminService } from '@/services/adminService'
+import { useAuth } from '@/hooks/useAuth'
 import { formatCurrency } from '@/utils/formatters'
 
 const FALLBACK_IMG = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80'
@@ -147,6 +149,7 @@ export default function HotelDetailPage() {
   const { id }           = useParams<{ id: string }>()
   const [searchParams]   = useSearchParams()
   const navigate         = useNavigate()
+  const { isAuthenticated, isAdmin, user } = useAuth()
 
   const checkIn  = searchParams.get('checkIn')  ?? ''
   const checkOut = searchParams.get('checkOut') ?? ''
@@ -155,6 +158,11 @@ export default function HotelDetailPage() {
   const [hotel,   setHotel]   = useState<HotelDto | null>(null)
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState<string | null>(null)
+  const [reviewRating, setReviewRating] = useState(5)
+  const [reviewComment, setReviewComment] = useState('')
+  const [reviewBusy, setReviewBusy] = useState(false)
+  const [reviewError, setReviewError] = useState<string | null>(null)
+  const [reviewSuccess, setReviewSuccess] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -181,9 +189,65 @@ export default function HotelDetailPage() {
   )
 
   const amenities = parseAmenities(hotel.amenities)
+  const reviews = hotel.reviews ?? []
   const nights    = checkIn && checkOut
     ? Math.max(1, Math.round((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86400000))
     : 0
+  const userReview = user ? reviews.find(review => review.userId === user.id) : undefined
+
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!id) return
+    setReviewBusy(true)
+    setReviewError(null)
+    setReviewSuccess(null)
+    try {
+      const res = await hotelService.createReview(id, {
+        rating: reviewRating,
+        comment: reviewComment.trim(),
+      })
+      const created = res.data
+      setHotel(prev => prev ? {
+        ...prev,
+        reviewScore: Number(((prev.reviewScore * prev.reviewCount + created.rating) / (prev.reviewCount + 1)).toFixed(1)),
+        reviewCount: prev.reviewCount + 1,
+        reviews: [created, ...(prev.reviews ?? [])],
+      } : prev)
+      setReviewComment('')
+      setReviewRating(5)
+      setReviewSuccess('Review submitted successfully.')
+    } catch (err: any) {
+      setReviewError(err?.response?.data?.message ?? 'Failed to submit review.')
+    } finally {
+      setReviewBusy(false)
+    }
+  }
+
+  const handleDeleteReview = async (review: HotelReviewDto) => {
+    if (!window.confirm('Delete this review?')) return
+    setReviewError(null)
+    setReviewSuccess(null)
+    try {
+      await adminService.deleteHotelReview(review.id)
+      setHotel(prev => {
+        if (!prev) return prev
+        const nextReviews = (prev.reviews ?? []).filter(r => r.id !== review.id)
+        const nextCount = nextReviews.length
+        const nextScore = nextCount === 0
+          ? 0
+          : Number((nextReviews.reduce((sum, r) => sum + r.rating, 0) / nextCount).toFixed(1))
+        return {
+          ...prev,
+          reviewCount: nextCount,
+          reviewScore: nextScore,
+          reviews: nextReviews,
+        }
+      })
+      setReviewSuccess('Review deleted.')
+    } catch (err: any) {
+      setReviewError(err?.response?.data?.message ?? 'Failed to delete review.')
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -245,12 +309,12 @@ export default function HotelDetailPage() {
           {/* Rating card */}
           <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
             <div className="flex flex-wrap items-center gap-4">
-              <div className={`flex items-baseline gap-1 ${scoreColor(hotel.reviewScore)} text-white px-3 py-2 rounded-xl`}>
+              <div className={`flex items-baseline gap-1 ${hotel.reviewCount > 0 ? scoreColor(hotel.reviewScore) : 'bg-gray-400'} text-white px-3 py-2 rounded-xl`}>
                 <span className="text-2xl font-extrabold">{hotel.reviewScore.toFixed(1)}</span>
                 <span className="text-sm opacity-80">/ 5</span>
               </div>
               <div>
-                <p className="font-bold text-gray-900">{scoreLabel(hotel.reviewScore)}</p>
+                <p className="font-bold text-gray-900">{hotel.reviewCount > 0 ? scoreLabel(hotel.reviewScore) : 'No reviews yet'}</p>
                 <p className="text-sm text-gray-500">{hotel.reviewCount.toLocaleString()} guest reviews</p>
               </div>
               <div className="flex items-center gap-1 ml-auto">
@@ -279,6 +343,108 @@ export default function HotelDetailPage() {
           <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
             <h2 className="font-bold text-gray-900 mb-3">About the Property</h2>
             <p className="text-sm text-gray-600 leading-relaxed">{hotel.description}</p>
+          </div>
+
+          {/* Reviews */}
+          <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <div>
+                <h2 className="font-bold text-gray-900">Guest Reviews</h2>
+                <p className="text-sm text-gray-500">
+                  {hotel.reviewCount > 0 ? `${hotel.reviewCount} review${hotel.reviewCount !== 1 ? 's' : ''} · average ${hotel.reviewScore.toFixed(1)} / 5` : 'Be the first guest to leave a review.'}
+                </p>
+              </div>
+            </div>
+
+            {isAuthenticated ? (
+              userReview ? (
+                <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  You have already reviewed this hotel.
+                </div>
+              ) : (
+                <form onSubmit={handleReviewSubmit} className="mb-5 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <label className="text-sm font-semibold text-gray-700">Your rating</label>
+                    <select
+                      value={reviewRating}
+                      onChange={e => setReviewRating(Number(e.target.value))}
+                      className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      {[5, 4, 3, 2, 1].map(rating => (
+                        <option key={rating} value={rating}>{rating} Star{rating > 1 ? 's' : ''}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <textarea
+                    value={reviewComment}
+                    onChange={e => setReviewComment(e.target.value)}
+                    rows={4}
+                    placeholder="Share your stay experience"
+                    className="mt-3 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                  {reviewError && <p className="mt-2 text-sm text-red-600">{reviewError}</p>}
+                  {reviewSuccess && <p className="mt-2 text-sm text-green-600">{reviewSuccess}</p>}
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-xs text-gray-500">Only guests who completed a stay can submit a review.</p>
+                    <button
+                      type="submit"
+                      disabled={reviewBusy || !reviewComment.trim()}
+                      className="rounded-lg bg-orange-500 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {reviewBusy ? 'Submitting...' : 'Submit Review'}
+                    </button>
+                  </div>
+                </form>
+              )
+            ) : (
+              <div className="mb-5 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+                Log in after your stay to leave a review.
+              </div>
+            )}
+
+            {reviews.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-gray-200 px-4 py-8 text-center text-sm text-gray-400">
+                No reviews yet for this hotel.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {reviews.map(review => (
+                  <div key={review.id} className="rounded-xl border border-gray-100 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-gray-900">{review.userName}</p>
+                          <span className={`rounded-full px-2 py-0.5 text-xs font-bold text-white ${scoreColor(review.rating)}`}>
+                            {review.rating}.0
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs text-gray-400">
+                          {new Date(review.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </p>
+                      </div>
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteReview(review)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" /> Delete
+                        </button>
+                      )}
+                    </div>
+                    <div className="mt-3 flex items-center gap-1">
+                      {Array.from({ length: 5 }).map((_, index) => (
+                        <Star
+                          key={index}
+                          className={`h-4 w-4 ${index < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200 fill-gray-200'}`}
+                        />
+                      ))}
+                    </div>
+                    <p className="mt-3 text-sm leading-relaxed text-gray-600">{review.comment}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Rooms */}

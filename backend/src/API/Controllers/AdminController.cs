@@ -123,6 +123,13 @@ public class AdminController : BaseApiController
             result.IsActive ? "Hotel activated." : "Hotel deactivated."));
     }
 
+    [HttpDelete("hotels/reviews/{reviewId:guid}")]
+    public async Task<ActionResult<ApiResponse<object>>> DeleteHotelReview(Guid reviewId, CancellationToken ct)
+    {
+        await _admin.DeleteHotelReviewAsync(reviewId, ct);
+        return Ok(ApiResponse<object>.Ok(null!, "Hotel review deleted."));
+    }
+
     // ── Flight Operators ──────────────────────────────────────────────────────
 
     [HttpGet("flight-operators")]

@@ -52,6 +52,9 @@ export const adminService = {
   toggleHotelActive: (id: string) =>
     api.post<ApiResponse<AdminHotelListDto>>(e.toggleHotel(id)).then(r => r.data.data),
 
+  deleteHotelReview: (id: string) =>
+    api.delete<ApiResponse<object>>(e.deleteHotelReview(id)).then(r => r.data),
+
   // Operator management
   getFlightOperators: () =>
     api.get<ApiResponse<FlightOperatorListDto[]>>(e.flightOperators).then(r => r.data.data),

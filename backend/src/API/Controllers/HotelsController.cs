@@ -29,6 +29,17 @@ public class HotelsController : BaseApiController
     }
 
     [Authorize]
+    [HttpPost("{id:guid}/reviews")]
+    public async Task<ActionResult<ApiResponse<HotelReviewDto>>> CreateReview(
+        Guid id,
+        [FromBody] CreateHotelReviewRequest request,
+        CancellationToken ct)
+    {
+        var result = await _hotels.CreateReviewAsync(CurrentUserId, id, request, ct);
+        return StatusCode(201, ApiResponse<HotelReviewDto>.Ok(result, "Review submitted successfully."));
+    }
+
+    [Authorize]
     [HttpPost("book")]
     public async Task<ActionResult<ApiResponse<object>>> Book(
         [FromBody] BookHotelRequest request, CancellationToken ct)

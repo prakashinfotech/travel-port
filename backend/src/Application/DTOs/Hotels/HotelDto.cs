@@ -12,6 +12,7 @@ public record HotelDto(
     string Amenities,
     string ImageUrl,
     List<HotelRoomDto> Rooms,
+    List<HotelReviewDto>? Reviews = null,
     string? ExternalHotelId = null,
     double? Latitude = null,
     double? Longitude = null

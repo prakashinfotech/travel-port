@@ -27,6 +27,7 @@ export default function PaymentPage() {
   const navigate   = useNavigate()
   const bookingId  = params.get('bookingId') ?? ''
   const amount     = Number(params.get('amount') ?? 0)
+  const bookingType = params.get('bookingType') ?? ''
 
   const [method, setMethod]   = useState<PayMethod>('card')
   const [loading, setLoading] = useState(false)
@@ -89,7 +90,10 @@ export default function PaymentPage() {
             })
             if (res.data.success) {
               setPaid(true)
-              setTimeout(() => navigate(`/bookings/${bookingId}`), 2500)
+              const redirectTo = bookingType.toLowerCase() === 'bus'
+                ? `/buses/booking/${bookingId}/confirm?new=true`
+                : `/bookings/${bookingId}`
+              setTimeout(() => navigate(redirectTo), 2500)
             } else {
               setError('Payment verification failed. Please contact support.')
             }

@@ -11,6 +11,7 @@ namespace TravelPort.Application.Services;
 public class HotelService : IHotelService
 {
     private readonly IHotelRepository _hotels;
+    private readonly IRepository<HotelReview> _reviews;
     private readonly IBookingRepository _bookings;
     private readonly IWalletService _wallet;
     private readonly ICacheService _cache;
@@ -20,12 +21,13 @@ public class HotelService : IHotelService
     private readonly IEmailService _email;
     private readonly IExternalHotelProvider? _externalProvider;
 
-    public HotelService(IHotelRepository hotels, IBookingRepository bookings,
+    public HotelService(IHotelRepository hotels, IRepository<HotelReview> reviews, IBookingRepository bookings,
         IWalletService wallet, ICacheService cache, IUnitOfWork uow, ICouponRepository coupons,
         IUserRepository users, IEmailService email,
         IExternalHotelProvider? externalProvider = null)
     {
         _hotels = hotels;
+        _reviews = reviews;
         _bookings = bookings;
         _wallet = wallet;
         _cache = cache;
@@ -92,9 +94,65 @@ public class HotelService : IHotelService
 
         var hotel = await _hotels.GetByIdAsync(hotelId, ct)
             ?? throw new NotFoundException("Hotel", hotelId);
-        var dto = ToDto(hotel);
+        var dto = await ToDtoAsync(hotel, ct);
         await _cache.SetAsync(key, dto, TimeSpan.FromMinutes(30), ct);
         return dto;
+    }
+
+    public async Task<HotelReviewDto> CreateReviewAsync(
+        Guid userId,
+        Guid hotelId,
+        CreateHotelReviewRequest req,
+        CancellationToken ct = default)
+    {
+        var hotel = await _hotels.GetByIdAsync(hotelId, ct)
+            ?? throw new NotFoundException("Hotel", hotelId);
+
+        var hasCompletedStay = (await _bookings.FindAsync(b =>
+            b.UserId == userId &&
+            b.BookingType == BookingType.Hotel &&
+            b.ReferenceId == hotelId &&
+            b.Status == BookingStatus.Confirmed &&
+            b.CheckOut.HasValue &&
+            b.CheckOut.Value < DateTime.UtcNow, ct)).Any();
+
+        if (!hasCompletedStay)
+            throw new BusinessException("You can review a hotel only after completing a stay.");
+
+        var existingReview = (await _reviews.FindAsync(
+            r => r.HotelId == hotelId && r.UserId == userId, ct)).FirstOrDefault();
+
+        if (existingReview is not null)
+            throw new BusinessException("You have already reviewed this hotel.");
+
+        var review = new HotelReview
+        {
+            Id = Guid.NewGuid(),
+            HotelId = hotelId,
+            UserId = userId,
+            Rating = req.Rating,
+            Comment = req.Comment.Trim(),
+        };
+
+        await _reviews.AddAsync(review, ct);
+        var nextCount = hotel.ReviewCount + 1;
+        hotel.ReviewScore = Math.Round(((hotel.ReviewScore * hotel.ReviewCount) + review.Rating) / nextCount, 1);
+        hotel.ReviewCount = nextCount;
+        await _hotels.UpdateAsync(hotel, ct);
+        await _uow.SaveChangesAsync(ct);
+        await _cache.RemoveAsync($"hotel:{hotelId}", ct);
+
+        var user = await _users.GetByIdAsync(userId, ct)
+            ?? throw new NotFoundException("User", userId);
+
+        return new HotelReviewDto(
+            review.Id,
+            userId,
+            user.Name,
+            review.Rating,
+            review.Comment,
+            review.CreatedAt
+        );
     }
 
     public async Task<BookingCreatedResponse> BookAsync(Guid userId, BookHotelRequest req, CancellationToken ct = default)
@@ -225,5 +283,33 @@ public class HotelService : IHotelService
             MealPlan: "Room only",
             IsRefundable: true,
             ExternalOfferId: null
-        )).ToList());
+        )).ToList(),
+        Reviews: null);
+
+    private async Task<HotelDto> ToDtoAsync(Hotel hotel, CancellationToken ct)
+    {
+        var reviewEntities = (await _reviews.FindAsync(r => r.HotelId == hotel.Id, ct))
+            .OrderByDescending(r => r.CreatedAt)
+            .ToList();
+
+        var reviewUsers = new Dictionary<Guid, string>();
+        foreach (var userId in reviewEntities.Select(r => r.UserId).Distinct())
+        {
+            var user = await _users.GetByIdAsync(userId, ct);
+            reviewUsers[userId] = user?.Name ?? "Guest";
+        }
+
+        return ToDto(hotel) with
+        {
+            Reviews = [.. reviewEntities.Select(r => new HotelReviewDto(
+                r.Id,
+                r.UserId,
+                reviewUsers.GetValueOrDefault(r.UserId, "Guest"),
+                r.Rating,
+                r.Comment,
+                r.CreatedAt
+            ))]
+        };
+    }
+
 }

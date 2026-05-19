@@ -16,6 +16,7 @@ public class FlightConfiguration : IEntityTypeConfiguration<Flight>
         builder.Property(f => f.FlightNumber).IsRequired().HasMaxLength(20);
         builder.Property(f => f.Source).IsRequired().HasMaxLength(10);
         builder.Property(f => f.Destination).IsRequired().HasMaxLength(10);
+        builder.Property(f => f.LayoverAirport).HasMaxLength(10);
         builder.Property(f => f.EconomyPrice).HasColumnType("decimal(10,2)");
         builder.Property(f => f.BusinessPrice).HasColumnType("decimal(10,2)");
         builder.Property(f => f.IsActive).HasDefaultValue(true);

@@ -94,6 +94,20 @@ export interface HotelRoomDto {
   externalOfferId?: string
 }
 
+export interface HotelReviewDto {
+  id: string
+  userId: string
+  userName: string
+  rating: number
+  comment: string
+  createdAt: string
+}
+
+export interface CreateHotelReviewRequest {
+  rating: number
+  comment: string
+}
+
 export interface HotelDto {
   id: string
   name: string
@@ -106,6 +120,7 @@ export interface HotelDto {
   amenities: string
   imageUrl: string
   rooms: HotelRoomDto[]
+  reviews?: HotelReviewDto[]
   externalHotelId?: string
   latitude?: number
   longitude?: number
@@ -336,6 +351,11 @@ export interface BookingDto {
   transportVehicleType?: string
   transportAmenities?: string
   transportDistanceKm?: number
+  transportSeatNumbers?: string
+  transportBusNumber?: string
+  transportDriverPhone?: string
+  transportBoardingPoint?: string
+  transportDroppingPoint?: string
 }
 
 // ── Users ─────────────────────────────────────────────────────────────────────
@@ -736,6 +756,8 @@ export interface OperatorFlightDto {
   economyPrice: number
   businessPrice?: number
   stops: number
+  layoverAirport?: string
+  layoverDurationMinutes?: number
   isActive: boolean
   createdAt: string
 }
@@ -763,6 +785,8 @@ export interface CreateFlightRequest {
   economyPrice: number
   businessPrice?: number
   stops: number
+  layoverAirport?: string
+  layoverDurationMinutes?: number
 }
 
 export interface UpdateFlightRequest {
@@ -775,5 +799,7 @@ export interface UpdateFlightRequest {
   economyPrice?: number
   businessPrice?: number
   stops?: number
+  layoverAirport?: string
+  layoverDurationMinutes?: number
   isActive?: boolean
 }

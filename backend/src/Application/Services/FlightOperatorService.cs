@@ -64,6 +64,8 @@ public class FlightOperatorService : IFlightOperatorService
         var company = await _companies.GetByIdAsync(companyId, ct)
             ?? throw new NotFoundException("FlightCompany", companyId);
 
+        ValidateFlightRequest(req.Stops, req.Source, req.Destination, req.DepartureTime, req.ArrivalTime, req.LayoverAirport, req.LayoverDurationMinutes);
+
         var duration = (int)(req.ArrivalTime - req.DepartureTime).TotalMinutes;
         var flight = new Flight
         {
@@ -80,6 +82,8 @@ public class FlightOperatorService : IFlightOperatorService
             EconomyPrice    = req.EconomyPrice,
             BusinessPrice   = req.BusinessPrice,
             Stops           = req.Stops,
+            LayoverAirport  = req.Stops == 1 ? req.LayoverAirport?.ToUpper() : null,
+            LayoverDurationMinutes = req.Stops == 1 ? req.LayoverDurationMinutes : null,
             IsActive        = true,
             FlightCompanyId = companyId
         };
@@ -106,10 +110,23 @@ public class FlightOperatorService : IFlightOperatorService
         if (req.EconomyPrice  != null) flight.EconomyPrice  = req.EconomyPrice.Value;
         if (req.BusinessPrice != null) flight.BusinessPrice = req.BusinessPrice.Value;
         if (req.Stops         != null) flight.Stops         = req.Stops.Value;
+        if (req.LayoverAirport != null || req.Stops != null)
+            flight.LayoverAirport = (req.Stops ?? flight.Stops) == 1 ? req.LayoverAirport?.ToUpper() : null;
+        if (req.LayoverDurationMinutes != null || req.Stops != null)
+            flight.LayoverDurationMinutes = (req.Stops ?? flight.Stops) == 1 ? req.LayoverDurationMinutes : null;
         if (req.IsActive      != null) flight.IsActive      = req.IsActive.Value;
 
         if (req.DepartureTime != null || req.ArrivalTime != null)
             flight.Duration = (int)(flight.ArrivalTime - flight.DepartureTime).TotalMinutes;
+
+        ValidateFlightRequest(
+            flight.Stops,
+            flight.Source,
+            flight.Destination,
+            flight.DepartureTime,
+            flight.ArrivalTime,
+            flight.LayoverAirport,
+            flight.LayoverDurationMinutes);
 
         await _flights.UpdateAsync(flight, ct);
         await _uow.SaveChangesAsync(ct);
@@ -155,6 +172,36 @@ public class FlightOperatorService : IFlightOperatorService
         f.DepartureTime, f.ArrivalTime, f.Duration,
         f.TotalSeats, f.AvailableSeats,
         f.EconomyPrice, f.BusinessPrice,
-        f.Stops, f.IsActive, f.CreatedAt
+        f.Stops, f.LayoverAirport, f.LayoverDurationMinutes, f.IsActive, f.CreatedAt
     );
+
+    private static void ValidateFlightRequest(
+        int stops,
+        string source,
+        string destination,
+        DateTime departureTime,
+        DateTime arrivalTime,
+        string? layoverAirport,
+        int? layoverDurationMinutes)
+    {
+        if (string.Equals(source, destination, StringComparison.OrdinalIgnoreCase))
+            throw new BusinessException("Source and destination airports must be different.");
+
+        if (arrivalTime <= departureTime)
+            throw new BusinessException("Arrival time must be after departure time.");
+
+        if (stops < 0 || stops > 1)
+            throw new BusinessException("Only non-stop and 1-stop flights are supported.");
+
+        if (stops == 1)
+        {
+            if (string.IsNullOrWhiteSpace(layoverAirport))
+                throw new BusinessException("Layover airport is required for 1-stop flights.");
+            if (string.Equals(layoverAirport, source, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(layoverAirport, destination, StringComparison.OrdinalIgnoreCase))
+                throw new BusinessException("Layover airport must differ from source and destination.");
+            if (!layoverDurationMinutes.HasValue || layoverDurationMinutes.Value <= 0)
+                throw new BusinessException("Layover duration must be greater than 0 minutes for 1-stop flights.");
+        }
+    }
 }

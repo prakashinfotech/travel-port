@@ -170,6 +170,66 @@ function AirlineDot({ airline }: { airline: string }) {
   )
 }
 
+function formatSearchDate(value: string): string {
+  if (!value) return 'Select date'
+  try {
+    return new Date(`${value}T00:00:00`).toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    })
+  } catch {
+    return value
+  }
+}
+
+function SearchDateField({
+  label,
+  value,
+  min,
+  onChange,
+}: {
+  label: string
+  value: string
+  min: string
+  onChange: (value: string) => void
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const openPicker = () => {
+    if (!inputRef.current) return
+    try { inputRef.current.showPicker() } catch { inputRef.current.focus() }
+  }
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={openPicker}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') openPicker() }}
+      className="cursor-pointer select-none"
+    >
+      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">{label}</label>
+      <div className="flex items-center gap-2 border-b-2 border-gray-300 pb-1.5 transition-colors hover:border-gray-400 focus-within:border-blue-700">
+        <CalendarDays className="h-4 w-4 shrink-0 text-gray-400" />
+        <span className={`text-sm font-semibold leading-none ${value ? 'text-gray-900' : 'text-gray-400'}`}>
+          {formatSearchDate(value)}
+        </span>
+      </div>
+      <input
+        ref={inputRef}
+        type="date"
+        value={value}
+        min={min}
+        onChange={e => onChange(e.target.value)}
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden
+      />
+    </div>
+  )
+}
+
 function FilterSection({
   title, children, defaultOpen = true,
 }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {

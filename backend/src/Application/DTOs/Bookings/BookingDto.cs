@@ -42,7 +42,12 @@ public record BookingDto(
     string? TransportOperator = null,
     string? TransportVehicleType = null,
     string? TransportAmenities = null,
-    double? TransportDistanceKm = null
+    double? TransportDistanceKm = null,
+    string? TransportSeatNumbers = null,
+    string? TransportBusNumber = null,
+    string? TransportDriverPhone = null,
+    string? TransportBoardingPoint = null,
+    string? TransportDroppingPoint = null
 );
 
 public record BookingCreatedResponse(

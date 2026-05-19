@@ -19,4 +19,5 @@ public class Hotel : BaseEntity
     public bool IsActive { get; set; } = true;
 
     public ICollection<HotelRoom> Rooms { get; set; } = new List<HotelRoom>();
+    public ICollection<HotelReview> Reviews { get; set; } = new List<HotelReview>();
 }

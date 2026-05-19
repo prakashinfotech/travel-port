@@ -227,6 +227,33 @@ public class InvoiceDocumentService : IInvoiceDocumentService
         );
         y += 10;
 
+        if (transportType == "Bus" &&
+            (!string.IsNullOrWhiteSpace(booking.TransportSeatNumbers) ||
+             !string.IsNullOrWhiteSpace(booking.TransportBoardingPoint) ||
+             !string.IsNullOrWhiteSpace(booking.TransportDroppingPoint) ||
+             !string.IsNullOrWhiteSpace(booking.TransportBusNumber)))
+        {
+            var busRows = new List<string[]>();
+            if (!string.IsNullOrWhiteSpace(booking.TransportBusNumber))
+                busRows.Add(["Bus Number", booking.TransportBusNumber]);
+            if (!string.IsNullOrWhiteSpace(booking.TransportSeatNumbers))
+                busRows.Add(["Seat Number", booking.TransportSeatNumbers]);
+            if (!string.IsNullOrWhiteSpace(booking.TransportBoardingPoint))
+                busRows.Add(["Boarding Point", booking.TransportBoardingPoint]);
+            if (!string.IsNullOrWhiteSpace(booking.TransportDroppingPoint))
+                busRows.Add(["Dropping Point", booking.TransportDroppingPoint]);
+            if (!string.IsNullOrWhiteSpace(booking.TransportDriverPhone))
+                busRows.Add(["Driver Contact", booking.TransportDriverPhone]);
+
+            DrawSectionTable(
+                gfx, ref y, "BUS TICKET DETAILS",
+                [160, 395],
+                ["FIELD", "DETAILS"],
+                busRows.ToArray()
+            );
+            y += 10;
+        }
+
         DrawSectionTable(
             gfx, ref y, "PASSENGER DETAILS",
             [200, 195, 160],
