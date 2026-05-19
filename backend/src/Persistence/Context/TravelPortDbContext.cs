@@ -20,6 +20,9 @@ public class TravelPortDbContext : DbContext
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<SavedCard> SavedCards => Set<SavedCard>();
+    public DbSet<FlightCompany> FlightCompanies => Set<FlightCompany>();
+    public DbSet<BusCompany> BusCompanies => Set<BusCompany>();
+    public DbSet<CabCompany> CabCompanies => Set<CabCompany>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -38,6 +41,15 @@ public class TravelPortDbContext : DbContext
         modelBuilder.Entity<SavedTraveller>().HasQueryFilter(e => e.DeletedAt == null);
         modelBuilder.Entity<Coupon>().HasQueryFilter(e => e.DeletedAt == null);
         modelBuilder.Entity<SavedCard>().HasQueryFilter(e => e.DeletedAt == null);
+        modelBuilder.Entity<FlightCompany>().HasQueryFilter(e => e.DeletedAt == null);
+        modelBuilder.Entity<BusCompany>().HasQueryFilter(e => e.DeletedAt == null);
+        modelBuilder.Entity<CabCompany>().HasQueryFilter(e => e.DeletedAt == null);
+
+        modelBuilder.Entity<Flight>()
+            .HasOne(f => f.FlightCompany)
+            .WithMany(c => c.Flights)
+            .HasForeignKey(f => f.FlightCompanyId)
+            .IsRequired(false);
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

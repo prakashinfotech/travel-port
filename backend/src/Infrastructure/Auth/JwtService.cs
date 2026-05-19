@@ -33,6 +33,8 @@ public class JwtService : IJwtService
         };
         if (user.HotelId.HasValue)
             claimsList.Add(new Claim("hotelId", user.HotelId.Value.ToString()));
+        if (user.OperatorCompanyId.HasValue)
+            claimsList.Add(new Claim("operatorCompanyId", user.OperatorCompanyId.Value.ToString()));
         var claims = claimsList.ToArray();
 
         var token = new JwtSecurityToken(

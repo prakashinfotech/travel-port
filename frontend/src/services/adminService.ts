@@ -5,6 +5,8 @@ import type {
   CouponDto, CreateCouponRequest, UpdateCouponRequest,
   BookingDto, ApiResponse,
   AdminHotelListDto, RegisterHotelRequest,
+  FlightOperatorListDto, BusOperatorListDto, CabOperatorListDto,
+  RegisterFlightOperatorRequest, RegisterBusOperatorRequest, RegisterCabOperatorRequest,
 } from '@/types'
 
 const e = endpoints.admin
@@ -49,4 +51,32 @@ export const adminService = {
 
   toggleHotelActive: (id: string) =>
     api.post<ApiResponse<AdminHotelListDto>>(e.toggleHotel(id)).then(r => r.data.data),
+
+  // Operator management
+  getFlightOperators: () =>
+    api.get<ApiResponse<FlightOperatorListDto[]>>(e.flightOperators).then(r => r.data.data),
+
+  registerFlightOperator: (req: RegisterFlightOperatorRequest) =>
+    api.post<ApiResponse<FlightOperatorListDto>>(e.flightOperators, req).then(r => r.data.data),
+
+  toggleFlightOperator: (id: string) =>
+    api.post<ApiResponse<FlightOperatorListDto>>(e.toggleFlightOperator(id)).then(r => r.data.data),
+
+  getBusOperators: () =>
+    api.get<ApiResponse<BusOperatorListDto[]>>(e.busOperators).then(r => r.data.data),
+
+  registerBusOperator: (req: RegisterBusOperatorRequest) =>
+    api.post<ApiResponse<BusOperatorListDto>>(e.busOperators, req).then(r => r.data.data),
+
+  toggleBusOperator: (id: string) =>
+    api.post<ApiResponse<BusOperatorListDto>>(e.toggleBusOperator(id)).then(r => r.data.data),
+
+  getCabOperators: () =>
+    api.get<ApiResponse<CabOperatorListDto[]>>(e.cabOperators).then(r => r.data.data),
+
+  registerCabOperator: (req: RegisterCabOperatorRequest) =>
+    api.post<ApiResponse<CabOperatorListDto>>(e.cabOperators, req).then(r => r.data.data),
+
+  toggleCabOperator: (id: string) =>
+    api.post<ApiResponse<CabOperatorListDto>>(e.toggleCabOperator(id)).then(r => r.data.data),
 }

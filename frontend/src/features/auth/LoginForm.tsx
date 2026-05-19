@@ -36,6 +36,12 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         onSuccess()
       } else if (user?.role === 'Hotel') {
         navigate('/hotel/dashboard', { replace: true })
+      } else if (user?.role === 'FlightOperator') {
+        navigate('/flight-operator/dashboard', { replace: true })
+      } else if (user?.role === 'BusOperator') {
+        navigate('/bus-operator/dashboard', { replace: true })
+      } else if (user?.role === 'CabOperator') {
+        navigate('/cab-operator/dashboard', { replace: true })
       } else {
         const from = (location.state as { from?: Location })?.from
         const redirect = from ? `${from.pathname}${from.search ?? ''}` : '/'

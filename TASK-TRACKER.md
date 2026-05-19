@@ -5,6 +5,72 @@
 
 ---
 
+## Phase 11 — Operator Portal (Flight / Bus / Cab)
+**Branch:** `feat/operator-portal`
+**Scope:** Full multi-role operator system — admin registers airline/bus/cab operators, operators log in to dedicated dashboards. Flight operators manage flights + view bookings; Bus/Cab operators view their booking stats.
+
+| # | Feature | Status | Notes |
+|---|---|---|---|
+| 11.1 | `UserRole` enum extended — `FlightOperator=3`, `BusOperator=4`, `CabOperator=5` | ✅ | Domain/Enums/UserRole.cs |
+| 11.2 | `FlightCompany`, `BusCompany`, `CabCompany` entities (BaseEntity soft-delete) | ✅ | New Domain/Entities files |
+| 11.3 | `User.OperatorCompanyId: Guid?` FK added | ✅ | Links operator user to company |
+| 11.4 | `Flight.FlightCompanyId` FK + navigation to `FlightCompany` | ✅ | Flight operator can own flights |
+| 11.5 | Operator DTOs — registration, list, dashboard, flight CRUD, booking | ✅ | Application/DTOs/Operator/OperatorDtos.cs |
+| 11.6 | `IAdminService` extended with 9 new operator methods | ✅ | Get/Register/Toggle for Flight/Bus/Cab |
+| 11.7 | `AdminService` implements operator registration — creates company + user + emails credentials | ✅ | Follows hotel registration pattern |
+| 11.8 | `IFlightOperatorService` + `FlightOperatorService` — full CRUD on flights + bookings | ✅ | Validates flight belongs to operator |
+| 11.9 | `IBusOperatorService` + `BusOperatorService` — dashboard + bookings via TransportSnapshot | ✅ | Matches by OperatorName in JSON |
+| 11.10 | `ICabOperatorService` + `CabOperatorService` — dashboard + bookings via TransportSnapshot | ✅ | Same pattern as Bus |
+| 11.11 | `IFlightCompanyRepository`, `IBusCompanyRepository`, `ICabCompanyRepository` | ✅ | Application/Common/Interfaces |
+| 11.12 | `FlightCompanyRepository`, `BusCompanyRepository`, `CabCompanyRepository` | ✅ | Persistence/Repositories |
+| 11.13 | `FlightRepository` extended — `GetByCompanyAsync`, `GetAllAsync` (new) | ✅ | |
+| 11.14 | `BookingRepository` extended — `GetBookingsByFlightIdsAsync`, `GetBookingsByOperatorNameAsync` | ✅ | |
+| 11.15 | `UserRepository.GetOperatorManagerAsync` added | ✅ | Lookup user by OperatorCompanyId |
+| 11.16 | Persistence DI — 3 new company repositories registered | ✅ | Persistence/DependencyInjection.cs |
+| 11.17 | Application DI — 3 new operator services registered | ✅ | Application/DependencyInjection.cs |
+| 11.18 | `JwtService` — adds `operatorCompanyId` claim to JWT for operator roles | ✅ | Infrastructure/Auth/JwtService.cs |
+| 11.19 | `IEmailService.SendOperatorCredentialsEmailAsync` + SMTP implementation | ✅ | Color-coded email per operator type |
+| 11.20 | `TravelPortDbContext` — 3 new DbSets + soft-delete filters + Flight→FlightCompany FK | ✅ | |
+| 11.21 | EF Core migration `AddOperatorPortal` applied | ✅ | New tables: FlightCompanies, BusCompanies, CabCompanies |
+| 11.22 | `AdminController` — 9 new endpoints (get/register/toggle per operator type) | ✅ | |
+| 11.23 | `FlightOperatorController` — dashboard, flights CRUD, bookings (`[Authorize(Roles="FlightOperator")]`) | ✅ | |
+| 11.24 | `BusOperatorController` — dashboard, bookings (`[Authorize(Roles="BusOperator")]`) | ✅ | |
+| 11.25 | `CabOperatorController` — dashboard, bookings (`[Authorize(Roles="CabOperator")]`) | ✅ | |
+| 11.26 | Frontend types — extended `UserToken` + all operator DTOs + request types | ✅ | frontend/src/types/index.ts |
+| 11.27 | Frontend endpoints — operator admin endpoints + 3 operator portal endpoint groups | ✅ | frontend/src/api/endpoints.ts |
+| 11.28 | `adminService.ts` — 9 new operator management methods | ✅ | |
+| 11.29 | `operatorService.ts` — flightOperatorService, busOperatorService, cabOperatorService | ✅ | |
+| 11.30 | `useAuth.ts` — isFlightOperator, isBusOperator, isCabOperator, isOperator helpers | ✅ | |
+| 11.31 | `LoginForm.tsx` — auto-redirect operators to correct dashboard on login | ✅ | |
+| 11.32 | `OperatorRoute.tsx` — role-based route guard for operator portals | ✅ | |
+| 11.33 | `FlightOperatorLayout`, `BusOperatorLayout`, `CabOperatorLayout` sidebar layouts | ✅ | Blue / Green / Amber themes |
+| 11.34 | `FlightOperatorDashboardPage` — 7 stat cards + performance summary | ✅ | |
+| 11.35 | `FlightOperatorFlightsPage` — list + add/edit/delete form inline | ✅ | Full CRUD UI |
+| 11.36 | `FlightOperatorBookingsPage` — searchable passenger bookings table | ✅ | |
+| 11.37 | `BusOperatorDashboardPage` + `BusOperatorBookingsPage` | ✅ | |
+| 11.38 | `CabOperatorDashboardPage` + `CabOperatorBookingsPage` | ✅ | |
+| 11.39 | `AppRouter.tsx` — 3 new portal route groups added | ✅ | /flight-operator/*, /bus-operator/*, /cab-operator/* |
+| 11.40 | `AdminPage.tsx` — "Operators" tab with Airlines/Bus/Cab sub-tabs + `RegisterOperatorModal` | ✅ | Full operator management in admin panel |
+
+---
+
+## Phase 10 — Round Trip Flights + Search UX Improvements
+**Branch:** `Development`
+**Scope:** Round trip flight selection UI, BookFlightPage dual-leg support, reactive transport filters, CitySearch on all search bars
+
+| # | Feature | Status | Notes |
+|---|---|---|---|
+| 10.1 | `CitySearch` autocomplete replacing city `<select>` on BusesPage, TrainsPage, CabsPage | ✅ | focusColor themed per mode |
+| 10.2 | Bus/Train/Cab sidebar filters now reactive via `useMemo` | ✅ | `rawBuses/rawTrains/rawCabs` split from computed display data |
+| 10.3 | Round trip two-column flight selection on FlightsPage | ✅ | Departure left + return right; per-column sort headers |
+| 10.4 | `RoundTripFlightRow` compact radio-select flight card | ✅ | Airline color, times, duration, price, radio |
+| 10.5 | `RoundTripStickyBar` fixed bottom booking bar | ✅ | Dep + ret legs + total + FLAT OFF badge + BOOK NOW |
+| 10.6 | Return flights fetched in parallel on search | ✅ | `fetchReturnFlights` useCallback |
+| 10.7 | `BookFlightPage` dual-leg support | ✅ | Fetches both flights, books sequentially, shows two-leg UI |
+| 10.8 | `handleRoundTripBook` with `returnFlightId` query param | ✅ | |
+
+---
+
 ## Phase 9 — Bus / Train / Cab Booking Persistence
 **Branch:** `Development`
 **Scope:** Full end-to-end booking flow for Bus, Train, and Cab modes — matching flight/hotel depth

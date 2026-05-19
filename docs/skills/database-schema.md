@@ -58,6 +58,7 @@ DeletedAt   DATETIME2               NULL     -- soft delete
 ### Tables
 `Users` · `Flights` · `Hotels` · `HotelRooms` · `Bookings` · `Payments`
 `Wallets` · `WalletTransactions` · `SavedTravellers` · `Coupons` · `AuditLogs` · `RefreshTokens`
+`FlightCompanies` · `BusCompanies` · `CabCompanies`
 
 ### Stored Procedures
 | Procedure | Purpose |

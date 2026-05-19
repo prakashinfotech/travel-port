@@ -30,6 +30,7 @@
 
 
 ### Features Pending
+- [x] ✅ **Operator Portal** — Admin registers Flight/Bus/Cab operators; operators log into role-specific dashboards. Flight operators add/edit/delete flights and view passenger bookings. Bus/Cab operators view booking stats. Operator credentials emailed on registration. `FlightOperator=3`, `BusOperator=4`, `CabOperator=5` roles + JWT claim `operatorCompanyId`. New DB tables: FlightCompanies, BusCompanies, CabCompanies.
 - [x] ✅ **Hotel Management Portal** — Admin can register hotels with manager email/password (credentials emailed). Hotel managers log in to `/hotel/*` portal to manage bookings, rooms, amenities, images, and hotel profile. Includes `RegisterHotelRequestValidator` and `CreateRoomRequestValidator` with 108 automated tests.
 - [ ] 🔴 **Multi-city flight search** — `FlightSearchRequest` supports origin/destination only. Add `MultiCity` trip type.
 - [x] ✅ **Bus & Train & Cab booking persistence** — Full DB persistence via `TransportSnapshot` JSON column. `BusService`, `TrainService`, `CabService` with coupon/wallet/email/PDF ticket support. Frontend booking pages (`BookBusPage`, `BookTrainPage`, `BookCabPage`) + BOOK buttons wired in search results. `BookingDetailPage` shows transport-specific details.

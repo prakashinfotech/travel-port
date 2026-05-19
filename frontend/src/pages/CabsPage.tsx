@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Car, Clock, MapPin, Users, Filter, Star, Phone, Search, X } from 'lucide-react'
 import { api } from '@/api/axios'
@@ -6,8 +6,8 @@ import { endpoints } from '@/api/endpoints'
 import type { CabDto, ApiResponse } from '@/types'
 import { CabCardSkeleton } from '@/components/ui/Skeleton'
 import { DatePickerInput } from '@/components/ui/DatePickerInput'
+import { CitySearch } from '@/components/search/CitySearch'
 
-const CITIES = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Hyderabad', 'Ahmedabad', 'Goa', 'Pune', 'Jaipur', 'Kolkata']
 const TRIP_TYPES = [
   { value: 'OneWay',     label: 'One Way' },
   { value: 'RoundTrip', label: 'Round Trip' },
@@ -32,7 +32,7 @@ export default function CabsPage() {
   const [destination, setDest]    = useState(searchParams.get('destination') || 'Pune')
   const [pickup, setPickup]       = useState(searchParams.get('pickup') || defaultPickup)
   const [tripType, setTripType]   = useState<string>(searchParams.get('tripType') || 'OneWay')
-  const [cabs, setCabs]           = useState<CabDto[]>([])
+  const [rawCabs, setRawCabs]     = useState<CabDto[]>([])
   const [total, setTotal]         = useState(0)
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState('')
@@ -43,6 +43,19 @@ export default function CabsPage() {
   const [filterMinRating, setFilterMinRating] = useState(0)
   const [filterMaxPrice, setFilterMaxPrice]   = useState(0)
   const [sortBy, setSortBy]                   = useState<'price' | 'duration' | 'rating'>('price')
+
+  const cabs = useMemo(() => {
+    let results = [...rawCabs]
+    if (filterAc)               results = results.filter(c => c.acAvailable)
+    if (filterCabType)          results = results.filter(c => c.cabType === filterCabType)
+    if (filterProviders.length) results = results.filter(c => filterProviders.includes(c.provider))
+    if (filterMinRating > 0)    results = results.filter(c => (c.driverRating ?? 0) >= filterMinRating)
+    if (filterMaxPrice > 0)     results = results.filter(c => c.price <= filterMaxPrice)
+    if (sortBy === 'duration')      results = results.sort((a, b) => a.estimatedDurationMinutes - b.estimatedDurationMinutes)
+    else if (sortBy === 'rating')   results = results.sort((a, b) => (b.driverRating ?? 0) - (a.driverRating ?? 0))
+    else                            results = results.sort((a, b) => a.price - b.price)
+    return results
+  }, [rawCabs, filterAc, filterCabType, filterProviders, filterMinRating, filterMaxPrice, sortBy])
 
   useEffect(() => {
     if (searchParams.get('origin')) search()
@@ -56,17 +69,8 @@ export default function CabsPage() {
       const { data } = await api.get<ApiResponse<CabDto[]>>(endpoints.cabs.search, {
         params: { origin, destination, pickupDateTime: pickup, tripType, pageSize: 20 }
       })
-      let results = data.data ?? []
-      if (filterAc) results = results.filter(c => c.acAvailable)
-      if (filterCabType) results = results.filter(c => c.cabType === filterCabType)
-      if (filterProviders.length) results = results.filter(c => filterProviders.includes(c.provider))
-      if (filterMinRating > 0) results = results.filter(c => (c.driverRating ?? 0) >= filterMinRating)
-      if (filterMaxPrice > 0) results = results.filter(c => c.price <= filterMaxPrice)
-      if (sortBy === 'duration') results = results.sort((a, b) => a.estimatedDurationMinutes - b.estimatedDurationMinutes)
-      else if (sortBy === 'rating') results = results.sort((a, b) => (b.driverRating ?? 0) - (a.driverRating ?? 0))
-      else results = results.sort((a, b) => a.price - b.price)
-      setCabs(results)
-      setTotal(data.meta?.total ?? results.length)
+      setRawCabs(data.data ?? [])
+      setTotal(data.meta?.total ?? (data.data ?? []).length)
       setSearched(true)
     } catch {
       setError('Failed to search cabs. Please try again.')
@@ -85,18 +89,10 @@ export default function CabsPage() {
           </h1>
           <div className="bg-white rounded-xl p-4 flex flex-wrap gap-3 items-end">
             <div className="flex-1 min-w-40">
-              <label className="block text-xs text-gray-500 mb-1">PICKUP FROM</label>
-              <select value={origin} onChange={e => setOrigin(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500">
-                {CITIES.map(c => <option key={c}>{c}</option>)}
-              </select>
+              <CitySearch label="PICKUP FROM" value={origin} onChange={setOrigin} focusColor="yellow" />
             </div>
             <div className="flex-1 min-w-40">
-              <label className="block text-xs text-gray-500 mb-1">DROP TO</label>
-              <select value={destination} onChange={e => setDest(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500">
-                {CITIES.map(c => <option key={c}>{c}</option>)}
-              </select>
+              <CitySearch label="DROP TO" value={destination} onChange={setDest} focusColor="yellow" />
             </div>
             <DatePickerInput
               label="PICKUP DATE & TIME"

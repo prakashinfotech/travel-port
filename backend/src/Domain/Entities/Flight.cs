@@ -17,4 +17,6 @@ public class Flight : BaseEntity
     public decimal? BusinessPrice { get; set; }
     public int Stops { get; set; } = 0;
     public bool IsActive { get; set; } = true;
+    public Guid? FlightCompanyId { get; set; }
+    public FlightCompany? FlightCompany { get; set; }
 }

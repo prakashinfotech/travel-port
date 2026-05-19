@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Train, Clock, Filter, AlertCircle, Users, MapPin, Search, X } from 'lucide-react'
 import { api } from '@/api/axios'
@@ -6,8 +6,8 @@ import { endpoints } from '@/api/endpoints'
 import type { TrainDto, ApiResponse } from '@/types'
 import { TrainCardSkeleton } from '@/components/ui/Skeleton'
 import { DatePickerInput } from '@/components/ui/DatePickerInput'
+import { CitySearch } from '@/components/search/CitySearch'
 
-const CITIES = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Hyderabad', 'Ahmedabad', 'Goa', 'Pune', 'Jaipur', 'Kolkata']
 const CLASSES = [
   { code: '', label: 'All Classes' },
   { code: 'SL', label: 'Sleeper (SL)' },
@@ -43,7 +43,7 @@ export default function TrainsPage() {
   const [date, setDate]               = useState(searchParams.get('date') || today)
   const [trainClass, setTrainClass]   = useState('')
   const [passengers, setPassengers]   = useState(Number(searchParams.get('passengers')) || 1)
-  const [trains, setTrains]           = useState<TrainDto[]>([])
+  const [rawTrains, setRawTrains]     = useState<TrainDto[]>([])
   const [total, setTotal]             = useState(0)
   const [loading, setLoading]         = useState(false)
   const [error, setError]             = useState('')
@@ -53,6 +53,31 @@ export default function TrainsPage() {
   const [filterMaxPrice, setFilterMaxPrice] = useState(0)
   const [filterClasses, setFilterClasses]   = useState<string[]>([])
   const [sortBy, setSortBy]                 = useState<'departure' | 'duration' | 'price'>('departure')
+
+  const trains = useMemo(() => {
+    let results = [...rawTrains]
+    if (filterTatkal)       results = results.filter(t => t.isTatkal)
+    if (filterClasses.length) results = results.filter(t => filterClasses.some(c => Object.keys(t.classes).includes(c)))
+    if (filterDeptSlot) {
+      results = results.filter(t => {
+        const h = new Date(t.departureTime).getHours()
+        if (filterDeptSlot === 'night')     return h >= 0  && h < 6
+        if (filterDeptSlot === 'morning')   return h >= 6  && h < 12
+        if (filterDeptSlot === 'afternoon') return h >= 12 && h < 18
+        if (filterDeptSlot === 'evening')   return h >= 18 && h < 24
+        return true
+      })
+    }
+    if (filterMaxPrice > 0) results = results.filter(t => Object.values(t.classes).some(c => c.price <= filterMaxPrice))
+    if (sortBy === 'duration') results = results.sort((a, b) => a.durationMinutes - b.durationMinutes)
+    else if (sortBy === 'price') results = results.sort((a, b) => {
+      const aPrice = Object.values(a.classes)[0]?.price ?? 0
+      const bPrice = Object.values(b.classes)[0]?.price ?? 0
+      return aPrice - bPrice
+    })
+    else results = results.sort((a, b) => a.departureTime.localeCompare(b.departureTime))
+    return results
+  }, [rawTrains, filterTatkal, filterClasses, filterDeptSlot, filterMaxPrice, sortBy])
 
   useEffect(() => {
     if (searchParams.get('origin')) search()
@@ -66,33 +91,8 @@ export default function TrainsPage() {
       const { data } = await api.get<ApiResponse<TrainDto[]>>(endpoints.trains.search, {
         params: { origin, destination, travelDate: date, class: trainClass || undefined, passengers, pageSize: 30 }
       })
-      let results = data.data ?? []
-      if (filterTatkal) results = results.filter(t => t.isTatkal)
-      if (filterClasses.length) results = results.filter(t => filterClasses.some(c => Object.keys(t.classes).includes(c)))
-      if (filterDeptSlot) {
-        results = results.filter(t => {
-          const h = new Date(t.departureTime).getHours()
-          if (filterDeptSlot === 'night')     return h >= 0  && h < 6
-          if (filterDeptSlot === 'morning')   return h >= 6  && h < 12
-          if (filterDeptSlot === 'afternoon') return h >= 12 && h < 18
-          if (filterDeptSlot === 'evening')   return h >= 18 && h < 24
-          return true
-        })
-      }
-      if (filterMaxPrice > 0) {
-        results = results.filter(t =>
-          Object.values(t.classes).some(c => c.price <= filterMaxPrice)
-        )
-      }
-      if (sortBy === 'duration') results = results.sort((a, b) => a.durationMinutes - b.durationMinutes)
-      else if (sortBy === 'price') results = results.sort((a, b) => {
-        const aPrice = Object.values(a.classes)[0]?.price ?? 0
-        const bPrice = Object.values(b.classes)[0]?.price ?? 0
-        return aPrice - bPrice
-      })
-      else results = results.sort((a, b) => a.departureTime.localeCompare(b.departureTime))
-      setTrains(results)
-      setTotal(data.meta?.total ?? results.length)
+      setRawTrains(data.data ?? [])
+      setTotal(data.meta?.total ?? (data.data ?? []).length)
       setSearched(true)
     } catch {
       setError('Failed to search trains. Please try again.')
@@ -111,18 +111,10 @@ export default function TrainsPage() {
           </h1>
           <div className="bg-white rounded-xl p-4 flex flex-wrap gap-3 items-end">
             <div className="flex-1 min-w-40">
-              <label className="block text-xs text-gray-500 mb-1">FROM</label>
-              <select value={origin} onChange={e => setOrigin(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                {CITIES.map(c => <option key={c}>{c}</option>)}
-              </select>
+              <CitySearch label="FROM" value={origin} onChange={setOrigin} focusColor="blue" />
             </div>
             <div className="flex-1 min-w-40">
-              <label className="block text-xs text-gray-500 mb-1">TO</label>
-              <select value={destination} onChange={e => setDestination(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                {CITIES.map(c => <option key={c}>{c}</option>)}
-              </select>
+              <CitySearch label="TO" value={destination} onChange={setDestination} focusColor="blue" />
             </div>
             <DatePickerInput
               label="DATE"

@@ -695,6 +695,99 @@ Response 201:
 
 ---
 
+## Operator Management (Admin only)
+
+| Method | Endpoint                                | Auth  | Description                        |
+|--------|-----------------------------------------|-------|------------------------------------|
+| GET    | `/admin/flight-operators`               | Admin | List all flight operators          |
+| POST   | `/admin/flight-operators`               | Admin | Register new airline               |
+| POST   | `/admin/flight-operators/{id}/toggle`   | Admin | Activate/deactivate airline        |
+| GET    | `/admin/bus-operators`                  | Admin | List all bus operators             |
+| POST   | `/admin/bus-operators`                  | Admin | Register new bus operator          |
+| POST   | `/admin/bus-operators/{id}/toggle`      | Admin | Activate/deactivate bus operator   |
+| GET    | `/admin/cab-operators`                  | Admin | List all cab operators             |
+| POST   | `/admin/cab-operators`                  | Admin | Register new cab operator/driver   |
+| POST   | `/admin/cab-operators/{id}/toggle`      | Admin | Activate/deactivate cab operator   |
+
+### POST /admin/flight-operators
+```json
+Request:
+{
+  "companyName": "IndiGo",
+  "iataCode": "6E",
+  "logoUrl": null,
+  "headquartersCity": "Gurugram",
+  "contactPhone": "+91-124-4973838",
+  "managerEmail": "ops@indigo.in",
+  "managerPassword": "Temp@1234",
+  "managerName": "Anil Sharma"
+}
+
+Response 201:
+{
+  "success": true,
+  "message": "Flight operator registered and credentials emailed.",
+  "data": {
+    "id": "uuid",
+    "name": "IndiGo",
+    "iataCode": "6E",
+    "isActive": true,
+    "flightCount": 0,
+    "managerEmail": "ops@indigo.in",
+    "createdAt": "2026-05-19T..."
+  }
+}
+```
+
+---
+
+## Flight Operator Portal (`[Authorize(Roles="FlightOperator")]`)
+
+| Method | Endpoint                            | Auth           | Description            |
+|--------|-------------------------------------|----------------|------------------------|
+| GET    | `/flight-operator/dashboard`        | FlightOperator | Stats overview         |
+| GET    | `/flight-operator/flights`          | FlightOperator | List operator's flights|
+| POST   | `/flight-operator/flights`          | FlightOperator | Add a new flight       |
+| PUT    | `/flight-operator/flights/{id}`     | FlightOperator | Edit a flight          |
+| DELETE | `/flight-operator/flights/{id}`     | FlightOperator | Remove a flight        |
+| GET    | `/flight-operator/bookings`         | FlightOperator | View passenger bookings|
+
+### POST /flight-operator/flights
+```json
+Request:
+{
+  "flightNumber": "6E-201",
+  "source": "BOM",
+  "destination": "DEL",
+  "departureTime": "2026-06-01T06:00:00",
+  "arrivalTime": "2026-06-01T08:15:00",
+  "totalSeats": 180,
+  "economyPrice": 3500,
+  "businessPrice": null,
+  "stops": 0
+}
+```
+
+---
+
+## Bus Operator Portal (`[Authorize(Roles="BusOperator")]`)
+
+| Method | Endpoint                      | Auth        | Description              |
+|--------|-------------------------------|-------------|--------------------------|
+| GET    | `/bus-operator/dashboard`     | BusOperator | Stats + company overview |
+| GET    | `/bus-operator/bookings`      | BusOperator | View passenger bookings  |
+
+---
+
+## Cab Operator Portal (`[Authorize(Roles="CabOperator")]`)
+
+| Method | Endpoint                      | Auth        | Description              |
+|--------|-------------------------------|-------------|--------------------------|
+| GET    | `/cab-operator/dashboard`     | CabOperator | Stats + driver overview  |
+| GET    | `/cab-operator/bookings`      | CabOperator | View passenger bookings  |
+
+---
+
 ## Error Codes
 
 | Code | Description              |

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Bus, Clock, Wifi, Star, Filter, MapPin, Search, ChevronDown, ChevronUp, X } from 'lucide-react'
 import { api } from '@/api/axios'
@@ -6,8 +6,7 @@ import { endpoints } from '@/api/endpoints'
 import type { BusDto, ApiResponse } from '@/types'
 import { BusCardSkeleton } from '@/components/ui/Skeleton'
 import { DatePickerInput } from '@/components/ui/DatePickerInput'
-
-const CITIES = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Hyderabad', 'Ahmedabad', 'Goa', 'Pune', 'Jaipur', 'Kolkata']
+import { CitySearch } from '@/components/search/CitySearch'
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
@@ -217,7 +216,7 @@ export default function BusesPage() {
   const [destination, setDestination] = useState(searchParams.get('destination') || 'Pune')
   const [date, setDate]               = useState(searchParams.get('date') || today)
   const [seats, setSeats]             = useState(Number(searchParams.get('seats')) || 1)
-  const [buses, setBuses]             = useState<BusDto[]>([])
+  const [rawBuses, setRawBuses]       = useState<BusDto[]>([])
   const [total, setTotal]             = useState(0)
   const [loading, setLoading]         = useState(false)
   const [error, setError]             = useState('')
@@ -229,6 +228,29 @@ export default function BusesPage() {
   const [filterBusTypes, setFilterTypes]  = useState<string[]>([])
   const [filterDeptSlot, setFilterSlot]   = useState('')
   const [filterMaxPrice, setFilterMaxPrice] = useState(0)
+
+  const buses = useMemo(() => {
+    let results = [...rawBuses]
+    if (filterAc)               results = results.filter(b => b.acAvailable)
+    if (filterRefund)           results = results.filter(b => b.isRefundable)
+    if (filterOperators.length) results = results.filter(b => filterOperators.includes(b.operator))
+    if (filterBusTypes.length)  results = results.filter(b => filterBusTypes.some(t => b.busType.toLowerCase().includes(t.toLowerCase())))
+    if (filterMaxPrice > 0)     results = results.filter(b => b.price <= filterMaxPrice)
+    if (filterDeptSlot) {
+      results = results.filter(b => {
+        const h = new Date(b.departureTime).getHours()
+        if (filterDeptSlot === 'early')     return h >= 0  && h < 6
+        if (filterDeptSlot === 'morning')   return h >= 6  && h < 12
+        if (filterDeptSlot === 'afternoon') return h >= 12 && h < 18
+        if (filterDeptSlot === 'evening')   return h >= 18 && h < 24
+        return true
+      })
+    }
+    if (sortBy === 'departure')     results = results.sort((a, b) => a.departureTime.localeCompare(b.departureTime))
+    else if (sortBy === 'duration') results = results.sort((a, b) => a.durationMinutes - b.durationMinutes)
+    else                            results = results.sort((a, b) => a.price - b.price)
+    return results
+  }, [rawBuses, filterAc, filterRefund, filterOperators, filterBusTypes, filterDeptSlot, filterMaxPrice, sortBy])
 
   useEffect(() => {
     if (searchParams.get('origin')) search()
@@ -242,27 +264,8 @@ export default function BusesPage() {
       const { data } = await api.get<ApiResponse<BusDto[]>>(endpoints.buses.search, {
         params: { origin, destination, travelDate: date, seats, pageSize: 30 }
       })
-      let results = data.data ?? []
-      if (filterAc)                  results = results.filter(b => b.acAvailable)
-      if (filterRefund)              results = results.filter(b => b.isRefundable)
-      if (filterOperators.length)    results = results.filter(b => filterOperators.includes(b.operator))
-      if (filterBusTypes.length)     results = results.filter(b => filterBusTypes.some(t => b.busType.toLowerCase().includes(t.toLowerCase())))
-      if (filterMaxPrice > 0)        results = results.filter(b => b.price <= filterMaxPrice)
-      if (filterDeptSlot) {
-        results = results.filter(b => {
-          const h = new Date(b.departureTime).getHours()
-          if (filterDeptSlot === 'early')     return h >= 0  && h < 6
-          if (filterDeptSlot === 'morning')   return h >= 6  && h < 12
-          if (filterDeptSlot === 'afternoon') return h >= 12 && h < 18
-          if (filterDeptSlot === 'evening')   return h >= 18 && h < 24
-          return true
-        })
-      }
-      if (sortBy === 'departure') results = results.sort((a, b) => a.departureTime.localeCompare(b.departureTime))
-      else if (sortBy === 'duration') results = results.sort((a, b) => a.durationMinutes - b.durationMinutes)
-      else results = results.sort((a, b) => a.price - b.price)
-      setBuses(results)
-      setTotal(data.meta?.total ?? results.length)
+      setRawBuses(data.data ?? [])
+      setTotal(data.meta?.total ?? (data.data ?? []).length)
       setSearched(true)
     } catch {
       setError('Failed to search buses. Please try again.')
@@ -281,18 +284,10 @@ export default function BusesPage() {
           </h1>
           <div className="bg-white rounded-xl p-4 flex flex-wrap gap-3 items-end">
             <div className="flex-1 min-w-40">
-              <label className="block text-xs text-gray-500 mb-1">FROM</label>
-              <select value={origin} onChange={e => setOrigin(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
-                {CITIES.map(c => <option key={c}>{c}</option>)}
-              </select>
+              <CitySearch label="FROM" value={origin} onChange={setOrigin} focusColor="green" />
             </div>
             <div className="flex-1 min-w-40">
-              <label className="block text-xs text-gray-500 mb-1">TO</label>
-              <select value={destination} onChange={e => setDestination(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
-                {CITIES.map(c => <option key={c}>{c}</option>)}
-              </select>
+              <CitySearch label="TO" value={destination} onChange={setDestination} focusColor="green" />
             </div>
             <DatePickerInput
               label="DATE"

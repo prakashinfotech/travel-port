@@ -4,6 +4,7 @@ using TravelPort.Application.Common.Interfaces;
 using TravelPort.Application.DTOs.Admin;
 using TravelPort.Application.DTOs.Bookings;
 using TravelPort.Application.DTOs.HotelManager;
+using TravelPort.Application.DTOs.Operator;
 using TravelPort.Application.Services.Interfaces;
 using TravelPort.Domain.Entities;
 using TravelPort.Domain.Enums;
@@ -17,6 +18,9 @@ public class AdminService : IAdminService
     private readonly ICouponRepository _coupons;
     private readonly IFlightRepository _flights;
     private readonly IHotelRepository _hotels;
+    private readonly IFlightCompanyRepository _flightCompanies;
+    private readonly IBusCompanyRepository _busCompanies;
+    private readonly ICabCompanyRepository _cabCompanies;
     private readonly IEmailService _email;
     private readonly IUnitOfWork _uow;
 
@@ -26,16 +30,22 @@ public class AdminService : IAdminService
         ICouponRepository coupons,
         IFlightRepository flights,
         IHotelRepository hotels,
+        IFlightCompanyRepository flightCompanies,
+        IBusCompanyRepository busCompanies,
+        ICabCompanyRepository cabCompanies,
         IEmailService email,
         IUnitOfWork uow)
     {
-        _users    = users;
-        _bookings = bookings;
-        _coupons  = coupons;
-        _flights  = flights;
-        _hotels   = hotels;
-        _email    = email;
-        _uow      = uow;
+        _users          = users;
+        _bookings       = bookings;
+        _coupons        = coupons;
+        _flights        = flights;
+        _hotels         = hotels;
+        _flightCompanies = flightCompanies;
+        _busCompanies   = busCompanies;
+        _cabCompanies   = cabCompanies;
+        _email          = email;
+        _uow            = uow;
     }
 
     // ── Dashboard ────────────────────────────────────────────────────────────
@@ -45,7 +55,7 @@ public class AdminService : IAdminService
         var allUsers    = await _users.GetAllAsync(ct);
         var allBookings = await _bookings.GetAllAsync(ct);
 
-        var customerCount  = allUsers.Count(u => u.Role != UserRole.Hotel);
+        var customerCount  = allUsers.Count(u => u.Role == UserRole.User);
         var totalRevenue   = allBookings.Where(b => b.Status != BookingStatus.Cancelled).Sum(b => b.FinalAmount);
         var active         = allBookings.Count(b => b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Pending);
         var cancelled      = allBookings.Count(b => b.Status == BookingStatus.Cancelled);
@@ -320,6 +330,197 @@ public class AdminService : IAdminService
         return ToAdminHotelDto(hotel, manager);
     }
 
+    // ── Flight Operators ─────────────────────────────────────────────────────
+
+    public async Task<List<FlightOperatorListDto>> GetFlightOperatorsAsync(CancellationToken ct = default)
+    {
+        var companies = await _flightCompanies.GetAllActiveAsync(ct);
+        var result    = new List<FlightOperatorListDto>();
+        foreach (var c in companies)
+        {
+            var manager     = await _users.GetOperatorManagerAsync(c.Id, ct);
+            var flightCount = (await _flights.GetByCompanyAsync(c.Id, ct)).Count;
+            result.Add(ToFlightOperatorDto(c, manager, flightCount));
+        }
+        return result;
+    }
+
+    public async Task<FlightOperatorListDto> RegisterFlightOperatorAsync(RegisterFlightOperatorRequest req, CancellationToken ct = default)
+    {
+        if (await _users.EmailExistsAsync(req.ManagerEmail.ToLowerInvariant(), ct))
+            throw new BusinessException("A user with this email already exists.");
+
+        var company = new FlightCompany
+        {
+            Id                = Guid.NewGuid(),
+            Name              = req.CompanyName,
+            IataCode          = req.IataCode.ToUpper(),
+            LogoUrl           = req.LogoUrl,
+            HeadquartersCity  = req.HeadquartersCity,
+            ContactEmail      = req.ManagerEmail,
+            ContactPhone      = req.ContactPhone,
+            IsActive          = true
+        };
+        await _flightCompanies.AddAsync(company, ct);
+
+        var manager = new User
+        {
+            Id           = Guid.NewGuid(),
+            Name         = req.ManagerName,
+            Email        = req.ManagerEmail.ToLowerInvariant(),
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.ManagerPassword, SecurityConstants.BcryptWorkFactor),
+            Role         = UserRole.FlightOperator,
+            OperatorCompanyId = company.Id,
+            IsActive     = true,
+            IsVerified   = true
+        };
+        await _users.AddAsync(manager, ct);
+        await _uow.SaveChangesAsync(ct);
+
+        if (_email.IsConfigured)
+            await _email.SendOperatorCredentialsEmailAsync(req.ManagerEmail, req.ManagerName, req.CompanyName, "Flight Operator", req.ManagerEmail, req.ManagerPassword, ct);
+
+        return ToFlightOperatorDto(company, manager, 0);
+    }
+
+    public async Task<FlightOperatorListDto> ToggleFlightOperatorActiveAsync(Guid companyId, CancellationToken ct = default)
+    {
+        var company = await _flightCompanies.GetByIdAsync(companyId, ct)
+            ?? throw new NotFoundException("FlightCompany", companyId);
+        company.IsActive = !company.IsActive;
+        await _flightCompanies.UpdateAsync(company, ct);
+        await _uow.SaveChangesAsync(ct);
+        var manager     = await _users.GetOperatorManagerAsync(companyId, ct);
+        var flightCount = (await _flights.GetByCompanyAsync(companyId, ct)).Count;
+        return ToFlightOperatorDto(company, manager, flightCount);
+    }
+
+    // ── Bus Operators ─────────────────────────────────────────────────────────
+
+    public async Task<List<BusOperatorListDto>> GetBusOperatorsAsync(CancellationToken ct = default)
+    {
+        var companies = await _busCompanies.GetAllActiveAsync(ct);
+        var result    = new List<BusOperatorListDto>();
+        foreach (var c in companies)
+        {
+            var manager = await _users.GetOperatorManagerAsync(c.Id, ct);
+            result.Add(ToBusOperatorDto(c, manager));
+        }
+        return result;
+    }
+
+    public async Task<BusOperatorListDto> RegisterBusOperatorAsync(RegisterBusOperatorRequest req, CancellationToken ct = default)
+    {
+        if (await _users.EmailExistsAsync(req.ManagerEmail.ToLowerInvariant(), ct))
+            throw new BusinessException("A user with this email already exists.");
+
+        var company = new BusCompany
+        {
+            Id               = Guid.NewGuid(),
+            Name             = req.CompanyName,
+            HeadquartersCity = req.HeadquartersCity,
+            ContactEmail     = req.ManagerEmail,
+            ContactPhone     = req.ContactPhone,
+            BusTypes         = req.BusTypes,
+            IsActive         = true
+        };
+        await _busCompanies.AddAsync(company, ct);
+
+        var manager = new User
+        {
+            Id                = Guid.NewGuid(),
+            Name              = req.ManagerName,
+            Email             = req.ManagerEmail.ToLowerInvariant(),
+            PasswordHash      = BCrypt.Net.BCrypt.HashPassword(req.ManagerPassword, SecurityConstants.BcryptWorkFactor),
+            Role              = UserRole.BusOperator,
+            OperatorCompanyId = company.Id,
+            IsActive          = true,
+            IsVerified        = true
+        };
+        await _users.AddAsync(manager, ct);
+        await _uow.SaveChangesAsync(ct);
+
+        if (_email.IsConfigured)
+            await _email.SendOperatorCredentialsEmailAsync(req.ManagerEmail, req.ManagerName, req.CompanyName, "Bus Operator", req.ManagerEmail, req.ManagerPassword, ct);
+
+        return ToBusOperatorDto(company, manager);
+    }
+
+    public async Task<BusOperatorListDto> ToggleBusOperatorActiveAsync(Guid companyId, CancellationToken ct = default)
+    {
+        var company = await _busCompanies.GetByIdAsync(companyId, ct)
+            ?? throw new NotFoundException("BusCompany", companyId);
+        company.IsActive = !company.IsActive;
+        await _busCompanies.UpdateAsync(company, ct);
+        await _uow.SaveChangesAsync(ct);
+        var manager = await _users.GetOperatorManagerAsync(companyId, ct);
+        return ToBusOperatorDto(company, manager);
+    }
+
+    // ── Cab Operators ─────────────────────────────────────────────────────────
+
+    public async Task<List<CabOperatorListDto>> GetCabOperatorsAsync(CancellationToken ct = default)
+    {
+        var companies = await _cabCompanies.GetAllActiveAsync(ct);
+        var result    = new List<CabOperatorListDto>();
+        foreach (var c in companies)
+        {
+            var manager = await _users.GetOperatorManagerAsync(c.Id, ct);
+            result.Add(ToCabOperatorDto(c, manager));
+        }
+        return result;
+    }
+
+    public async Task<CabOperatorListDto> RegisterCabOperatorAsync(RegisterCabOperatorRequest req, CancellationToken ct = default)
+    {
+        if (await _users.EmailExistsAsync(req.ManagerEmail.ToLowerInvariant(), ct))
+            throw new BusinessException("A user with this email already exists.");
+
+        var company = new CabCompany
+        {
+            Id                  = Guid.NewGuid(),
+            Name                = req.CompanyName,
+            City                = req.City,
+            ContactEmail        = req.ManagerEmail,
+            ContactPhone        = req.ContactPhone,
+            CabTypes            = req.CabTypes,
+            IsIndividualDriver  = req.IsIndividualDriver,
+            DriverLicenseNumber = req.DriverLicenseNumber,
+            IsActive            = true
+        };
+        await _cabCompanies.AddAsync(company, ct);
+
+        var manager = new User
+        {
+            Id                = Guid.NewGuid(),
+            Name              = req.ManagerName,
+            Email             = req.ManagerEmail.ToLowerInvariant(),
+            PasswordHash      = BCrypt.Net.BCrypt.HashPassword(req.ManagerPassword, SecurityConstants.BcryptWorkFactor),
+            Role              = UserRole.CabOperator,
+            OperatorCompanyId = company.Id,
+            IsActive          = true,
+            IsVerified        = true
+        };
+        await _users.AddAsync(manager, ct);
+        await _uow.SaveChangesAsync(ct);
+
+        if (_email.IsConfigured)
+            await _email.SendOperatorCredentialsEmailAsync(req.ManagerEmail, req.ManagerName, req.CompanyName, "Cab Operator", req.ManagerEmail, req.ManagerPassword, ct);
+
+        return ToCabOperatorDto(company, manager);
+    }
+
+    public async Task<CabOperatorListDto> ToggleCabOperatorActiveAsync(Guid companyId, CancellationToken ct = default)
+    {
+        var company = await _cabCompanies.GetByIdAsync(companyId, ct)
+            ?? throw new NotFoundException("CabCompany", companyId);
+        company.IsActive = !company.IsActive;
+        await _cabCompanies.UpdateAsync(company, ct);
+        await _uow.SaveChangesAsync(ct);
+        var manager = await _users.GetOperatorManagerAsync(companyId, ct);
+        return ToCabOperatorDto(company, manager);
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private static CouponDto ToDto(Coupon c) => new(
@@ -331,6 +532,21 @@ public class AdminService : IAdminService
     private static AdminHotelListDto ToAdminHotelDto(Hotel h, User? manager) => new(
         h.Id, h.Name, h.City, h.Address, h.StarRating, h.ReviewScore, h.ReviewCount,
         h.IsActive, h.Rooms.Count, manager?.Email, h.CreatedAt
+    );
+
+    private static FlightOperatorListDto ToFlightOperatorDto(FlightCompany c, User? manager, int flightCount) => new(
+        c.Id, c.Name, c.IataCode, c.LogoUrl, c.HeadquartersCity, c.ContactPhone,
+        c.IsActive, flightCount, manager?.Email, c.CreatedAt
+    );
+
+    private static BusOperatorListDto ToBusOperatorDto(BusCompany c, User? manager) => new(
+        c.Id, c.Name, c.HeadquartersCity, c.ContactPhone, c.BusTypes,
+        c.IsActive, manager?.Email, c.CreatedAt
+    );
+
+    private static CabOperatorListDto ToCabOperatorDto(CabCompany c, User? manager) => new(
+        c.Id, c.Name, c.City, c.ContactPhone, c.CabTypes, c.IsIndividualDriver,
+        c.IsActive, manager?.Email, c.CreatedAt
     );
 
     private static string? MapCity(string? code) => code switch

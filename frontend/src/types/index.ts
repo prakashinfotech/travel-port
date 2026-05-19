@@ -3,8 +3,9 @@ export interface UserToken {
   id: string
   name: string
   email: string
-  role: 'User' | 'Admin' | 'Hotel'
+  role: 'User' | 'Admin' | 'Hotel' | 'FlightOperator' | 'BusOperator' | 'CabOperator'
   hotelId?: string
+  operatorCompanyId?: string
 }
 
 export interface AuthResponse {
@@ -620,4 +621,159 @@ export interface PaginationMeta {
   pageSize: number
   total: number
   totalPages: number
+}
+
+// ── Operator Portal ───────────────────────────────────────────────────────────
+
+export interface FlightOperatorListDto {
+  id: string
+  name: string
+  iataCode: string
+  logoUrl?: string
+  headquartersCity?: string
+  contactPhone?: string
+  isActive: boolean
+  flightCount: number
+  managerEmail?: string
+  createdAt: string
+}
+
+export interface BusOperatorListDto {
+  id: string
+  name: string
+  headquartersCity?: string
+  contactPhone?: string
+  busTypes?: string
+  isActive: boolean
+  managerEmail?: string
+  createdAt: string
+}
+
+export interface CabOperatorListDto {
+  id: string
+  name: string
+  city?: string
+  contactPhone?: string
+  cabTypes?: string
+  isIndividualDriver: boolean
+  isActive: boolean
+  managerEmail?: string
+  createdAt: string
+}
+
+export interface RegisterFlightOperatorRequest {
+  companyName: string
+  iataCode: string
+  logoUrl?: string
+  headquartersCity?: string
+  contactPhone?: string
+  managerEmail: string
+  managerPassword: string
+  managerName: string
+}
+
+export interface RegisterBusOperatorRequest {
+  companyName: string
+  headquartersCity?: string
+  contactPhone?: string
+  busTypes?: string
+  managerEmail: string
+  managerPassword: string
+  managerName: string
+}
+
+export interface RegisterCabOperatorRequest {
+  companyName: string
+  city?: string
+  contactPhone?: string
+  cabTypes?: string
+  isIndividualDriver: boolean
+  driverLicenseNumber?: string
+  managerEmail: string
+  managerPassword: string
+  managerName: string
+}
+
+export interface FlightOperatorDashboardDto {
+  totalFlights: number
+  activeFlights: number
+  totalBookings: number
+  confirmedBookings: number
+  cancelledBookings: number
+  totalRevenue: number
+  totalPassengers: number
+}
+
+export interface BusOperatorDashboardDto {
+  companyName: string
+  totalBookings: number
+  confirmedBookings: number
+  cancelledBookings: number
+  totalRevenue: number
+  totalPassengers: number
+}
+
+export interface CabOperatorDashboardDto {
+  companyName: string
+  isIndividualDriver: boolean
+  totalBookings: number
+  confirmedBookings: number
+  cancelledBookings: number
+  totalRevenue: number
+  totalPassengers: number
+}
+
+export interface OperatorFlightDto {
+  id: string
+  flightNumber: string
+  source: string
+  destination: string
+  departureTime: string
+  arrivalTime: string
+  duration: number
+  totalSeats: number
+  availableSeats: number
+  economyPrice: number
+  businessPrice?: number
+  stops: number
+  isActive: boolean
+  createdAt: string
+}
+
+export interface OperatorBookingDto {
+  id: string
+  bookingRef: string
+  passengerName: string
+  passengerEmail: string
+  passengerPhone?: string
+  passengers: number
+  cabinClass: string
+  amount: number
+  status: string
+  bookedAt: string
+}
+
+export interface CreateFlightRequest {
+  flightNumber: string
+  source: string
+  destination: string
+  departureTime: string
+  arrivalTime: string
+  totalSeats: number
+  economyPrice: number
+  businessPrice?: number
+  stops: number
+}
+
+export interface UpdateFlightRequest {
+  flightNumber?: string
+  source?: string
+  destination?: string
+  departureTime?: string
+  arrivalTime?: string
+  totalSeats?: number
+  economyPrice?: number
+  businessPrice?: number
+  stops?: number
+  isActive?: boolean
 }

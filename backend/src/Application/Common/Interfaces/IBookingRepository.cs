@@ -13,4 +13,6 @@ public interface IBookingRepository : IRepository<Booking>
     Task<IReadOnlyList<Booking>> GetAllForAnalyticsAsync(DateTime from, DateTime to, CancellationToken cancellationToken = default);
     Task<(IReadOnlyList<Booking> Items, int Total)> GetHotelBookingsPagedAsync(Guid hotelId, int page, int pageSize, string? status, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Booking>> GetTrainBookingsForDateAsync(DateTime travelDate, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Booking>> GetBookingsByFlightIdsAsync(IEnumerable<Guid> flightIds, CancellationToken ct = default);
+    Task<IReadOnlyList<Booking>> GetBookingsByOperatorNameAsync(string operatorName, BookingType type, CancellationToken ct = default);
 }

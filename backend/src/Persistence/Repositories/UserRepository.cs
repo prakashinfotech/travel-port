@@ -19,7 +19,7 @@ public class UserRepository : BaseRepository<User>, IUserRepository
         int page, int pageSize, string? search = null, CancellationToken cancellationToken = default)
     {
         var query = _dbSet.Include(u => u.Wallet)
-            .Where(u => u.Role != Domain.Enums.UserRole.Hotel)
+            .Where(u => u.Role == Domain.Enums.UserRole.User || u.Role == Domain.Enums.UserRole.Admin)
             .AsQueryable();
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -37,4 +37,7 @@ public class UserRepository : BaseRepository<User>, IUserRepository
 
     public async Task<User?> GetHotelManagerAsync(Guid hotelId, CancellationToken cancellationToken = default)
         => await _dbSet.FirstOrDefaultAsync(u => u.HotelId == hotelId && u.Role == Domain.Enums.UserRole.Hotel, cancellationToken);
+
+    public async Task<User?> GetOperatorManagerAsync(Guid companyId, CancellationToken cancellationToken = default)
+        => await _dbSet.FirstOrDefaultAsync(u => u.OperatorCompanyId == companyId, cancellationToken);
 }

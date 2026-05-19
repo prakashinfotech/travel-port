@@ -86,4 +86,22 @@ public class BookingRepository : BaseRepository<Booking>, IBookingRepository
                      && b.CheckIn != null
                      && b.CheckIn.Value.Date == travelDate.Date)
             .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Booking>> GetBookingsByFlightIdsAsync(
+        IEnumerable<Guid> flightIds, CancellationToken ct = default)
+        => await _dbSet
+            .Include(b => b.User)
+            .Where(b => b.BookingType == BookingType.Flight && flightIds.Contains(b.ReferenceId))
+            .OrderByDescending(b => b.CreatedAt)
+            .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<Booking>> GetBookingsByOperatorNameAsync(
+        string operatorName, BookingType type, CancellationToken ct = default)
+        => await _dbSet
+            .Include(b => b.User)
+            .Where(b => b.BookingType == type
+                     && b.TransportSnapshot != null
+                     && b.TransportSnapshot.Contains(operatorName))
+            .OrderByDescending(b => b.CreatedAt)
+            .ToListAsync(ct);
 }

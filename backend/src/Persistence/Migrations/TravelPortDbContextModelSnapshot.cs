@@ -161,6 +161,90 @@ namespace TravelPort.Persistence.Migrations
                     b.ToTable("Bookings", (string)null);
                 });
 
+            modelBuilder.Entity("TravelPort.Domain.Entities.BusCompany", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("BusTypes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ContactEmail")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ContactPhone")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("HeadquartersCity")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("BusCompanies");
+                });
+
+            modelBuilder.Entity("TravelPort.Domain.Entities.CabCompany", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CabTypes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("City")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ContactEmail")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ContactPhone")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DriverLicenseNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsIndividualDriver")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CabCompanies");
+                });
+
             modelBuilder.Entity("TravelPort.Domain.Entities.Coupon", b =>
                 {
                     b.Property<Guid>("Id")
@@ -268,6 +352,9 @@ namespace TravelPort.Persistence.Migrations
                     b.Property<decimal>("EconomyPrice")
                         .HasColumnType("decimal(10,2)");
 
+                    b.Property<Guid?>("FlightCompanyId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("FlightNumber")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -299,10 +386,55 @@ namespace TravelPort.Persistence.Migrations
                     b.HasIndex("DepartureTime")
                         .HasDatabaseName("IX_Flights_Departure");
 
+                    b.HasIndex("FlightCompanyId");
+
                     b.HasIndex("Source", "Destination")
                         .HasDatabaseName("IX_Flights_Route");
 
                     b.ToTable("Flights", (string)null);
+                });
+
+            modelBuilder.Entity("TravelPort.Domain.Entities.FlightCompany", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContactEmail")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ContactPhone")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("HeadquartersCity")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("IataCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LogoUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("FlightCompanies");
                 });
 
             modelBuilder.Entity("TravelPort.Domain.Entities.Hotel", b =>
@@ -665,6 +797,9 @@ namespace TravelPort.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<Guid?>("OperatorCompanyId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -783,6 +918,15 @@ namespace TravelPort.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("TravelPort.Domain.Entities.Flight", b =>
+                {
+                    b.HasOne("TravelPort.Domain.Entities.FlightCompany", "FlightCompany")
+                        .WithMany("Flights")
+                        .HasForeignKey("FlightCompanyId");
+
+                    b.Navigation("FlightCompany");
+                });
+
             modelBuilder.Entity("TravelPort.Domain.Entities.HotelRoom", b =>
                 {
                     b.HasOne("TravelPort.Domain.Entities.Hotel", "Hotel")
@@ -863,6 +1007,11 @@ namespace TravelPort.Persistence.Migrations
             modelBuilder.Entity("TravelPort.Domain.Entities.Booking", b =>
                 {
                     b.Navigation("Payment");
+                });
+
+            modelBuilder.Entity("TravelPort.Domain.Entities.FlightCompany", b =>
+                {
+                    b.Navigation("Flights");
                 });
 
             modelBuilder.Entity("TravelPort.Domain.Entities.Hotel", b =>

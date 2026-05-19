@@ -664,6 +664,81 @@ public class SmtpEmailService : IEmailService
             Wrap(body), ct);
     }
 
+    // ── Operator Credentials ─────────────────────────────────────────────────
+
+    public async Task SendOperatorCredentialsEmailAsync(
+        string toEmail, string toName,
+        string companyName, string operatorType,
+        string loginEmail, string password,
+        CancellationToken ct = default)
+    {
+        if (!IsConfigured)
+        {
+            _logger.LogInformation("Email skipped — operator credentials for {Email}", toEmail);
+            return;
+        }
+
+        var (accentColor, portalDesc) = operatorType switch
+        {
+            "Flight Operator" => ("#1e40af", "add and manage flights, view passenger bookings, and track revenue"),
+            "Bus Operator"    => ("#166534", "view your bus booking statistics and passenger details"),
+            "Cab Operator"    => ("#92400e", "view your cab booking statistics and passenger details"),
+            _                 => ("#374151", "manage your operations on TravelPort")
+        };
+
+        var body = $"""
+            {TopBar(accentColor, $"Welcome to TravelPort — {operatorType}", $"Your operator account for {WebUtility.HtmlEncode(companyName)} is ready.")}
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="padding:28px 32px">
+                  <p style="margin:0 0 4px 0;font-size:15px;color:#374151">
+                    Hi <strong style="color:#111827">{WebUtility.HtmlEncode(toName)}</strong>,
+                  </p>
+                  <p style="margin:0 0 20px 0;font-size:14px;color:#6b7280;line-height:1.6">
+                    Your <strong>{WebUtility.HtmlEncode(operatorType)}</strong> account has been created on TravelPort.
+                    Use the credentials below to log in and manage your operations.
+                  </p>
+
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                         style="background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;margin:0 0 20px 0">
+                    <tr>
+                      <td style="padding:20px 24px">
+                        <p style="font-size:12px;font-weight:700;color:{accentColor};text-transform:uppercase;
+                                  letter-spacing:0.8px;margin:0 0 16px 0">Your Login Credentials</p>
+                        <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                               style="border:1px solid #e2e8f0;border-radius:6px;background-color:#ffffff">
+                          {InfoRow("Company", companyName)}
+                          {InfoRow("Operator Type", operatorType, shaded: true)}
+                          {InfoRow("Login Email", loginEmail)}
+                          {InfoRow("Temporary Password", password, shaded: true)}
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                         style="background-color:#fef9c3;border:1px solid #fde047;border-radius:8px;margin-bottom:20px">
+                    <tr>
+                      <td style="padding:14px 18px;font-size:13px;color:#713f12">
+                        <strong>Security Notice:</strong> Please log in and change your password immediately.
+                        Do not share your credentials with anyone.
+                      </td>
+                    </tr>
+                  </table>
+
+                  <p style="font-size:14px;color:#374151;line-height:1.6">
+                    With your operator portal you can <strong>{WebUtility.HtmlEncode(portalDesc)}</strong>.
+                  </p>
+                </td>
+              </tr>
+            </table>
+            """;
+
+        await SendAsync(toEmail, toName,
+            $"Your TravelPort Operator Portal Access — {companyName}",
+            Wrap(body), ct);
+    }
+
     // ── SMTP sender ───────────────────────────────────────────────────────────
 
     private async Task SendAsync(string toEmail, string toName, string subject, string htmlContent, CancellationToken ct)

@@ -25,4 +25,10 @@ public class FlightRepository : BaseRepository<Flight>, IFlightRepository
             .OrderBy(f => f.EconomyPrice)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<IReadOnlyList<Flight>> GetByCompanyAsync(Guid companyId, CancellationToken ct = default)
+        => await _dbSet.Where(f => f.FlightCompanyId == companyId).ToListAsync(ct);
+
+    public new async Task<IReadOnlyList<Flight>> GetAllAsync(CancellationToken ct = default)
+        => await _dbSet.ToListAsync(ct);
 }

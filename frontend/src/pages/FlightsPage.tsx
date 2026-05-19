@@ -7,14 +7,15 @@ import { FlightCard } from '@/components/flights/FlightCard'
 import { FlightCardSkeleton } from '@/components/ui/Skeleton'
 import { AirportSearch } from '@/components/search/AirportSearch'
 import { TravellerSelector, type TravellerConfig } from '@/components/search/TravellerSelector'
-import { formatCurrency } from '@/utils/formatters'
+import { formatCurrency, formatDuration } from '@/utils/formatters'
 import { AIRPORTS } from '@/data/airports'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type TimeSlot = 'early' | 'morning' | 'afternoon' | 'night'
 type SortKey  = 'cheapest' | 'nonstop' | 'prefer' | 'departure'
-type TripType = 'oneway' | 'roundtrip'
+type TripType  = 'oneway' | 'roundtrip'
+type RTSortKey = 'departure' | 'duration' | 'arrival' | 'price'
 
 interface Filters {
   nonStop:    boolean
@@ -124,6 +125,15 @@ function slotMatch(hour: number, slot: TimeSlot): boolean {
 
 function minPrice(arr: FlightDto[]): number {
   return arr.length ? Math.min(...arr.map(f => f.price)) : Infinity
+}
+
+function sortByRTKey(list: FlightDto[], key: RTSortKey): FlightDto[] {
+  const s = [...list]
+  if (key === 'departure') s.sort((a, b) => new Date(a.departureTime).getTime() - new Date(b.departureTime).getTime())
+  else if (key === 'duration') s.sort((a, b) => a.durationMinutes - b.durationMinutes)
+  else if (key === 'arrival') s.sort((a, b) => new Date(a.arrivalTime).getTime() - new Date(b.arrivalTime).getTime())
+  else s.sort((a, b) => a.price - b.price)
+  return s
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -658,6 +668,144 @@ function FilterSidebar({
   )
 }
 
+// ── Round Trip Sub-components ─────────────────────────────────────────────────
+
+function RTSortHeader({ sortKey, onSort }: { sortKey: RTSortKey; onSort: (k: RTSortKey) => void }) {
+  const cols: { key: RTSortKey; label: string }[] = [
+    { key: 'departure', label: 'Departure' },
+    { key: 'duration',  label: 'Duration'  },
+    { key: 'arrival',   label: 'Arrival'   },
+    { key: 'price',     label: 'Price'     },
+  ]
+  return (
+    <div className="flex items-center bg-gray-50 border-b border-gray-200 px-4 py-2 text-xs">
+      <div className="w-28 flex-shrink-0" />
+      <div className="flex flex-1 items-center">
+        {cols.map(col => (
+          <button
+            key={col.key}
+            onClick={() => onSort(col.key)}
+            className={`flex-1 flex items-center justify-center gap-0.5 font-semibold transition-colors ${
+              sortKey === col.key ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {col.label}{sortKey === col.key ? ' ↑' : ''}
+          </button>
+        ))}
+        <div className="w-10 flex-shrink-0" />
+      </div>
+    </div>
+  )
+}
+
+function RoundTripFlightRow({ flight, selected, onSelect }: {
+  flight: FlightDto; selected: boolean; onSelect: () => void
+}) {
+  const dep = new Date(flight.departureTime)
+  const arr = new Date(flight.arrivalTime)
+  const fmt = (d: Date) => d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })
+  const isNextDay = arr.getDate() !== dep.getDate() || arr.getMonth() !== dep.getMonth()
+  const color = AIRLINE_COLORS[flight.airline] ?? '#555'
+  const initials = flight.airline.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+
+  return (
+    <div
+      onClick={onSelect}
+      className={`flex items-center gap-2 px-4 py-3 border-b border-gray-100 cursor-pointer transition-colors hover:bg-blue-50 ${
+        selected ? 'bg-blue-50 border-l-[3px] border-l-blue-500' : ''
+      }`}
+    >
+      {/* Airline */}
+      <div className="w-28 flex-shrink-0">
+        <div className="flex items-center gap-1.5">
+          <div style={{ backgroundColor: color }} className="w-7 h-7 rounded flex items-center justify-center text-white text-xs font-bold flex-shrink-0">{initials}</div>
+          <div>
+            <p className="text-xs font-semibold text-gray-800 leading-tight">{flight.airline}</p>
+            <p className="text-[10px] text-gray-400">{flight.flightNumber}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Times + duration */}
+      <div className="flex-1 flex items-center gap-1">
+        <p className="text-base font-bold tabular-nums text-gray-900 w-12 text-right">{fmt(dep)}</p>
+        <div className="flex-1 flex flex-col items-center mx-1">
+          <p className="text-[10px] text-gray-400 leading-none">{formatDuration(flight.durationMinutes)}</p>
+          <div className="flex w-full items-center gap-0.5 my-0.5">
+            <div className="h-px flex-1 bg-gray-300" />
+            <div className="h-1.5 w-1.5 rounded-full bg-gray-400 flex-shrink-0" />
+          </div>
+          <p className={`text-[10px] font-semibold leading-none ${flight.stops === 0 ? 'text-green-600' : 'text-orange-500'}`}>
+            {flight.stops === 0 ? 'Non stop' : `${flight.stops} Stop`}
+          </p>
+        </div>
+        <p className="text-base font-bold tabular-nums text-gray-900 w-12">
+          {fmt(arr)}{isNextDay && <sup className="text-orange-500 text-xs ml-0.5">+1</sup>}
+        </p>
+      </div>
+
+      {/* Price + Radio */}
+      <div className="flex items-center gap-2 w-24 flex-shrink-0 justify-end">
+        <div className="text-right">
+          <p className="text-sm font-bold text-gray-900">₹{flight.price.toLocaleString('en-IN')}</p>
+          <p className="text-[10px] text-gray-400">per adult</p>
+        </div>
+        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+          selected ? 'border-blue-500 bg-blue-500' : 'border-gray-300'
+        }`}>
+          {selected && <div className="w-2 h-2 rounded-full bg-white" />}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function RoundTripStickyBar({ dep, ret, passengerCount, onBook }: {
+  dep: FlightDto; ret: FlightDto; passengerCount: number; onBook: () => void
+}) {
+  const fmt = (iso: string) => new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })
+  const total = (dep.price + ret.price) * Math.max(1, passengerCount)
+  const discount = 271
+
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-40 bg-gray-900 text-white shadow-2xl border-t border-gray-700">
+      <div className="max-w-6xl mx-auto flex items-stretch">
+        <div className="flex-1 px-5 py-3 border-r border-gray-700">
+          <p className="text-xs text-gray-400 mb-0.5">Departure · <span className="font-semibold text-white">{dep.airline}</span></p>
+          <p className="text-sm font-bold tabular-nums">{fmt(dep.departureTime)} → {fmt(dep.arrivalTime)}</p>
+          <div className="flex items-center gap-3 mt-0.5">
+            <p className="text-base font-black">₹{dep.price.toLocaleString('en-IN')}</p>
+            <button className="text-xs text-blue-400 hover:text-blue-300 transition-colors">Flight Details</button>
+          </div>
+        </div>
+        <div className="flex-1 px-5 py-3 border-r border-gray-700">
+          <p className="text-xs text-gray-400 mb-0.5">Return · <span className="font-semibold text-white">{ret.airline}</span></p>
+          <p className="text-sm font-bold tabular-nums">{fmt(ret.departureTime)} → {fmt(ret.arrivalTime)}</p>
+          <div className="flex items-center gap-3 mt-0.5">
+            <p className="text-base font-black">₹{ret.price.toLocaleString('en-IN')}</p>
+            <button className="text-xs text-blue-400 hover:text-blue-300 transition-colors">Flight Details</button>
+          </div>
+        </div>
+        <div className="flex items-center gap-4 px-5 py-3">
+          <div className="text-right">
+            <p className="text-2xl font-black tabular-nums">₹{total.toLocaleString('en-IN')}</p>
+            <p className="text-xs text-gray-400">per adult</p>
+            <p className="text-xs text-green-400 font-medium">FLAT ₹{discount} OFF with DEALPANTI</p>
+          </div>
+          <div className="flex flex-col gap-1.5 min-w-[120px]">
+            <button onClick={onBook} className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-5 py-2 rounded-lg text-sm transition-colors">
+              BOOK NOW
+            </button>
+            <button className="border border-gray-500 text-white font-bold px-5 py-2 rounded-lg text-sm hover:bg-white/10 transition-colors text-center">
+              LOCK PRICE
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function FlightsPage() {
@@ -692,6 +840,14 @@ export default function FlightsPage() {
 
   // Date bar prices
   const [datePriceMap, setDatePriceMap] = useState<Record<string, number | null>>({})
+
+  // Round-trip state
+  const [returnFlights,          setReturnFlights]         = useState<FlightDto[]>([])
+  const [returnFlightsLoading,   setReturnFlightsLoading]  = useState(false)
+  const [selectedDepartureFlight, setSelectedDepartureFlight] = useState<FlightDto | null>(null)
+  const [selectedReturnFlight,   setSelectedReturnFlight]  = useState<FlightDto | null>(null)
+  const [depRTSort,  setDepRTSort]  = useState<RTSortKey>('price')
+  const [retRTSort,  setRetRTSort]  = useState<RTSortKey>('price')
 
   const fetchLowestPriceForDates = useCallback(async (dates: string[]) => {
     const uniqueDates = dates.filter(date => date >= TODAY && !fetchedPriceDates.current.has(date))
@@ -750,7 +906,31 @@ export default function FlightsPage() {
     }
   }, [origin, destination, departureDate, travellers])
 
-  useEffect(() => { fetchFlights() }, []) // eslint-disable-line
+  const fetchReturnFlights = useCallback(async (src = origin, dst = destination, date = returnDate) => {
+    if (!src || !dst || !date) return
+    setReturnFlightsLoading(true)
+    const total = travellers.adults + travellers.children + travellers.infants
+    try {
+      const res = await flightService.search({
+        origin: dst,
+        destination: src,
+        departureDate: date,
+        passengers: total,
+        cabinClass: travellers.cabinClass,
+        pageSize: 100,
+      })
+      setReturnFlights(res.data ?? [])
+    } catch {
+      setReturnFlights([])
+    } finally {
+      setReturnFlightsLoading(false)
+    }
+  }, [origin, destination, returnDate, travellers])
+
+  useEffect(() => {
+    fetchFlights()
+    if (tripType === 'roundtrip' && returnDate) fetchReturnFlights()
+  }, []) // eslint-disable-line
 
   // ── Fetch adjacent date prices in background ─────────────────────────────
 
@@ -802,6 +982,9 @@ export default function FlightsPage() {
   }, [filters, sortKey, flights])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / RESULTS_PER_PAGE))
+
+  const sortedDepartureFlights = useMemo(() => sortByRTKey(flights, depRTSort), [flights, depRTSort])
+  const sortedReturnFlights    = useMemo(() => sortByRTKey(returnFlights, retRTSort), [returnFlights, retRTSort])
   const paginatedFlights = useMemo(() => {
     const start = (currentPage - 1) * RESULTS_PER_PAGE
     return filtered.slice(start, start + RESULTS_PER_PAGE)
@@ -821,7 +1004,22 @@ export default function FlightsPage() {
     const p = new URLSearchParams({ origin, destination, departureDate, passengers: String(total), cabinClass: travellers.cabinClass })
     if (tripType === 'roundtrip' && returnDate) p.set('returnDate', returnDate)
     navigate(`/flights?${p}`, { replace: true })
+    setSelectedDepartureFlight(null)
+    setSelectedReturnFlight(null)
     fetchFlights(origin, destination, departureDate)
+    if (tripType === 'roundtrip' && returnDate) fetchReturnFlights(origin, destination, returnDate)
+  }
+
+  const handleRoundTripBook = () => {
+    if (!selectedDepartureFlight || !selectedReturnFlight) return
+    const total = travellers.adults + travellers.children + travellers.infants
+    const p = new URLSearchParams({
+      fare: 'saver',
+      passengers: String(total),
+      cabinClass: travellers.cabinClass,
+      returnFlightId: selectedReturnFlight.id,
+    })
+    navigate(`/flights/${selectedDepartureFlight.id}/book?${p}`)
   }
 
   const handleDateSelect = (date: string) => {
@@ -959,8 +1157,83 @@ export default function FlightsPage() {
           )}
         </nav>
 
+        {/* ── Round-trip two-column selector ────────────────────────────────── */}
+        {tripType === 'roundtrip' ? (
+          <div className={selectedDepartureFlight && selectedReturnFlight ? 'pb-28' : ''}>
+            {error && (
+              <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 mb-4">{error}</div>
+            )}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Departure column */}
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="px-4 py-3 bg-gray-900 text-white">
+                  <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">{originCity || origin} → {destinationCity || destination}</p>
+                  <p className="text-sm font-semibold mt-0.5">{departureDate ? dayLabel(departureDate) : 'Select date'}</p>
+                </div>
+                <RTSortHeader sortKey={depRTSort} onSort={setDepRTSort} />
+                {loading
+                  ? Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="px-4 py-3 border-b border-gray-100">
+                        <div className="h-4 bg-gray-100 rounded animate-pulse mb-1.5" />
+                        <div className="h-3 bg-gray-100 rounded animate-pulse w-3/4" />
+                      </div>
+                    ))
+                  : sortedDepartureFlights.length === 0
+                    ? <div className="py-16 text-center text-gray-400 text-sm">No flights found. Try different dates.</div>
+                    : sortedDepartureFlights.map(f => (
+                        <RoundTripFlightRow
+                          key={f.id}
+                          flight={f}
+                          selected={selectedDepartureFlight?.id === f.id}
+                          onSelect={() => setSelectedDepartureFlight(f)}
+                        />
+                      ))
+                }
+              </div>
+
+              {/* Return column */}
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="px-4 py-3 bg-gray-900 text-white">
+                  <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">{destinationCity || destination} → {originCity || origin}</p>
+                  <p className="text-sm font-semibold mt-0.5">{returnDate ? dayLabel(returnDate) : 'Select return date'}</p>
+                </div>
+                <RTSortHeader sortKey={retRTSort} onSort={setRetRTSort} />
+                {!returnDate
+                  ? <div className="py-16 text-center text-gray-400 text-sm">Select a return date above to see flights.</div>
+                  : returnFlightsLoading
+                    ? Array.from({ length: 5 }).map((_, i) => (
+                        <div key={i} className="px-4 py-3 border-b border-gray-100">
+                          <div className="h-4 bg-gray-100 rounded animate-pulse mb-1.5" />
+                          <div className="h-3 bg-gray-100 rounded animate-pulse w-3/4" />
+                        </div>
+                      ))
+                    : sortedReturnFlights.length === 0
+                      ? <div className="py-16 text-center text-gray-400 text-sm">No return flights found. Try different dates.</div>
+                      : sortedReturnFlights.map(f => (
+                          <RoundTripFlightRow
+                            key={f.id}
+                            flight={f}
+                            selected={selectedReturnFlight?.id === f.id}
+                            onSelect={() => setSelectedReturnFlight(f)}
+                          />
+                        ))
+                }
+              </div>
+            </div>
+
+            {selectedDepartureFlight && selectedReturnFlight && (
+              <RoundTripStickyBar
+                dep={selectedDepartureFlight}
+                ret={selectedReturnFlight}
+                passengerCount={travellers.adults + travellers.children + travellers.infants}
+                onBook={handleRoundTripBook}
+              />
+            )}
+          </div>
+        ) : (
+
+        /* ── One-way layout ────────────────────────────────────────────── */
         <div className="flex gap-5">
-          {/* Filters sidebar */}
           <FilterSidebar
             flights={flights}
             filters={filters}
@@ -969,7 +1242,6 @@ export default function FlightsPage() {
             destination={destination}
           />
 
-          {/* Results */}
           <div className="flex-1 min-w-0">
             <DatePriceStrip
               departureDate={departureDate}
@@ -1060,6 +1332,7 @@ export default function FlightsPage() {
             )}
           </div>
         </div>
+        )}
       </div>
 
       <PriceCalendar

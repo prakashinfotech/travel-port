@@ -54,7 +54,7 @@ Generates a complete, production-ready API endpoint for TravelPort following all
 - Throws `NotFoundException` / `BusinessException` / `UnauthorizedException` — middleware handles HTTP mapping
 - `CancellationToken` threaded through all async methods
 - `IUnitOfWork.SaveChangesAsync()` called after all mutations
-- `[Authorize]` / `[Authorize(Roles="Admin")]` applied automatically based on description
+- `[Authorize]` / `[Authorize(Roles="Admin")]` / `[Authorize(Roles="FlightOperator")]` / `[Authorize(Roles="BusOperator")]` / `[Authorize(Roles="CabOperator")]` applied automatically based on description
 - FluentValidation auto-validation — no manual ModelState checks needed
 
 ---

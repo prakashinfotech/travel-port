@@ -32,6 +32,12 @@ public interface IEmailService
         string hotelName, string loginEmail, string password,
         CancellationToken ct = default);
 
+    Task SendOperatorCredentialsEmailAsync(
+        string toEmail, string toName,
+        string companyName, string operatorType,
+        string loginEmail, string password,
+        CancellationToken ct = default);
+
     Task SendTransportBookingConfirmationAsync(
         string toEmail, string toName, string bookingRef, string transportType,
         string operatorName, string vehicleType,

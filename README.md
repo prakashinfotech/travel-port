@@ -42,8 +42,9 @@ TravelPort covers:
 - 11 Coupons (flight and hotel specific)
 - Razorpay Payment Gateway (toggle via config; falls back to mock in dev)
 - SMTP Email Notifications — booking confirmed (sent to contact email), cancelled, password reset
-- Admin Panel — 5-tab dashboard (stats + analytics, user management, all bookings, coupon CRUD, hotel management)
+- Admin Panel — 6-tab dashboard (stats + analytics, user management, all bookings, coupon CRUD, hotel management, operator management)
 - Hotel Management Portal — Admin registers hotels with manager credentials (emailed on creation); Hotel managers log in to a dedicated portal to manage bookings, rooms, amenities, images, and hotel profile
+- Operator Portal — Admin registers Flight Companies (airlines), Bus Operators, and Cab Companies/Individual Drivers; credentials emailed on creation. Flight operators manage flights (add/edit/delete) and view passenger bookings. Bus/Cab operators view dashboard stats and booking history. Three role-specific dashboards at `/flight-operator/*`, `/bus-operator/*`, `/cab-operator/*`
 - Dynamic Traveller Details UI; traveller name/email/phone stored per booking and shown in PDF + email
 - App-wide toast notifications, route-level error boundary, and shared skeleton loaders across search surfaces
 - Richer Profile page with account overview, wallet feedback, safer traveller/card deletion, and saved payment management

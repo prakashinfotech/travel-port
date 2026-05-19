@@ -4,5 +4,8 @@ public enum UserRole
 {
     User,
     Admin,
-    Hotel
+    Hotel,
+    FlightOperator,
+    BusOperator,
+    CabOperator
 }

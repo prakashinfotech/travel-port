@@ -13,6 +13,7 @@ public class User : BaseEntity
     public bool IsVerified { get; set; } = false;
     public bool IsActive { get; set; } = true;
     public Guid? HotelId { get; set; }
+    public Guid? OperatorCompanyId { get; set; }
 
     public Wallet? Wallet { get; set; }
     public ICollection<Booking> Bookings { get; set; } = new List<Booking>();

@@ -42,6 +42,12 @@ interface BookingUiSnapshot {
   arrivalTime: string
   durationMinutes: number
   passengers: number
+  // Round-trip return leg (optional)
+  returnAirline?: string
+  returnFlightNumber?: string
+  returnDepartureTime?: string
+  returnArrivalTime?: string
+  returnDurationMinutes?: number
 }
 
 const FARE_PLANS = {
@@ -122,8 +128,10 @@ export default function BookFlightPage() {
 
   const selectedFareId = (searchParams.get('fare') as FarePlanId | null) ?? 'saver'
   const requestedPassengers = Number(searchParams.get('passengers') ?? 1)
+  const returnFlightId = searchParams.get('returnFlightId') ?? ''
 
   const [flight, setFlight] = useState<FlightDto | null>(null)
+  const [returnFlight, setReturnFlight] = useState<FlightDto | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -153,11 +161,16 @@ export default function BookFlightPage() {
 
   useEffect(() => {
     if (!id) return
-    flightService.getById(id)
-      .then(response => setFlight(response.data))
+    const fetches = [flightService.getById(id)]
+    if (returnFlightId) fetches.push(flightService.getById(returnFlightId))
+    Promise.all(fetches)
+      .then(([depRes, retRes]) => {
+        setFlight(depRes.data ?? null)
+        if (retRes) setReturnFlight(retRes.data ?? null)
+      })
       .catch(() => setError('Flight not found.'))
       .finally(() => setLoading(false))
-  }, [id])
+  }, [id, returnFlightId])
 
   useEffect(() => {
     setTravellers(current => {
@@ -168,14 +181,17 @@ export default function BookFlightPage() {
   }, [requestedPassengers])
 
   const selectedFare = FARE_PLANS[selectedFareId] ?? FARE_PLANS.saver
+  const isRoundTrip = !!returnFlight
 
   const seatCount = travellers.length
-  const farePerAdult = flight ? Math.round(flight.price * selectedFare.multiplier) : 0
-  const baseFare = flight ? Math.round(flight.price * 0.61) : 0
+  const depFarePerAdult  = flight       ? Math.round(flight.price       * selectedFare.multiplier) : 0
+  const retFarePerAdult  = returnFlight ? Math.round(returnFlight.price * selectedFare.multiplier) : 0
+  const farePerAdult     = depFarePerAdult + retFarePerAdult
+  const baseFare         = flight ? Math.round(flight.price * 0.61) + (returnFlight ? Math.round(returnFlight.price * 0.61) : 0) : 0
   const taxesAndSurcharges = Math.max(0, farePerAdult - baseFare)
-  const contributionAmount = includeContribution ? 10 : 0
+  const contributionAmount   = includeContribution ? 10 : 0
   const discountedFareAmount = Math.max(0, farePerAdult * seatCount - couponDiscount)
-  const totalAmount = discountedFareAmount + contributionAmount
+  const totalAmount          = discountedFareAmount + contributionAmount
   const cancellationPenaltyAmount = discountedFareAmount
 
   const dep = flight ? new Date(flight.departureTime) : null
@@ -249,8 +265,7 @@ export default function BookFlightPage() {
     setSubmitting(true)
     setError(null)
     try {
-      const response = await flightService.book({
-        flightId: flight.id,
+      const bookPayload = {
         passengers: seatCount,
         cabinClass: flight.cabinClass,
         couponCode: couponCode || undefined,
@@ -259,10 +274,15 @@ export default function BookFlightPage() {
         guestName: travellers[0]?.fullName || undefined,
         guestEmail: email || undefined,
         guestPhone: mobile || undefined,
-      })
+      }
+
+      const depResponse = await flightService.book({ flightId: flight.id, ...bookPayload })
+      if (isRoundTrip && returnFlight) {
+        await flightService.book({ flightId: returnFlight.id, ...bookPayload })
+      }
 
       const snapshot: BookingUiSnapshot = {
-        bookingId: response.data.id,
+        bookingId: depResponse.data.id,
         email,
         mobile,
         countryCode,
@@ -277,13 +297,20 @@ export default function BookFlightPage() {
         arrivalTime: flight.arrivalTime,
         durationMinutes: flight.durationMinutes,
         passengers: seatCount,
+        ...(isRoundTrip && returnFlight ? {
+          returnAirline: returnFlight.airline,
+          returnFlightNumber: returnFlight.flightNumber,
+          returnDepartureTime: returnFlight.departureTime,
+          returnArrivalTime: returnFlight.arrivalTime,
+          returnDurationMinutes: returnFlight.durationMinutes,
+        } : {}),
       }
-      sessionStorage.setItem(`booking-ui:${response.data.id}`, JSON.stringify(snapshot))
+      sessionStorage.setItem(`booking-ui:${depResponse.data.id}`, JSON.stringify(snapshot))
 
       if (paymentChoice.type === 'new_card') {
-        navigate(`/payment?bookingId=${response.data.id}&amount=${totalAmount}`)
+        navigate(`/payment?bookingId=${depResponse.data.id}&amount=${totalAmount}`)
       } else {
-        navigate(`/bookings/${response.data.id}?new=true`)
+        navigate(`/bookings/${depResponse.data.id}?new=true`)
       }
     } catch (caughtError: unknown) {
       const message = (caughtError as { response?: { data?: { message?: string } } })?.response?.data?.message
@@ -327,11 +354,19 @@ export default function BookFlightPage() {
             <section className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <h1 className="text-3xl font-extrabold text-gray-900">{flight.originCity} → {flight.destinationCity}</h1>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h1 className="text-3xl font-extrabold text-gray-900">{flight.originCity} → {flight.destinationCity}</h1>
+                    {isRoundTrip && <span className="inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">Round Trip</span>}
+                  </div>
                   <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-gray-600">
                     <span className="rounded-md bg-amber-50 px-2 py-1 font-semibold text-amber-700">{fmtLongDate(dep)}</span>
                     <span>{flight.stops === 0 ? 'Non Stop' : `${flight.stops} Stop`}</span>
                     <span>{formatDuration(flight.durationMinutes)}</span>
+                    {isRoundTrip && returnFlight && (
+                      <span className="rounded-md bg-blue-50 px-2 py-1 font-semibold text-blue-700">
+                        Return: {new Date(returnFlight.departureTime).toLocaleDateString('en-IN', { weekday: 'long', month: 'short', day: 'numeric' })}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="text-right">
@@ -342,6 +377,8 @@ export default function BookFlightPage() {
                 </div>
               </div>
 
+              {/* Outbound leg */}
+              {isRoundTrip && <p className="mt-4 text-xs font-bold text-gray-500 uppercase tracking-wide">Outbound · {flight.originCity} → {flight.destinationCity}</p>}
               <div className="mt-5 rounded-2xl bg-gray-50 p-5">
                 <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 pb-4">
                   <div className="flex items-center gap-3">
@@ -402,6 +439,62 @@ export default function BookFlightPage() {
                   <span className="font-medium text-emerald-800">Got excess baggage? Add check-in baggage allowance for {routeCode} at fab rates!</span>
                 </div>
               </div>
+
+              {/* Return leg */}
+              {isRoundTrip && returnFlight && (() => {
+                const retDep = new Date(returnFlight.departureTime)
+                const retArr = new Date(returnFlight.arrivalTime)
+                return (
+                  <>
+                    <p className="mt-6 text-xs font-bold text-gray-500 uppercase tracking-wide">Return · {returnFlight.originCity} → {returnFlight.destinationCity}</p>
+                    <div className="mt-3 rounded-2xl bg-blue-50 p-5">
+                      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-blue-100 pb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
+                            <Plane className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <p className="text-lg font-bold text-gray-900">{returnFlight.airline}</p>
+                            <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
+                              <span>{returnFlight.flightNumber}</span>
+                              <span className="rounded-full border border-gray-300 px-2 py-0.5">{returnFlight.aircraft ?? 'Boeing 737'}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <p className="text-sm font-bold text-cyan-600">{selectedFare.fareClassLabel}</p>
+                      </div>
+                      <div className="grid gap-5 pt-5 md:grid-cols-[110px_minmax(0,1fr)]">
+                        <div className="space-y-7 text-right">
+                          <div>
+                            <p className="text-3xl font-black text-gray-900">{fmtTime(retDep)}</p>
+                            <p className="text-sm text-gray-500">Departure</p>
+                          </div>
+                          <div>
+                            <p className="text-3xl font-black text-gray-900">{fmtTime(retArr)}</p>
+                            <p className="text-sm text-gray-500">Arrival</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute bottom-6 left-0 top-4 border-l-2 border-dashed border-blue-300" />
+                          <div className="space-y-8 pl-8">
+                            <div className="relative">
+                              <div className="absolute -left-[2.15rem] top-2 h-3 w-3 rounded-full border-2 border-blue-400 bg-white" />
+                              <p className="text-2xl font-bold text-gray-900">{returnFlight.originCity}</p>
+                              <p className="mt-1 text-sm text-gray-600">{returnFlight.origin} Airport, Terminal 1</p>
+                              <p className="mt-3 text-sm font-semibold text-gray-500">{formatDuration(returnFlight.durationMinutes)}</p>
+                            </div>
+                            <div className="relative">
+                              <div className="absolute -left-[2.15rem] top-2 h-3 w-3 rounded-full border-2 border-blue-400 bg-white" />
+                              <p className="text-2xl font-bold text-gray-900">{returnFlight.destinationCity}</p>
+                              <p className="mt-1 text-sm text-gray-600">{returnFlight.destination} Airport, Terminal 1</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )
+              })()}
             </section>
 
             <section className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -525,6 +618,25 @@ export default function BookFlightPage() {
             <section className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
               <h2 className="text-2xl font-extrabold text-gray-900">Fare Summary</h2>
               <div className="mt-5 space-y-4 text-sm">
+                {isRoundTrip && (
+                  <>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 text-gray-700">
+                        <ChevronRight className="h-4 w-4 text-gray-400" />
+                        <span>Departure ({flight.origin} → {flight.destination})</span>
+                      </div>
+                      <span className="font-semibold text-gray-900">{formatCurrency(depFarePerAdult * seatCount)}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 text-gray-700">
+                        <ChevronRight className="h-4 w-4 text-gray-400" />
+                        <span>Return ({returnFlight!.origin} → {returnFlight!.destination})</span>
+                      </div>
+                      <span className="font-semibold text-gray-900">{formatCurrency(retFarePerAdult * seatCount)}</span>
+                    </div>
+                    <hr className="border-gray-100" />
+                  </>
+                )}
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2 text-gray-700">
                     <ChevronRight className="h-4 w-4 text-gray-400" />

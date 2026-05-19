@@ -2,8 +2,12 @@ import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Layout } from '@/components/layout/Layout'
 import { HotelLayout } from '@/components/layout/HotelLayout'
+import { FlightOperatorLayout } from '@/components/layout/FlightOperatorLayout'
+import { BusOperatorLayout } from '@/components/layout/BusOperatorLayout'
+import { CabOperatorLayout } from '@/components/layout/CabOperatorLayout'
 import { PrivateRoute } from './PrivateRoute'
 import { HotelRoute } from './HotelRoute'
+import { OperatorRoute } from './OperatorRoute'
 import { FullPageSpinner } from '@/components/ui/Spinner'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 
@@ -41,6 +45,16 @@ const HotelDashboardPage   = lazy(() => import('@/pages/hotel/HotelDashboardPage
 const HotelBookingsPage    = lazy(() => import('@/pages/hotel/HotelBookingsPage'))
 const HotelRoomsPage       = lazy(() => import('@/pages/hotel/HotelRoomsPage'))
 const HotelProfilePage     = lazy(() => import('@/pages/hotel/HotelProfilePage'))
+
+const FlightOperatorDashboardPage = lazy(() => import('@/pages/operator/FlightOperatorDashboardPage'))
+const FlightOperatorFlightsPage   = lazy(() => import('@/pages/operator/FlightOperatorFlightsPage'))
+const FlightOperatorBookingsPage  = lazy(() => import('@/pages/operator/FlightOperatorBookingsPage'))
+
+const BusOperatorDashboardPage    = lazy(() => import('@/pages/operator/BusOperatorDashboardPage'))
+const BusOperatorBookingsPage     = lazy(() => import('@/pages/operator/BusOperatorBookingsPage'))
+
+const CabOperatorDashboardPage    = lazy(() => import('@/pages/operator/CabOperatorDashboardPage'))
+const CabOperatorBookingsPage     = lazy(() => import('@/pages/operator/CabOperatorBookingsPage'))
 
 export function AppRouter() {
   return (
@@ -92,6 +106,25 @@ export function AppRouter() {
               <Route path="bookings"  element={<HotelBookingsPage />} />
               <Route path="rooms"     element={<HotelRoomsPage />} />
               <Route path="profile"   element={<HotelProfilePage />} />
+            </Route>
+
+            {/* Flight Operator Portal */}
+            <Route path="flight-operator" element={<OperatorRoute role="FlightOperator"><FlightOperatorLayout /></OperatorRoute>}>
+              <Route path="dashboard" element={<FlightOperatorDashboardPage />} />
+              <Route path="flights"   element={<FlightOperatorFlightsPage />} />
+              <Route path="bookings"  element={<FlightOperatorBookingsPage />} />
+            </Route>
+
+            {/* Bus Operator Portal */}
+            <Route path="bus-operator" element={<OperatorRoute role="BusOperator"><BusOperatorLayout /></OperatorRoute>}>
+              <Route path="dashboard" element={<BusOperatorDashboardPage />} />
+              <Route path="bookings"  element={<BusOperatorBookingsPage />} />
+            </Route>
+
+            {/* Cab Operator Portal */}
+            <Route path="cab-operator" element={<OperatorRoute role="CabOperator"><CabOperatorLayout /></OperatorRoute>}>
+              <Route path="dashboard" element={<CabOperatorDashboardPage />} />
+              <Route path="bookings"  element={<CabOperatorBookingsPage />} />
             </Route>
           </Routes>
         </Suspense>
