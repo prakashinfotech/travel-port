@@ -20,49 +20,81 @@ function formatDuration(mins: number) {
 
 // Simplified seat layout preview (4 rows shown)
 function SeatLayoutPreview({ bus }: { bus: BusDto }) {
-  const totalSeats = bus.totalSeats ?? 40
-  const available  = bus.availableSeats
-  const booked     = totalSeats - available
-  const rows       = 10
+  const totalSeats  = bus.totalSeats ?? 40
+  const available   = bus.availableSeats
+  const booked      = totalSeats - available
+
+  // Deterministic RNG seeded from bus ID
   let hash = 0
   for (let i = 0; i < bus.id.length; i++) hash = (hash * 31 + bus.id.charCodeAt(i)) & 0x7fffffff
-  const rng = () => { hash = (hash * 1664525 + 1013904223) & 0x7fffffff; return hash & 0x7fffffff }
+  const rng = () => { hash = (hash * 1664525 + 1013904223) & 0x7fffffff; return hash }
 
-  const bookedSet = new Set<string>()
-  const allSeats  = Array.from({ length: rows }, (_, r) => ['A','B','C','D'].map(c => `${r+1}${c}`)).flat()
-  while (bookedSet.size < Math.min(booked, totalSeats - 4)) {
-    bookedSet.add(allSeats[rng() % allSeats.length])
+  // Each deck: 4 seats per row (left-window, left-aisle | right-aisle, right-window)
+  const seatsPerDeck = Math.floor(totalSeats / 2)   // e.g. 20
+  const rowsPerDeck  = Math.ceil(seatsPerDeck / 4)   // e.g. 5
+
+  // Deterministically mark booked seats (seat numbers 1..totalSeats)
+  const bookedSet = new Set<number>()
+  while (bookedSet.size < Math.min(booked, totalSeats)) {
+    bookedSet.add((rng() % totalSeats) + 1)
   }
+
+  // Right-window column of lower deck is female-reserved
+  // Lower deck right-window seats: 4, 8, 12 … (position index 3 in each row, 1-based)
+  const femaleSeats = new Set(Array.from({ length: rowsPerDeck }, (_, r) => r * 4 + 4))
+  // Mirror to upper deck
+  for (let r = 0; r < rowsPerDeck; r++) femaleSeats.add(seatsPerDeck + r * 4 + 4)
+
+  const seatCls = (n: number) => {
+    if (bookedSet.has(n))   return 'bg-red-100 border-red-200 text-red-400'
+    if (femaleSeats.has(n)) return 'bg-pink-100 border-pink-300 text-pink-700'
+    const pos = (n - 1) % 4
+    if (pos === 0 || pos === 3) return 'bg-yellow-50 border-yellow-400 text-yellow-700'
+    return 'bg-green-50 border-green-400 text-green-700'
+  }
+
+  const DeckGrid = ({ label, start }: { label: string; start: number }) => (
+    <div className="mb-4">
+      <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">{label}</p>
+      <div className="flex items-center gap-1 mb-1 pl-5 text-xs text-gray-400">
+        <span className="w-8 text-center">Win</span>
+        <span className="w-8 text-center">Aisle</span>
+        <div className="w-5" />
+        <span className="w-8 text-center">Aisle</span>
+        <span className="w-8 text-center">Win</span>
+      </div>
+      <div className="space-y-1.5">
+        {Array.from({ length: rowsPerDeck }, (_, row) => {
+          const s = start + row * 4
+          return (
+            <div key={row} className="flex items-center gap-1">
+              <span className="text-xs text-gray-400 w-4 text-right shrink-0">{row + 1}</span>
+              {[s, s + 1].map(n => (
+                <div key={n} className={`w-8 h-7 rounded border text-xs flex items-center justify-center font-semibold ${seatCls(n)}`}>{n}</div>
+              ))}
+              <div className="w-5 flex items-center justify-center text-gray-300 text-sm select-none">|</div>
+              {[s + 2, s + 3].map(n => (
+                <div key={n} className={`w-8 h-7 rounded border text-xs flex items-center justify-center font-semibold ${seatCls(n)}`}>{n}</div>
+              ))}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
 
   return (
     <div>
-      <div className="flex items-center gap-4 mb-3 text-xs text-gray-500">
-        <span className="flex items-center gap-1"><span className="w-4 h-4 inline-block rounded bg-green-100 border border-green-400" /> Available ({available})</span>
-        <span className="flex items-center gap-1"><span className="w-4 h-4 inline-block rounded bg-red-100 border border-red-300" /> Booked ({booked})</span>
-        <span className="flex items-center gap-1"><span className="w-4 h-4 inline-block rounded bg-yellow-50 border border-yellow-400" /> Window +₹50</span>
+      {/* Legend */}
+      <div className="flex flex-wrap gap-x-4 gap-y-1.5 mb-4 text-xs text-gray-600">
+        <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded bg-green-50 border border-green-400 shrink-0" />Available ({available})</span>
+        <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded bg-red-100 border border-red-200 shrink-0" />Booked ({booked})</span>
+        <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded bg-yellow-50 border border-yellow-400 shrink-0" />Window</span>
+        <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded bg-pink-100 border border-pink-300 shrink-0" />Female</span>
       </div>
-      <div className="space-y-1">
-        {Array.from({ length: Math.min(5, rows) }, (_, ri) => (
-          <div key={ri} className="flex items-center gap-1">
-            <span className="text-xs text-gray-400 w-4 text-right">{ri + 1}</span>
-            {['A','B'].map(c => {
-              const id   = `${ri+1}${c}`
-              const book = bookedSet.has(id)
-              const win  = c === 'A'
-              return <div key={c} className={`w-7 h-6 rounded text-xs flex items-center justify-center border ${book ? 'bg-red-100 border-red-200 text-red-300' : win ? 'bg-yellow-50 border-yellow-400 text-yellow-600' : 'bg-green-50 border-green-400 text-green-600'}`}>{c}</div>
-            })}
-            <div className="w-4" />
-            {['C','D'].map(c => {
-              const id   = `${ri+1}${c}`
-              const book = bookedSet.has(id)
-              const win  = c === 'D'
-              return <div key={c} className={`w-7 h-6 rounded text-xs flex items-center justify-center border ${book ? 'bg-red-100 border-red-200 text-red-300' : win ? 'bg-yellow-50 border-yellow-400 text-yellow-600' : 'bg-green-50 border-green-400 text-green-600'}`}>{c}</div>
-            })}
-          </div>
-        ))}
-        <p className="text-xs text-gray-400 mt-1">...{rows - 5} more rows · Book to select exact seat</p>
-      </div>
-      <p className="text-xs text-gray-500 mt-2">Base fare: ₹{bus.price.toLocaleString()} · Window seat: ₹{(bus.price + 50).toLocaleString()}</p>
+      <DeckGrid label="Lower Deck" start={1} />
+      <DeckGrid label="Upper Deck" start={seatsPerDeck + 1} />
+      <p className="text-xs text-gray-500 mt-1">Base fare: ₹{bus.price.toLocaleString()} · Window seat: ₹{(bus.price + 50).toLocaleString()}</p>
     </div>
   )
 }
@@ -212,8 +244,8 @@ export default function BusesPage() {
   const today = new Date().toISOString().split('T')[0]
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const [origin, setOrigin]           = useState(searchParams.get('origin') || 'Mumbai')
-  const [destination, setDestination] = useState(searchParams.get('destination') || 'Pune')
+  const [origin, setOrigin]           = useState(searchParams.get('origin') || '')
+  const [destination, setDestination] = useState(searchParams.get('destination') || '')
   const [date, setDate]               = useState(searchParams.get('date') || today)
   const [seats, setSeats]             = useState(Number(searchParams.get('seats')) || 1)
   const [rawBuses, setRawBuses]       = useState<BusDto[]>([])
@@ -230,7 +262,10 @@ export default function BusesPage() {
   const [filterMaxPrice, setFilterMaxPrice] = useState(0)
 
   const buses = useMemo(() => {
+    const now = new Date()
+    const isToday = date === today
     let results = [...rawBuses]
+    if (isToday) results = results.filter(b => new Date(b.departureTime) > now)
     if (filterAc)               results = results.filter(b => b.acAvailable)
     if (filterRefund)           results = results.filter(b => b.isRefundable)
     if (filterOperators.length) results = results.filter(b => filterOperators.includes(b.operator))

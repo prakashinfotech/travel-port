@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft, Bus, Clock, MapPin, Users, Tag, CreditCard, Shield, X, CheckCircle, ChevronRight } from 'lucide-react'
 import { useForm } from 'react-hook-form'
@@ -35,123 +35,124 @@ function fmtDur(mins: number) {
   return `${Math.floor(mins / 60)}h ${mins % 60}m`
 }
 
-// Deterministic booked seat generator
-function getBookedSeats(busId: string, _total: number): Set<string> {
-  let hash = 0
-  for (let i = 0; i < busId.length; i++) hash = (hash * 31 + busId.charCodeAt(i)) & 0x7fffffff
-  const rng = (n: number) => { hash = (hash * 1664525 + 1013904223) & 0x7fffffff; return hash % n }
-  const booked = new Set<string>()
-  const count  = 8 + rng(10)
-  const rows   = 10
-  const cols   = ['A', 'B', 'C', 'D']
-  while (booked.size < count) {
-    const r = 1 + rng(rows)
-    const c = cols[rng(4)]
-    booked.add(`${r}${c}`)
-  }
-  return booked
-}
+const STEP_LABELS = ['Seats', 'Points', 'Traveller', 'Payment']
 
-const STEP_LABELS = ['Seats', 'Points', 'Info', 'Traveller', 'Payment']
+// ─── Seat Layout ────────────────────────────────────────────────────────────
 
 interface SeatLayoutProps {
   bus: BusDto
   seats: number
-  selected: string[]
-  onSelect: (seats: string[]) => void
+  selected: number[]
+  onSelect: (seats: number[]) => void
 }
 
 function SeatLayout({ bus, seats, selected, onSelect }: SeatLayoutProps) {
-  const booked = getBookedSeats(bus.id, bus.totalSeats ?? 40)
-  const rows   = 10
-  const isWindow = (col: string) => col === 'A' || col === 'D'
+  const totalSeats   = bus.totalSeats ?? 40
+  const seatsPerDeck = Math.floor(totalSeats / 2)    // 20
+  const rowsPerDeck  = Math.ceil(seatsPerDeck / 4)   // 5
 
-  const toggle = (id: string) => {
-    if (booked.has(id)) return
-    if (selected.includes(id)) {
-      onSelect(selected.filter(s => s !== id))
-    } else {
-      if (selected.length < seats) onSelect([...selected, id])
+  // Deterministic booked seats — same algorithm as preview
+  const bookedSet = useMemo(() => {
+    const bookedCount = totalSeats - bus.availableSeats
+    let hash = 0
+    for (let i = 0; i < bus.id.length; i++) hash = (hash * 31 + bus.id.charCodeAt(i)) & 0x7fffffff
+    const rng = () => { hash = (hash * 1664525 + 1013904223) & 0x7fffffff; return hash }
+    const set = new Set<number>()
+    while (set.size < Math.min(bookedCount, totalSeats)) {
+      set.add((rng() % totalSeats) + 1)
+    }
+    return set
+  }, [bus.id, bus.availableSeats, totalSeats])
+
+  // Right-window column is female-reserved (same as preview)
+  const femaleSeats = useMemo(() => {
+    const set = new Set<number>()
+    for (let r = 0; r < rowsPerDeck; r++) {
+      set.add(r * 4 + 4)                  // lower deck right-window
+      set.add(seatsPerDeck + r * 4 + 4)  // upper deck right-window
+    }
+    return set
+  }, [seatsPerDeck, rowsPerDeck])
+
+  const isWindow = (n: number) => { const p = (n - 1) % 4; return p === 0 || p === 3 }
+
+  const toggle = (n: number) => {
+    if (bookedSet.has(n)) return
+    if (selected.includes(n)) {
+      onSelect(selected.filter(s => s !== n))
+    } else if (selected.length < seats) {
+      onSelect([...selected, n])
     }
   }
 
+  const seatCls = (n: number) => {
+    if (selected.includes(n)) return 'bg-green-600 border-green-700 text-white shadow-sm'
+    if (bookedSet.has(n))     return 'bg-red-100 border-red-200 text-red-400 cursor-not-allowed'
+    if (femaleSeats.has(n))   return 'bg-pink-100 border-pink-300 text-pink-700 hover:bg-pink-200 cursor-pointer'
+    if (isWindow(n))          return 'bg-yellow-50 border-yellow-400 text-yellow-700 hover:bg-yellow-100 cursor-pointer'
+    return 'bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100 cursor-pointer'
+  }
+
+  const DeckRows = ({ label, start }: { label: string; start: number }) => (
+    <div className="mb-5">
+      <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">{label}</p>
+      <div className="flex items-center gap-1 mb-1 pl-5 text-xs text-gray-400">
+        <span className="w-9 text-center">Win</span>
+        <span className="w-9 text-center">Aisle</span>
+        <div className="w-6" />
+        <span className="w-9 text-center">Aisle</span>
+        <span className="w-9 text-center">Win</span>
+      </div>
+      {Array.from({ length: rowsPerDeck }, (_, row) => {
+        const s = start + row * 4
+        return (
+          <div key={row} className="flex items-center gap-1 mb-1.5">
+            <span className="text-xs text-gray-400 w-4 text-right shrink-0">{row + 1}</span>
+            {[s, s + 1].map(n => (
+              <button key={n} onClick={() => toggle(n)} disabled={bookedSet.has(n)}
+                title={bookedSet.has(n) ? 'Booked' : femaleSeats.has(n) ? `Seat ${n} · Female` : isWindow(n) ? `Seat ${n} · Window (+₹50)` : `Seat ${n}`}
+                className={`w-9 h-8 rounded border text-xs font-bold transition-colors ${seatCls(n)}`}>{n}</button>
+            ))}
+            <div className="w-6 flex items-center justify-center text-gray-200 select-none">|</div>
+            {[s + 2, s + 3].map(n => (
+              <button key={n} onClick={() => toggle(n)} disabled={bookedSet.has(n)}
+                title={bookedSet.has(n) ? 'Booked' : femaleSeats.has(n) ? `Seat ${n} · Female` : isWindow(n) ? `Seat ${n} · Window (+₹50)` : `Seat ${n}`}
+                className={`w-9 h-8 rounded border text-xs font-bold transition-colors ${seatCls(n)}`}>{n}</button>
+            ))}
+          </div>
+        )
+      })}
+    </div>
+  )
+
   return (
     <div>
-      <div className="flex items-center gap-6 mb-4 text-xs text-gray-500">
-        <span className="flex items-center gap-1.5"><span className="w-5 h-5 rounded bg-gray-100 border border-gray-300 inline-block" /> Available</span>
-        <span className="flex items-center gap-1.5"><span className="w-5 h-5 rounded bg-green-100 border border-green-500 inline-block" /> Selected</span>
-        <span className="flex items-center gap-1.5"><span className="w-5 h-5 rounded bg-red-100 border border-red-300 inline-block" /> Booked</span>
-        <span className="flex items-center gap-1.5"><span className="w-5 h-5 rounded bg-yellow-50 border border-yellow-400 inline-block" /> Window +₹50</span>
+      {/* Legend */}
+      <div className="flex flex-wrap gap-x-4 gap-y-1.5 mb-4 text-xs text-gray-600">
+        <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded bg-gray-50 border border-gray-300 shrink-0" />Available</span>
+        <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded bg-green-600 border border-green-700 shrink-0" />Selected</span>
+        <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded bg-red-100 border border-red-200 shrink-0" />Booked</span>
+        <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded bg-yellow-50 border border-yellow-400 shrink-0" />Window (+₹50)</span>
+        <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded bg-pink-100 border border-pink-300 shrink-0" />Female</span>
       </div>
 
-      {/* Bus front indicator */}
       <div className="text-center mb-3">
-        <span className="text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full">Driver / Front</span>
+        <span className="text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full">← Front of Bus (Driver)</span>
       </div>
 
-      {/* Seat grid: 2 seats | aisle | 2 seats */}
-      <div className="max-w-xs mx-auto space-y-1.5">
-        {Array.from({ length: rows }, (_, ri) => {
-          const row = ri + 1
-          return (
-            <div key={row} className="flex items-center gap-1">
-              <span className="text-xs text-gray-400 w-5 text-right">{row}</span>
-              {['A', 'B'].map(col => {
-                const id      = `${row}${col}`
-                const isBook  = booked.has(id)
-                const isSel   = selected.includes(id)
-                const isWin   = isWindow(col)
-                return (
-                  <button
-                    key={col}
-                    title={isBook ? 'Booked' : isWin ? `${id} (Window +₹50)` : id}
-                    onClick={() => toggle(id)}
-                    disabled={isBook}
-                    className={`w-8 h-7 rounded text-xs font-semibold border transition-colors ${
-                      isBook  ? 'bg-red-100 border-red-200 text-red-300 cursor-not-allowed' :
-                      isSel   ? 'bg-green-500 border-green-600 text-white' :
-                      isWin   ? 'bg-yellow-50 border-yellow-400 text-yellow-700 hover:bg-yellow-100' :
-                                'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    {col}
-                  </button>
-                )
-              })}
-              <div className="w-5" /> {/* aisle */}
-              {['C', 'D'].map(col => {
-                const id      = `${row}${col}`
-                const isBook  = booked.has(id)
-                const isSel   = selected.includes(id)
-                const isWin   = isWindow(col)
-                return (
-                  <button
-                    key={col}
-                    title={isBook ? 'Booked' : isWin ? `${id} (Window +₹50)` : id}
-                    onClick={() => toggle(id)}
-                    disabled={isBook}
-                    className={`w-8 h-7 rounded text-xs font-semibold border transition-colors ${
-                      isBook  ? 'bg-red-100 border-red-200 text-red-300 cursor-not-allowed' :
-                      isSel   ? 'bg-green-500 border-green-600 text-white' :
-                      isWin   ? 'bg-yellow-50 border-yellow-400 text-yellow-700 hover:bg-yellow-100' :
-                                'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    {col}
-                  </button>
-                )
-              })}
-            </div>
-          )
-        })}
-      </div>
-      <p className="text-center text-xs text-gray-500 mt-3">
-        Select {seats} seat{seats > 1 ? 's' : ''} · {selected.length}/{seats} selected
-        {selected.some(s => s.endsWith('A') || s.endsWith('D')) && <span className="text-yellow-600"> · Window premium applied</span>}
+      <DeckRows label="Lower Deck" start={1} />
+      <DeckRows label="Upper Deck" start={seatsPerDeck + 1} />
+
+      <p className="text-center text-xs text-gray-500 mt-2">
+        {selected.length}/{seats} seat{seats > 1 ? 's' : ''} selected
+        {selected.some(n => isWindow(n)) && <span className="text-yellow-600 ml-2">· Window premium included</span>}
+        {selected.some(n => femaleSeats.has(n)) && <span className="text-pink-600 ml-2">· Female seat selected</span>}
       </p>
     </div>
   )
 }
+
+// ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function BookBusPage() {
   const location = useLocation()
@@ -162,20 +163,20 @@ export default function BookBusPage() {
   const authUser   = useAppSelector(s => s.auth.user)
   const isLoggedIn = !!authUser
 
-  const [step, setStep]               = useState(1)
-  const [selectedSeats, setSelectedSeats] = useState<string[]>([])
-  const [boardingPoint, setBoardingPoint] = useState('')
-  const [droppingPoint, setDroppingPoint] = useState('')
-  const [submitting, setSubmitting]     = useState(false)
-  const [apiError, setApiError]         = useState<string | null>(null)
-  const [discount, setDiscount]         = useState(0)
-  const [couponApplied, setCouponApplied] = useState(false)
-  const [couponLoading, setCouponLoading] = useState(false)
-  const [couponError, setCouponError]   = useState('')
-  const [appliedCode, setAppliedCode]   = useState('')
-  const [walletBalance, setWalletBalance] = useState(0)
-  const [paymentChoice, setPaymentChoice] = useState<PaymentChoice>({ type: 'new_card' })
-  const [showAddCard, setShowAddCard]   = useState(false)
+  const [step, setStep]                     = useState(1)
+  const [selectedSeats, setSelectedSeats]   = useState<number[]>([])
+  const [boardingPoint, setBoardingPoint]   = useState('')
+  const [droppingPoint, setDroppingPoint]   = useState('')
+  const [submitting, setSubmitting]         = useState(false)
+  const [apiError, setApiError]             = useState<string | null>(null)
+  const [discount, setDiscount]             = useState(0)
+  const [couponApplied, setCouponApplied]   = useState(false)
+  const [couponLoading, setCouponLoading]   = useState(false)
+  const [couponError, setCouponError]       = useState('')
+  const [appliedCode, setAppliedCode]       = useState('')
+  const [walletBalance, setWalletBalance]   = useState(0)
+  const [paymentChoice, setPaymentChoice]   = useState<PaymentChoice>({ type: 'new_card' })
+  const [showAddCard, setShowAddCard]       = useState(false)
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -183,7 +184,9 @@ export default function BookBusPage() {
   })
 
   useEffect(() => {
-    if (isLoggedIn) userService.getWallet().then(r => setWalletBalance(r.data?.balance ?? 0)).catch(() => {})
+    if (isLoggedIn) {
+      userService.getWallet().then(r => setWalletBalance(r.data?.balance ?? 0)).catch(() => {})
+    }
   }, [isLoggedIn])
 
   if (!bus) {
@@ -197,13 +200,18 @@ export default function BookBusPage() {
     )
   }
 
-  const windowSeats     = selectedSeats.filter(s => s.endsWith('A') || s.endsWith('D')).length
+  // Derived fare values
+  const totalSeats    = bus.totalSeats ?? 40
+  const seatsPerDeck  = Math.floor(totalSeats / 2)
+  const isWindowSeat  = (n: number) => { const p = (n - 1) % 4; return p === 0 || p === 3 }
+  const windowSeats   = selectedSeats.filter(isWindowSeat).length
   const windowSurcharge = windowSeats * 50
-  const basePrice       = bus.price * seats + windowSurcharge
-  const finalPrice      = basePrice - discount
+  const basePrice     = bus.price * seats + windowSurcharge
+  const finalPrice    = basePrice - discount
 
-  const boardingOptions  = (bus.boardingPoints  ?? bus.origin).split(',').map(s => s.trim()).filter(Boolean)
-  const droppingOptions  = (bus.droppingPoints ?? bus.destination).split(',').map(s => s.trim()).filter(Boolean)
+  // Boarding / dropping options
+  const boardingOptions = (bus.boardingPoints  ?? bus.origin).split(',').map(s => s.trim()).filter(Boolean)
+  const droppingOptions = (bus.droppingPoints  ?? bus.destination).split(',').map(s => s.trim()).filter(Boolean)
 
   const applyCoupon = async () => {
     const code = watch('couponCode')?.trim()
@@ -276,12 +284,24 @@ export default function BookBusPage() {
   const canProceedStep1 = selectedSeats.length === seats
   const canProceedStep2 = !!boardingPoint && !!droppingPoint
 
+  // Female seat set for display in summary
+  const femaleSet = useMemo(() => {
+    const rowsPerDeck = Math.ceil(seatsPerDeck / 4)
+    const set = new Set<number>()
+    for (let r = 0; r < rowsPerDeck; r++) {
+      set.add(r * 4 + 4)
+      set.add(seatsPerDeck + r * 4 + 4)
+    }
+    return set
+  }, [seatsPerDeck])
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-green-700 text-white py-4 px-4">
         <div className="max-w-5xl mx-auto flex items-center gap-3">
-          <button onClick={() => step > 1 ? setStep(step - 1) : navigate(-1)} className="p-1 rounded hover:bg-green-600 transition-colors">
+          <button onClick={() => step > 1 ? setStep(step - 1) : navigate(-1)}
+            className="p-1 rounded hover:bg-green-600 transition-colors">
             <ArrowLeft size={20} />
           </button>
           <Bus size={22} />
@@ -293,15 +313,13 @@ export default function BookBusPage() {
       <div className="bg-white border-b border-gray-200 px-4 py-3">
         <div className="max-w-5xl mx-auto flex items-center gap-1 overflow-x-auto">
           {STEP_LABELS.map((label, idx) => {
-            const s = idx + 1
-            const done   = s < step
+            const s    = idx + 1
+            const done = s < step
             const active = s === step
             return (
               <div key={s} className="flex items-center gap-1">
-                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap ${
-                  active ? 'bg-green-600 text-white' :
-                  done   ? 'bg-green-100 text-green-700' :
-                           'bg-gray-100 text-gray-400'
+                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
+                  active ? 'bg-green-600 text-white' : done ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'
                 }`}>
                   {done ? <CheckCircle size={12} /> : <span>{s}</span>}
                   {label}
@@ -347,7 +365,7 @@ export default function BookBusPage() {
             </div>
           </div>
 
-          {/* Step 1: Seat Selection */}
+          {/* ── Step 1: Seat Selection ── */}
           {step === 1 && (
             <div className="bg-white rounded-xl border border-gray-200 p-5">
               <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -356,7 +374,7 @@ export default function BookBusPage() {
               </h3>
               <SeatLayout bus={bus} seats={seats} selected={selectedSeats} onSelect={setSelectedSeats} />
               <button
-                onClick={() => { if (canProceedStep1) setStep(2) }}
+                onClick={() => canProceedStep1 && setStep(2)}
                 disabled={!canProceedStep1}
                 className="mt-5 w-full bg-green-600 text-white py-2.5 rounded-lg font-semibold hover:bg-green-700 transition disabled:opacity-40 disabled:cursor-not-allowed"
               >
@@ -365,35 +383,37 @@ export default function BookBusPage() {
             </div>
           )}
 
-          {/* Step 2: Boarding & Dropping */}
+          {/* ── Step 2: Boarding & Dropping ── */}
           {step === 2 && (
             <div className="bg-white rounded-xl border border-gray-200 p-5">
               <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full bg-green-600 text-white text-xs flex items-center justify-center font-bold">2</span>
                 Boarding & Dropping Points
               </h3>
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                  <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
                     <MapPin size={14} className="text-green-600" /> Boarding Point
-                  </label>
-                  <div className="grid grid-cols-1 gap-2">
+                  </p>
+                  <div className="space-y-2">
                     {boardingOptions.map(pt => (
                       <label key={pt} className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${boardingPoint === pt ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'}`}>
-                        <input type="radio" name="boarding" value={pt} checked={boardingPoint === pt} onChange={() => setBoardingPoint(pt)} className="accent-green-600" />
+                        <input type="radio" name="boarding" value={pt} checked={boardingPoint === pt}
+                          onChange={() => setBoardingPoint(pt)} className="accent-green-600" />
                         <span className="text-sm text-gray-700">{pt}</span>
                       </label>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                  <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
                     <MapPin size={14} className="text-red-500" /> Dropping Point
-                  </label>
-                  <div className="grid grid-cols-1 gap-2">
+                  </p>
+                  <div className="space-y-2">
                     {droppingOptions.map(pt => (
                       <label key={pt} className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${droppingPoint === pt ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'}`}>
-                        <input type="radio" name="dropping" value={pt} checked={droppingPoint === pt} onChange={() => setDroppingPoint(pt)} className="accent-green-600" />
+                        <input type="radio" name="dropping" value={pt} checked={droppingPoint === pt}
+                          onChange={() => setDroppingPoint(pt)} className="accent-green-600" />
                         <span className="text-sm text-gray-700">{pt}</span>
                       </label>
                     ))}
@@ -401,43 +421,20 @@ export default function BookBusPage() {
                 </div>
               </div>
               <button
-                onClick={() => { if (canProceedStep2) setStep(3) }}
+                onClick={() => canProceedStep2 && setStep(3)}
                 disabled={!canProceedStep2}
                 className="mt-5 w-full bg-green-600 text-white py-2.5 rounded-lg font-semibold hover:bg-green-700 transition disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Continue
-              </button>
-            </div>
-          )}
-
-          {/* Step 3: Additional Info */}
-          {step === 3 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-green-600 text-white text-xs flex items-center justify-center font-bold">3</span>
-                Additional Information (Optional)
-              </h3>
-              <textarea
-                {...register('additionalInfo')}
-                rows={4}
-                placeholder="Any special requirements, accessibility needs, or notes for the operator..."
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
-              />
-              <button
-                onClick={() => setStep(4)}
-                className="mt-4 w-full bg-green-600 text-white py-2.5 rounded-lg font-semibold hover:bg-green-700 transition"
               >
                 Continue to Traveller Details
               </button>
             </div>
           )}
 
-          {/* Step 4: Traveller Details */}
-          {step === 4 && (
+          {/* ── Step 3: Traveller Details ── */}
+          {step === 3 && (
             <div className="bg-white rounded-xl border border-gray-200 p-5">
               <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <Users size={18} className="text-green-600" />
-                Traveller Details
+                <Users size={18} className="text-green-600" /> Traveller Details
               </h3>
               {isLoggedIn && (
                 <SavedTravellerPicker
@@ -453,29 +450,39 @@ export default function BookBusPage() {
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block text-sm text-gray-600 mb-1">First Name *</label>
-                  <input {...register('firstName')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="First name" />
+                  <input {...register('firstName')} placeholder="First name"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
                   {errors.firstName && <p className="text-red-500 text-xs mt-1">{errors.firstName.message}</p>}
                 </div>
                 <div>
                   <label className="block text-sm text-gray-600 mb-1">Last Name *</label>
-                  <input {...register('lastName')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Last name" />
+                  <input {...register('lastName')} placeholder="Last name"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
                   {errors.lastName && <p className="text-red-500 text-xs mt-1">{errors.lastName.message}</p>}
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block text-sm text-gray-600 mb-1">Email *</label>
-                  <input {...register('email')} type="email" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="email@example.com" />
+                  <input {...register('email')} type="email" placeholder="email@example.com"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
                   {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
                 </div>
                 <div>
                   <label className="block text-sm text-gray-600 mb-1">Phone *</label>
-                  <input {...register('phone')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="+91 9999999999" />
+                  <input {...register('phone')} placeholder="+91 9999999999"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
                   {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone.message}</p>}
                 </div>
               </div>
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">Special Requirements (optional)</label>
+                <textarea {...register('additionalInfo')} rows={3}
+                  placeholder="Accessibility needs, dietary requirements, or notes for the operator…"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none" />
+              </div>
               <button
-                onClick={handleSubmit(() => setStep(5))}
+                onClick={handleSubmit(() => setStep(4))}
                 className="mt-5 w-full bg-green-600 text-white py-2.5 rounded-lg font-semibold hover:bg-green-700 transition"
               >
                 Continue to Payment
@@ -483,14 +490,13 @@ export default function BookBusPage() {
             </div>
           )}
 
-          {/* Step 5: Coupon + Payment */}
-          {step === 5 && (
+          {/* ── Step 4: Coupon + Payment ── */}
+          {step === 4 && (
             <>
               {/* Coupon */}
               <div className="bg-white rounded-xl border border-gray-200 p-4">
                 <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                  <Tag size={18} className="text-green-600" />
-                  Apply Coupon
+                  <Tag size={18} className="text-green-600" /> Apply Coupon
                 </h3>
                 {couponApplied ? (
                   <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-4 py-3">
@@ -499,17 +505,10 @@ export default function BookBusPage() {
                   </div>
                 ) : (
                   <div className="flex gap-2">
-                    <input
-                      {...register('couponCode')}
-                      placeholder="Enter coupon code"
-                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={applyCoupon}
-                      disabled={couponLoading}
-                      className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50"
-                    >
+                    <input {...register('couponCode')} placeholder="Enter coupon code"
+                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    <button type="button" onClick={applyCoupon} disabled={couponLoading}
+                      className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50">
                       {couponLoading ? '...' : 'Apply'}
                     </button>
                   </div>
@@ -518,14 +517,14 @@ export default function BookBusPage() {
               </div>
 
               {/* Payment */}
-              {isLoggedIn && (
+              {isLoggedIn ? (
                 <div className="bg-white rounded-xl border border-gray-200 p-4">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-                      <CreditCard size={18} className="text-green-600" />
-                      Payment Method
+                      <CreditCard size={18} className="text-green-600" /> Payment Method
                     </h3>
-                    <button type="button" onClick={() => setShowAddCard(true)} className="text-xs text-green-600 font-semibold hover:underline">+ Add Card</button>
+                    <button type="button" onClick={() => setShowAddCard(true)}
+                      className="text-xs text-green-600 font-semibold hover:underline">+ Add Card</button>
                   </div>
                   <PaymentMethodSelector
                     walletBalance={walletBalance}
@@ -534,7 +533,12 @@ export default function BookBusPage() {
                     onSelect={setPaymentChoice}
                   />
                 </div>
+              ) : (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+                  <Link to="/login" className="font-semibold underline">Login</Link> to use saved cards or wallet for payment.
+                </div>
               )}
+
               {showAddCard && (
                 <AddCardModal
                   onClose={() => setShowAddCard(false)}
@@ -545,49 +549,58 @@ export default function BookBusPage() {
           )}
         </div>
 
-        {/* Right — booking summary */}
-        <div className="space-y-4">
-          <div className="bg-white rounded-xl border border-gray-200 p-4 sticky top-4">
-            <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <Shield size={18} className="text-green-500" />
-              Booking Summary
+        {/* Right — booking summary (sticky) */}
+        <div>
+          <div className="bg-white rounded-xl border border-gray-200 p-4 sticky top-4 space-y-4">
+            <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+              <Shield size={18} className="text-green-500" /> Booking Summary
             </h3>
 
             {/* Selected seats */}
             {selectedSeats.length > 0 && (
-              <div className="mb-3 p-2.5 bg-green-50 rounded-lg">
-                <p className="text-xs text-gray-500 mb-1">Seats</p>
+              <div className="p-3 bg-green-50 rounded-lg">
+                <p className="text-xs text-gray-500 mb-1.5">Selected Seats</p>
                 <div className="flex flex-wrap gap-1">
-                  {selectedSeats.map(s => (
-                    <span key={s} className="text-xs bg-green-600 text-white px-1.5 py-0.5 rounded font-semibold">{s}</span>
+                  {selectedSeats.sort((a, b) => a - b).map(n => (
+                    <span key={n}
+                      className={`text-xs px-2 py-0.5 rounded font-semibold ${
+                        femaleSet.has(n) ? 'bg-pink-500 text-white' :
+                        isWindowSeat(n) ? 'bg-yellow-500 text-white' :
+                        n > seatsPerDeck ? 'bg-blue-600 text-white' :
+                        'bg-green-600 text-white'
+                      }`}>
+                      {n}{n > seatsPerDeck ? ' (U)' : ' (L)'}
+                    </span>
                   ))}
                 </div>
+                <p className="text-xs text-gray-400 mt-1.5">(L) Lower · (U) Upper</p>
               </div>
             )}
 
             {/* Boarding/dropping */}
             {(boardingPoint || droppingPoint) && (
-              <div className="mb-3 text-xs text-gray-600 space-y-1">
-                {boardingPoint && <p className="flex items-center gap-1"><MapPin size={10} className="text-green-600" /><span className="font-medium">Boarding:</span> {boardingPoint}</p>}
-                {droppingPoint && <p className="flex items-center gap-1"><MapPin size={10} className="text-red-500" /><span className="font-medium">Dropping:</span> {droppingPoint}</p>}
+              <div className="text-xs text-gray-600 space-y-1 border-t border-gray-100 pt-3">
+                {boardingPoint && <p className="flex items-center gap-1.5"><MapPin size={10} className="text-green-600 shrink-0" /><span className="font-medium">Boarding:</span> {boardingPoint}</p>}
+                {droppingPoint && <p className="flex items-center gap-1.5"><MapPin size={10} className="text-red-500 shrink-0" /><span className="font-medium">Dropping:</span> {droppingPoint}</p>}
               </div>
             )}
 
+            {/* Fare breakdown */}
             <div className="space-y-2 text-sm border-t border-gray-100 pt-3">
               <div className="flex justify-between text-gray-600">
-                <span>Fare × {seats}</span>
+                <span>Base fare × {seats}</span>
                 <span>{formatCurrency(bus.price * seats)}</span>
               </div>
               {windowSurcharge > 0 && (
                 <div className="flex justify-between text-yellow-700">
-                  <span>Window seats ({windowSeats}×₹50)</span>
+                  <span>Window ({windowSeats} × ₹50)</span>
                   <span>+{formatCurrency(windowSurcharge)}</span>
                 </div>
               )}
               {discount > 0 && (
                 <div className="flex justify-between text-green-600">
                   <span>Coupon ({appliedCode})</span>
-                  <span>- {formatCurrency(discount)}</span>
+                  <span>− {formatCurrency(discount)}</span>
                 </div>
               )}
               <div className="border-t pt-2 flex justify-between font-bold text-gray-900 text-base">
@@ -597,29 +610,23 @@ export default function BookBusPage() {
             </div>
 
             {apiError && (
-              <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
                 {apiError}
               </div>
             )}
 
-            {step === 5 && (
+            {step === 4 && (
               <button
                 onClick={handleSubmit(onSubmit)}
                 disabled={submitting}
-                className="mt-4 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50"
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50"
               >
-                {submitting ? 'Processing...' : `Confirm & Pay ${formatCurrency(finalPrice)}`}
+                {submitting ? 'Processing…' : `Confirm & Pay ${formatCurrency(finalPrice)}`}
               </button>
             )}
 
-            {!isLoggedIn && step === 5 && (
-              <p className="mt-2 text-center text-xs text-gray-500">
-                <Link to="/login" className="text-green-600 font-semibold">Login</Link> to complete booking
-              </p>
-            )}
-
-            <div className="mt-3 flex items-center gap-2 text-xs text-gray-400">
-              <Shield size={12} className="text-green-400" />
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              <Shield size={12} className="text-green-400 shrink-0" />
               <span>Secure payment · 90% refund on cancellation</span>
             </div>
           </div>

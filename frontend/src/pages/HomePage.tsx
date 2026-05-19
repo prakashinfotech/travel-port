@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Plane, Hotel, Bus, Train, Car,
@@ -17,13 +17,24 @@ type OfferFilter  = 'All' | 'Bank Offers' | 'Flights' | 'Hotels' | 'Cabs' | 'Tra
 
 const TODAY = new Date().toISOString().split('T')[0]
 
+function localDatetimeValue(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+function defaultCabPickup(): string {
+  const d = new Date()
+  d.setHours(d.getHours() + 1, 0, 0, 0)
+  return localDatetimeValue(d)
+}
+
 // ── Mode config ──────────────────────────────────────────────────────────────
 const MODES: { id: TravelMode; label: string; icon: React.ElementType }[] = [
   { id: 'flight', label: 'Flights', icon: Plane  },
   { id: 'hotel',  label: 'Hotels',  icon: Hotel  },
-  { id: 'bus',    label: 'Bus',     icon: Bus    },
-  { id: 'train',  label: 'Trains',  icon: Train  },
   { id: 'cab',    label: 'Cabs',    icon: Car    },
+  { id: 'train',  label: 'Trains',  icon: Train  },
+  { id: 'bus',    label: 'Bus',     icon: Bus    },
 ]
 
 const MODE_THEME: Record<TravelMode, { bg: string; accent: string; ring: string }> = {
@@ -192,6 +203,185 @@ function HeroInput({ label, value, onChange, type = 'text', placeholder, min }: 
   )
 }
 
+// ── Hotel search sub-components (mirrors HotelsPage exactly) ─────────────────
+
+const HOTEL_CITIES = [
+  'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Kolkata',
+  'Goa', 'Jaipur', 'Pune', 'Ahmedabad', 'Kochi', 'Lucknow',
+  'Agra', 'Varanasi', 'Udaipur', 'Jodhpur', 'Shimla', 'Manali',
+  'Rishikesh', 'Darjeeling', 'Mysore', 'Ooty', 'Coorg',
+  'Amritsar', 'Chandigarh', 'Bhopal', 'Indore', 'Surat', 'Vadodara',
+]
+
+interface HotelGuestConfig { adults: number; children: number; infants: number; rooms: number }
+
+function hotelFmtDate(d: string): string {
+  if (!d) return ''
+  const dt = new Date(d + 'T00:00:00')
+  return `${dt.getDate().toString().padStart(2, '0')} ${dt.toLocaleDateString('en-US', { month: 'short' })} '${dt.getFullYear().toString().slice(2)}`
+}
+
+function hotelDayLabel(d: string): string {
+  if (!d) return ''
+  return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long' })
+}
+
+function HotelCitySearch({ value, onChange }: { value: string; onChange: (city: string) => void }) {
+  const [query, setQuery] = useState(value)
+  const [open, setOpen]   = useState(false)
+  const ref               = useRef<HTMLDivElement>(null)
+
+  useEffect(() => { setQuery(value) }, [value])
+
+  useEffect(() => {
+    const fn = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', fn)
+    return () => document.removeEventListener('mousedown', fn)
+  }, [])
+
+  const suggestions = query.trim().length > 0
+    ? HOTEL_CITIES.filter(c => c.toLowerCase().includes(query.trim().toLowerCase()))
+    : HOTEL_CITIES
+
+  const select = (city: string) => { setQuery(city); onChange(city); setOpen(false) }
+
+  return (
+    <div className="relative" ref={ref}>
+      <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Where to</p>
+      <div className="flex items-center gap-2">
+        <MapPin className="h-4 w-4 text-orange-400 shrink-0" />
+        <input
+          value={query}
+          onChange={e => { setQuery(e.target.value); onChange(e.target.value); setOpen(true) }}
+          onFocus={() => setOpen(true)}
+          placeholder="Enter city, area or hotel"
+          className="w-full text-xl font-bold text-gray-900 bg-transparent focus:outline-none placeholder:text-gray-300 placeholder:font-normal placeholder:text-sm"
+          autoComplete="off"
+          required
+        />
+        {query && (
+          <button type="button" onClick={() => { setQuery(''); onChange(''); setOpen(false) }}>
+            <X className="h-4 w-4 text-gray-300 hover:text-gray-500" />
+          </button>
+        )}
+      </div>
+      {open && suggestions.length > 0 && (
+        <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide px-4 pt-3 pb-1">
+            {query.trim() ? 'Matching cities' : 'Popular destinations'}
+          </p>
+          <ul className="max-h-60 overflow-y-auto">
+            {suggestions.slice(0, 8).map(city => (
+              <li key={city}>
+                <button
+                  type="button"
+                  onMouseDown={e => { e.preventDefault(); select(city) }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-orange-50 text-left transition-colors"
+                >
+                  <MapPin className="h-4 w-4 text-orange-400 flex-shrink-0" />
+                  <span className="text-sm font-medium text-gray-800">{city}</span>
+                  <span className="ml-auto text-xs text-gray-400">Hotels</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function HotelDateField({ label, value, min, onChange, nights }: {
+  label: string; value: string; min: string; onChange: (v: string) => void; nights?: number
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const open = () => {
+    try { (inputRef.current as HTMLInputElement & { showPicker?: () => void })?.showPicker?.() }
+    catch { inputRef.current?.click() }
+  }
+  return (
+    <div className="cursor-pointer select-none" onClick={open}>
+      <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">{label}</p>
+      {value ? (
+        <>
+          <p className="text-base font-bold text-gray-900 leading-tight">{hotelFmtDate(value)}</p>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {hotelDayLabel(value)}{label === 'Check-out' && nights && nights > 0 ? ` · ${nights} night${nights > 1 ? 's' : ''}` : ''}
+          </p>
+        </>
+      ) : (
+        <p className="text-sm text-gray-300 font-medium">Select date</p>
+      )}
+      <input ref={inputRef} type="date" value={value} min={min} onChange={e => onChange(e.target.value)} className="sr-only" />
+    </div>
+  )
+}
+
+function HotelGuestsDropdown({ value, onChange }: { value: HotelGuestConfig; onChange: (g: HotelGuestConfig) => void }) {
+  const [open, setOpen] = useState(false)
+  const ref             = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const fn = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', fn)
+    return () => document.removeEventListener('mousedown', fn)
+  }, [])
+
+  const set = (key: keyof HotelGuestConfig, delta: number, min = 0) =>
+    onChange({ ...value, [key]: Math.max(min, value[key] + delta) })
+
+  const summary = `${value.adults} Adult${value.adults !== 1 ? 's' : ''}${value.children ? `, ${value.children} Child${value.children !== 1 ? 'ren' : ''}` : ''}${value.infants ? `, ${value.infants} Infant${value.infants !== 1 ? 's' : ''}` : ''} · ${value.rooms} Room${value.rooms !== 1 ? 's' : ''}`
+
+  const rows: { key: keyof HotelGuestConfig; label: string; sub: string; min: number }[] = [
+    { key: 'adults',   label: 'Adults',   sub: 'Age 12+',  min: 1 },
+    { key: 'children', label: 'Children', sub: 'Age 2–11', min: 0 },
+    { key: 'infants',  label: 'Infants',  sub: 'Under 2',  min: 0 },
+    { key: 'rooms',    label: 'Rooms',    sub: '',         min: 1 },
+  ]
+
+  return (
+    <div className="relative" ref={ref}>
+      <button type="button" className="text-left w-full" onClick={() => setOpen(v => !v)}>
+        <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Guests &amp; Rooms</p>
+        <div className="flex items-center gap-1">
+          <p className="text-base font-bold text-gray-900 leading-tight truncate">{summary}</p>
+          {open ? <ChevronUp className="h-4 w-4 text-gray-400 flex-shrink-0" /> : <ChevronDown className="h-4 w-4 text-gray-400 flex-shrink-0" />}
+        </div>
+      </button>
+      {open && (
+        <div className="absolute top-full right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 p-5 z-50 w-72">
+          <div className="space-y-4">
+            {rows.map(({ key, label, sub, min }) => (
+              <div key={key} className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">{label}</p>
+                  {sub && <p className="text-xs text-gray-400">{sub}</p>}
+                </div>
+                <div className="flex items-center gap-3">
+                  <button type="button" onClick={() => set(key, -1, min)} disabled={value[key] <= min}
+                    className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-orange-500 hover:text-orange-500 disabled:opacity-30 disabled:cursor-not-allowed font-bold transition-colors text-lg leading-none">−</button>
+                  <span className="w-5 text-center font-bold text-gray-900">{value[key]}</span>
+                  <button type="button" onClick={() => set(key, 1, min)}
+                    className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-orange-500 hover:text-orange-500 font-bold transition-colors text-lg leading-none">+</button>
+                </div>
+              </div>
+            ))}
+          </div>
+          {value.infants > 0 && (
+            <p className="mt-3 text-[11px] text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
+              Infants travel on an adult's lap. Each infant must be accompanied by an adult.
+            </p>
+          )}
+          <button type="button" onClick={() => setOpen(false)}
+            className="mt-4 w-full py-2.5 bg-orange-500 text-white text-sm font-bold rounded-lg hover:bg-orange-600 transition-colors">
+            Done
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main component ───────────────────────────────────────────────────────────
 export default function HomePage() {
   const navigate = useNavigate()
@@ -212,11 +402,10 @@ export default function HomePage() {
   const [flightTravellers, setFlightTravellers]   = useState<TravellerConfig>({ adults: 1, children: 0, infants: 0, cabinClass: 'Economy' })
 
   // Hotel state
-  const [hotelCity, setHotelCity]       = useState('')
-  const [checkIn, setCheckIn]           = useState('')
-  const [checkOut, setCheckOut]         = useState('')
-  const [hotelRooms, setHotelRooms]     = useState('1')
-  const [hotelGuests, setHotelGuests]   = useState('1')
+  const [hotelCity, setHotelCity]     = useState('')
+  const [checkIn, setCheckIn]         = useState('')
+  const [checkOut, setCheckOut]       = useState('')
+  const [hotelGuests, setHotelGuests] = useState<HotelGuestConfig>({ adults: 2, children: 0, infants: 0, rooms: 1 })
 
   // Bus / Train / Cab shared state
   const [tOrigin, setTOrigin]   = useState('')
@@ -224,7 +413,8 @@ export default function HomePage() {
   const [tDate, setTDate]       = useState('')
   const [tPassengers, setTPass] = useState('1')
   const [trainClass, setTrainClass] = useState('Sleeper')
-  const [cabDateTime, setCabDateTime] = useState('')
+  const [cabDateTime, setCabDateTime]   = useState(() => defaultCabPickup())
+  const [cabTripType, setCabTripType]   = useState<'OneWay' | 'RoundTrip'>('OneWay')
 
   const theme = MODE_THEME[mode]
 
@@ -234,9 +424,9 @@ export default function HomePage() {
     setFlightOrigin(''); setFlightOriginCity(''); setFlightDest(''); setFlightDestCity('')
     setDepartureDate(''); setReturnDate('')
     setFlightTravellers({ adults: 1, children: 0, infants: 0, cabinClass: 'Economy' })
-    setHotelCity(''); setCheckIn(''); setCheckOut(''); setHotelRooms('1'); setHotelGuests('1')
+    setHotelCity(''); setCheckIn(''); setCheckOut(''); setHotelGuests({ adults: 2, children: 0, infants: 0, rooms: 1 })
     setTOrigin(''); setTDest(''); setTDate(''); setTPass('1')
-    setTrainClass('Sleeper'); setCabDateTime('')
+    setTrainClass('Sleeper'); setCabDateTime(defaultCabPickup()); setCabTripType('OneWay')
   }
 
   // ── Search handlers ────────────────────────────────────────────────────────
@@ -260,8 +450,12 @@ export default function HomePage() {
     e.preventDefault()
     if (!hotelCity || !checkIn) return
     const label = `Hotels in ${hotelCity}`
-    const sub   = `${checkIn}${checkOut ? ' → ' + checkOut : ''} · ${hotelRooms} Room · ${hotelGuests} Guest`
-    const href  = `/hotels?${new URLSearchParams({ city: hotelCity, checkIn, ...(checkOut ? { checkOut } : {}), rooms: hotelRooms, guests: hotelGuests })}`
+    const sub   = `${checkIn}${checkOut ? ' → ' + checkOut : ''} · ${hotelGuests.rooms} Room · ${hotelGuests.adults + hotelGuests.children} Guest`
+    const href  = `/hotels?${new URLSearchParams({
+      city: hotelCity, checkIn, ...(checkOut ? { checkOut } : {}),
+      adults: String(hotelGuests.adults), children: String(hotelGuests.children),
+      infants: String(hotelGuests.infants), rooms: String(hotelGuests.rooms),
+    })}`
     saveRecentSearch({ type: 'hotel', label, sub, href })
     setRecentSearches(getRecentSearches())
     navigate(href)
@@ -294,11 +488,15 @@ export default function HomePage() {
     if (!tOrigin || !tDest) return
     const label = `${tOrigin} → ${tDest}`
     const sub   = cabDateTime ? new Date(cabDateTime).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true }) : 'Cab'
-    const href  = `/cabs?${new URLSearchParams({ origin: tOrigin, destination: tDest, ...(cabDateTime ? { pickupTime: cabDateTime } : {}) })}`
+    const href  = `/cabs?${new URLSearchParams({ origin: tOrigin, destination: tDest, tripType: cabTripType, ...(cabDateTime ? { pickupTime: cabDateTime } : {}) })}`
     saveRecentSearch({ type: 'cab', label, sub, href })
     setRecentSearches(getRecentSearches())
     navigate(href)
   }
+
+  const hotelNights = checkIn && checkOut
+    ? Math.max(1, Math.round((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86400000))
+    : 0
 
   const swapFlight = () => {
     const [o, oc, d, dc] = [flightOrigin, flightOriginCity, flightDest, flightDestCity]
@@ -399,20 +597,38 @@ export default function HomePage() {
           {/* ── HOTEL SEARCH ── */}
           {mode === 'hotel' && (
             <form onSubmit={handleHotelSearch}>
-              <div className="bg-white rounded-2xl shadow-2xl p-4">
-                <div className="flex flex-wrap gap-0 divide-x divide-gray-200">
-                  <div className="flex-1 min-w-[180px] px-4 py-2">
-                    <CitySearch label="City / Destination" placeholder="e.g. Mumbai, Goa" value={hotelCity} onChange={setHotelCity} focusColor="orange" />
+              <div className="rounded-2xl bg-white shadow-xl">
+                <div className="flex flex-col divide-y divide-gray-200 lg:flex-row lg:items-stretch lg:divide-x lg:divide-y-0">
+
+                  {/* City */}
+                  <div className="relative z-20 flex-[2] px-4 py-4 lg:min-w-0">
+                    <HotelCitySearch value={hotelCity} onChange={setHotelCity} />
                   </div>
-                  <HeroDatePicker label="Check-in"  value={checkIn}  min={TODAY}            onChange={setCheckIn}  />
-                  <HeroDatePicker label="Check-out" value={checkOut} min={checkIn || TODAY}  onChange={setCheckOut} />
-                  <HeroInput label="Rooms"     type="number" placeholder="1" value={hotelRooms}    onChange={setHotelRooms}  />
-                  <HeroInput label="Guests"    type="number" placeholder="1" value={hotelGuests}   onChange={setHotelGuests} />
-                </div>
-                <div className="mt-4 flex justify-center">
-                  <button type="submit" className="flex items-center gap-2 rounded-full px-10 py-3 font-bold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-100" style={{ background: `linear-gradient(90deg, #c2410c, ${theme.accent})` }}>
-                    <Search className="h-5 w-5" /> Search
-                  </button>
+
+                  {/* Check-in */}
+                  <div className="px-4 py-4 lg:w-[220px]">
+                    <HotelDateField label="Check-in" value={checkIn} min={TODAY} onChange={setCheckIn} />
+                  </div>
+
+                  {/* Check-out */}
+                  <div className="px-4 py-4 lg:w-[220px]">
+                    <HotelDateField label="Check-out" value={checkOut} min={checkIn || TODAY} onChange={setCheckOut} nights={hotelNights} />
+                  </div>
+
+                  {/* Guests & Rooms */}
+                  <div className="relative z-10 px-4 py-4 lg:w-[280px]">
+                    <HotelGuestsDropdown value={hotelGuests} onChange={setHotelGuests} />
+                  </div>
+
+                  {/* Search button */}
+                  <div className="px-4 py-4 lg:flex lg:items-center lg:justify-center">
+                    <button
+                      type="submit"
+                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-orange-600 lg:w-auto"
+                    >
+                      <Search className="h-5 w-5" /> Search
+                    </button>
+                  </div>
                 </div>
               </div>
             </form>
@@ -496,7 +712,18 @@ export default function HomePage() {
                   <div className="flex-1 min-w-[160px] px-4 py-2">
                     <CitySearch label="Drop City" placeholder="e.g. Agra" value={tDest} onChange={setTDest} focusColor="yellow" />
                   </div>
-                  <HeroDatePicker label="Pickup Date & Time" type="datetime-local" value={cabDateTime} min={TODAY} onChange={setCabDateTime} />
+                  <HeroDatePicker label="Pickup Date & Time" type="datetime-local" value={cabDateTime} min={localDatetimeValue(new Date())} onChange={setCabDateTime} />
+                  <div className="flex-1 min-w-[130px] px-4 py-2">
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Trip Type</label>
+                    <select
+                      value={cabTripType}
+                      onChange={e => setCabTripType(e.target.value as 'OneWay' | 'RoundTrip')}
+                      className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none border-b-2 border-gray-300 focus:border-yellow-500 pb-1"
+                    >
+                      <option value="OneWay">One Way</option>
+                      <option value="RoundTrip">Round Trip</option>
+                    </select>
+                  </div>
                 </div>
                 <div className="mt-4 flex justify-center">
                   <button type="submit" className="flex items-center gap-2 rounded-full px-10 py-3 font-bold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-100" style={{ background: `linear-gradient(90deg, #b45309, ${theme.accent})` }}>

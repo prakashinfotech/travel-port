@@ -11,8 +11,6 @@ import { CitySearch } from '@/components/search/CitySearch'
 const TRIP_TYPES = [
   { value: 'OneWay',     label: 'One Way' },
   { value: 'RoundTrip', label: 'Round Trip' },
-  { value: 'Outstation', label: 'Outstation' },
-  { value: 'Local',     label: 'Local' },
 ]
 
 function formatDuration(mins: number) {
@@ -21,17 +19,24 @@ function formatDuration(mins: number) {
   return h > 0 ? `${h}h ${m}m` : `${m}m`
 }
 
-export default function CabsPage() {
-  const now = new Date()
-  now.setMinutes(now.getMinutes() + 30)
-  const defaultPickup = now.toISOString().slice(0, 16)
+function localDatetimeValue(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
 
+function defaultPickupTime(): string {
+  const d = new Date()
+  d.setHours(d.getHours() + 1, 0, 0, 0) // +1 hour, round to the hour
+  return localDatetimeValue(d)
+}
+
+export default function CabsPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const [origin, setOrigin]       = useState(searchParams.get('origin') || 'Mumbai')
-  const [destination, setDest]    = useState(searchParams.get('destination') || 'Pune')
-  const [pickup, setPickup]       = useState(searchParams.get('pickup') || defaultPickup)
-  const [tripType, setTripType]   = useState<string>(searchParams.get('tripType') || 'OneWay')
+  const [origin, setOrigin]       = useState(searchParams.get('origin') || '')
+  const [destination, setDest]    = useState(searchParams.get('destination') || '')
+  const [pickup, setPickup]       = useState(searchParams.get('pickup') || defaultPickupTime())
+  const [tripType, setTripType]   = useState<'OneWay' | 'RoundTrip'>((searchParams.get('tripType') as 'OneWay' | 'RoundTrip') || 'OneWay')
   const [rawCabs, setRawCabs]     = useState<CabDto[]>([])
   const [total, setTotal]         = useState(0)
   const [loading, setLoading]     = useState(false)
@@ -98,14 +103,14 @@ export default function CabsPage() {
               label="PICKUP DATE & TIME"
               type="datetime-local"
               value={pickup}
-              min={new Date().toISOString().slice(0, 16)}
+              min={localDatetimeValue(new Date())}
               onChange={setPickup}
               accentColor="yellow"
               className="flex-1 min-w-44"
             />
             <div className="flex-1 min-w-36">
               <label className="block text-xs text-gray-500 mb-1">TRIP TYPE</label>
-              <select value={tripType} onChange={e => setTripType(e.target.value)}
+              <select value={tripType} onChange={e => setTripType(e.target.value as 'OneWay' | 'RoundTrip')}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500">
                 {TRIP_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
@@ -227,7 +232,10 @@ export default function CabsPage() {
             <>
               <p className="text-sm text-gray-500 mb-3">{total} cabs available · {origin} → {destination}</p>
               <div className="space-y-3">
-                {cabs.map(cab => (
+                {cabs.map(cab => {
+                  const isRoundTrip   = tripType === 'RoundTrip'
+                  const displayPrice  = isRoundTrip ? cab.price * 2 : cab.price
+                  return (
                   <div key={cab.id} className="bg-white rounded-xl shadow-sm p-5 hover:shadow-md transition">
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-4 flex-1">
@@ -239,6 +247,7 @@ export default function CabsPage() {
                             <span className="font-bold text-gray-800">{cab.provider}</span>
                             <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{cab.cabType}</span>
                             {cab.acAvailable && <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">AC</span>}
+                            {isRoundTrip && <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full font-semibold">Round Trip</span>}
                           </div>
                           <p className="text-sm text-gray-600">{cab.carModel}</p>
                           <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
@@ -246,10 +255,10 @@ export default function CabsPage() {
                               <Users className="w-3 h-3" /> {cab.capacity} seats
                             </span>
                             <span className="flex items-center gap-1">
-                              <MapPin className="w-3 h-3" /> {cab.estimatedDistanceKm} km
+                              <MapPin className="w-3 h-3" /> {isRoundTrip ? `${cab.estimatedDistanceKm * 2} km` : `${cab.estimatedDistanceKm} km`}
                             </span>
                             <span className="flex items-center gap-1">
-                              <Clock className="w-3 h-3" /> {formatDuration(cab.estimatedDurationMinutes)}
+                              <Clock className="w-3 h-3" /> {isRoundTrip ? formatDuration(cab.estimatedDurationMinutes * 2) : formatDuration(cab.estimatedDurationMinutes)}
                             </span>
                             {cab.driverRating && (
                               <span className="flex items-center gap-1 text-amber-600 font-semibold">
@@ -258,7 +267,7 @@ export default function CabsPage() {
                             )}
                           </div>
                           <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
-                            <span>₹{cab.pricePerKm}/km · Driver included</span>
+                            <span>₹{cab.pricePerKm}/km · Driver included{isRoundTrip ? ' · both legs' : ''}</span>
                             {cab.companyPhone && (
                               <span className="flex items-center gap-1">
                                 <Phone className="w-3 h-3" />{cab.companyPhone}
@@ -268,11 +277,14 @@ export default function CabsPage() {
                         </div>
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="text-2xl font-bold text-gray-800">₹{cab.price.toLocaleString()}</p>
-                        <p className="text-xs text-gray-500 mb-2">estimated total</p>
+                        <p className="text-2xl font-bold text-gray-800">₹{displayPrice.toLocaleString()}</p>
+                        {isRoundTrip
+                          ? <p className="text-xs text-gray-500 mb-2">round trip · <span className="text-gray-400">₹{cab.price.toLocaleString()} × 2</span></p>
+                          : <p className="text-xs text-gray-500 mb-2">estimated total</p>
+                        }
                         <button
                           onClick={() => navigate('/cabs/book', {
-                            state: { cab, pickupTime: pickup, origin, destination }
+                            state: { cab: { ...cab, price: displayPrice }, pickupTime: pickup, origin, destination, tripType }
                           })}
                           className="bg-yellow-500 text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-yellow-600 transition"
                         >
@@ -281,7 +293,8 @@ export default function CabsPage() {
                       </div>
                     </div>
                   </div>
-                ))}
+                  )
+                })}
               </div>
             </>
           )}

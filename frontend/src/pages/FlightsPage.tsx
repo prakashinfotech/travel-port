@@ -7,6 +7,7 @@ import { FlightCard } from '@/components/flights/FlightCard'
 import { FlightCardSkeleton } from '@/components/ui/Skeleton'
 import { AirportSearch } from '@/components/search/AirportSearch'
 import { TravellerSelector, type TravellerConfig } from '@/components/search/TravellerSelector'
+import { DatePickerInput } from '@/components/ui/DatePickerInput'
 import { formatCurrency, formatDuration } from '@/utils/formatters'
 import { AIRPORTS } from '@/data/airports'
 
@@ -28,6 +29,18 @@ interface Filters {
   priceMax:   number
 }
 
+interface RTFilters {
+  depNonStop:  boolean
+  depOneStop:  boolean
+  depDepSlots: TimeSlot[]
+  depArrSlots: TimeSlot[]
+  retNonStop:  boolean
+  retOneStop:  boolean
+  retDepSlots: TimeSlot[]
+  retArrSlots: TimeSlot[]
+  airlines:    string[]
+}
+
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const TODAY = new Date().toISOString().split('T')[0]
@@ -35,6 +48,12 @@ const TODAY = new Date().toISOString().split('T')[0]
 const DEFAULT_FILTERS: Filters = {
   nonStop: false, oneStop: false, airlines: [], depSlots: [],
   arrSlots: [], refundable: false, hideNearby: false, priceMax: 0,
+}
+
+const DEFAULT_RT_FILTERS: RTFilters = {
+  depNonStop: false, depOneStop: false, depDepSlots: [], depArrSlots: [],
+  retNonStop: false, retOneStop: false, retDepSlots: [], retArrSlots: [],
+  airlines: [],
 }
 
 const RESULTS_PER_PAGE = 10
@@ -668,6 +687,152 @@ function FilterSidebar({
   )
 }
 
+// ── Round Trip Filter Sidebar ─────────────────────────────────────────────────
+
+function RTFilterSidebar({
+  depFlights, retFlights, filters, setFilters, origin, destination,
+}: {
+  depFlights: FlightDto[]
+  retFlights: FlightDto[]
+  filters: RTFilters
+  setFilters: React.Dispatch<React.SetStateAction<RTFilters>>
+  origin: string
+  destination: string
+}) {
+  const allFlights = useMemo(() => [...depFlights, ...retFlights], [depFlights, retFlights])
+
+  const depMinByStop = useMemo(() => {
+    const m: Record<number, number> = {}
+    depFlights.forEach(f => { if (!(f.stops in m) || f.price < m[f.stops]) m[f.stops] = f.price })
+    return m
+  }, [depFlights])
+
+  const retMinByStop = useMemo(() => {
+    const m: Record<number, number> = {}
+    retFlights.forEach(f => { if (!(f.stops in m) || f.price < m[f.stops]) m[f.stops] = f.price })
+    return m
+  }, [retFlights])
+
+  const depMinByDepSlot = useMemo(() => {
+    const m: Record<TimeSlot, number> = { early: Infinity, morning: Infinity, afternoon: Infinity, night: Infinity }
+    depFlights.forEach(f => { const h = flightHour(f, 'dep'); TIME_SLOTS.forEach(s => { if (slotMatch(h, s.key) && f.price < m[s.key]) m[s.key] = f.price }) })
+    return m
+  }, [depFlights])
+
+  const depMinByArrSlot = useMemo(() => {
+    const m: Record<TimeSlot, number> = { early: Infinity, morning: Infinity, afternoon: Infinity, night: Infinity }
+    depFlights.forEach(f => { const h = flightHour(f, 'arr'); TIME_SLOTS.forEach(s => { if (slotMatch(h, s.key) && f.price < m[s.key]) m[s.key] = f.price }) })
+    return m
+  }, [depFlights])
+
+  const retMinByDepSlot = useMemo(() => {
+    const m: Record<TimeSlot, number> = { early: Infinity, morning: Infinity, afternoon: Infinity, night: Infinity }
+    retFlights.forEach(f => { const h = flightHour(f, 'dep'); TIME_SLOTS.forEach(s => { if (slotMatch(h, s.key) && f.price < m[s.key]) m[s.key] = f.price }) })
+    return m
+  }, [retFlights])
+
+  const retMinByArrSlot = useMemo(() => {
+    const m: Record<TimeSlot, number> = { early: Infinity, morning: Infinity, afternoon: Infinity, night: Infinity }
+    retFlights.forEach(f => { const h = flightHour(f, 'arr'); TIME_SLOTS.forEach(s => { if (slotMatch(h, s.key) && f.price < m[s.key]) m[s.key] = f.price }) })
+    return m
+  }, [retFlights])
+
+  const minByAirline = useMemo(() => {
+    const m: Record<string, number> = {}
+    allFlights.forEach(f => { if (!(f.airline in m) || f.price < m[f.airline]) m[f.airline] = f.price })
+    return m
+  }, [allFlights])
+
+  const airlines = useMemo(() => Object.keys(minByAirline).sort((a, b) => minByAirline[a] - minByAirline[b]), [minByAirline])
+
+  const toggle = <K extends keyof RTFilters>(key: K, val: RTFilters[K]) =>
+    setFilters(p => ({ ...p, [key]: val }))
+
+  const toggleSlot = (key: 'depDepSlots' | 'depArrSlots' | 'retDepSlots' | 'retArrSlots', val: TimeSlot) =>
+    setFilters(p => {
+      const arr = p[key] as TimeSlot[]
+      return { ...p, [key]: arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val] }
+    })
+
+  const toggleAirline = (airline: string) =>
+    setFilters(p => ({ ...p, airlines: p.airlines.includes(airline) ? p.airlines.filter(a => a !== airline) : [...p.airlines, airline] }))
+
+  const hasActive = filters.depNonStop || filters.depOneStop || filters.retNonStop || filters.retOneStop ||
+    filters.depDepSlots.length > 0 || filters.depArrSlots.length > 0 ||
+    filters.retDepSlots.length > 0 || filters.retArrSlots.length > 0 || filters.airlines.length > 0
+
+  const originName  = AIRPORT_NAMES[origin]?.split(' ')[0]  ?? origin
+  const destName    = AIRPORT_NAMES[destination]?.split(' ')[0] ?? destination
+
+  if (!depFlights.length && !retFlights.length) return null
+
+  return (
+    <aside className="w-64 flex-shrink-0 hidden lg:block">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm sticky top-20 overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+          <span className="font-bold text-gray-800 text-sm">Filters</span>
+          {hasActive && (
+            <button onClick={() => setFilters(DEFAULT_RT_FILTERS)} className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+              <X className="h-3 w-3" /> Clear all
+            </button>
+          )}
+        </div>
+
+        <div className="px-4 max-h-[calc(100vh-180px)] overflow-y-auto">
+
+          {/* Onward Journey */}
+          <FilterSection title="Onward Journey">
+            <CheckRow label="Non Stop" price={depMinByStop[0]} checked={filters.depNonStop} onChange={v => toggle('depNonStop', v)} />
+            <CheckRow label="1 Stop"   price={depMinByStop[1]} checked={filters.depOneStop} onChange={v => toggle('depOneStop', v)} />
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-3 mb-2">Departure From {originName}</p>
+            <div className="grid grid-cols-2 gap-1.5">
+              {TIME_SLOTS.map(s => (
+                <TimeSlotButton key={s.key} slot={s} selected={filters.depDepSlots.includes(s.key)} price={depMinByDepSlot[s.key]} onToggle={() => toggleSlot('depDepSlots', s.key)} />
+              ))}
+            </div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-3 mb-2">Arrival at {destName}</p>
+            <div className="grid grid-cols-2 gap-1.5">
+              {TIME_SLOTS.map(s => (
+                <TimeSlotButton key={s.key} slot={s} selected={filters.depArrSlots.includes(s.key)} price={depMinByArrSlot[s.key]} onToggle={() => toggleSlot('depArrSlots', s.key)} />
+              ))}
+            </div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-3 mb-1">Arrival Airports</p>
+            <CheckRow label={AIRPORT_NAMES[destination] ?? destination} price={undefined} checked onChange={() => {}} />
+          </FilterSection>
+
+          {/* Return Journey */}
+          <FilterSection title="Return Journey">
+            <CheckRow label="Non Stop" price={retMinByStop[0]} checked={filters.retNonStop} onChange={v => toggle('retNonStop', v)} />
+            <CheckRow label="1 Stop"   price={retMinByStop[1]} checked={filters.retOneStop} onChange={v => toggle('retOneStop', v)} />
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-3 mb-2">Departure From {destName}</p>
+            <div className="grid grid-cols-2 gap-1.5">
+              {TIME_SLOTS.map(s => (
+                <TimeSlotButton key={s.key} slot={s} selected={filters.retDepSlots.includes(s.key)} price={retMinByDepSlot[s.key]} onToggle={() => toggleSlot('retDepSlots', s.key)} />
+              ))}
+            </div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-3 mb-2">Arrival at {originName}</p>
+            <div className="grid grid-cols-2 gap-1.5">
+              {TIME_SLOTS.map(s => (
+                <TimeSlotButton key={s.key} slot={s} selected={filters.retArrSlots.includes(s.key)} price={retMinByArrSlot[s.key]} onToggle={() => toggleSlot('retArrSlots', s.key)} />
+              ))}
+            </div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-3 mb-1">Departure Airports</p>
+            <CheckRow label={AIRPORT_NAMES[destination] ?? destination} price={undefined} checked onChange={() => {}} />
+          </FilterSection>
+
+          {/* Airlines */}
+          <FilterSection title="Airlines">
+            {airlines.map(a => (
+              <CheckRow key={a} label={a} price={minByAirline[a]} checked={filters.airlines.includes(a)} onChange={() => toggleAirline(a)} icon={<AirlineDot airline={a} />} />
+            ))}
+          </FilterSection>
+
+        </div>
+      </div>
+    </aside>
+  )
+}
+
 // ── Round Trip Sub-components ─────────────────────────────────────────────────
 
 function RTSortHeader({ sortKey, onSort }: { sortKey: RTSortKey; onSort: (k: RTSortKey) => void }) {
@@ -763,45 +928,92 @@ function RoundTripFlightRow({ flight, selected, onSelect }: {
 function RoundTripStickyBar({ dep, ret, passengerCount, onBook }: {
   dep: FlightDto; ret: FlightDto; passengerCount: number; onBook: () => void
 }) {
+  const [collapsed, setCollapsed] = useState(false)
   const fmt = (iso: string) => new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })
-  const total = (dep.price + ret.price) * Math.max(1, passengerCount)
-  const discount = 271
+  const perAdult = dep.price + ret.price
+  const total = perAdult * Math.max(1, passengerCount)
+
+  const AirlineBadge = ({ airline }: { airline: string }) => {
+    const color    = AIRLINE_COLORS[airline] ?? '#555'
+    const initials = airline.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+    return (
+      <span style={{ backgroundColor: color }} className="inline-flex items-center justify-center w-6 h-6 rounded text-white text-xs font-bold flex-shrink-0">
+        {initials}
+      </span>
+    )
+  }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 bg-gray-900 text-white shadow-2xl border-t border-gray-700">
-      <div className="max-w-6xl mx-auto flex items-stretch">
-        <div className="flex-1 px-5 py-3 border-r border-gray-700">
-          <p className="text-xs text-gray-400 mb-0.5">Departure · <span className="font-semibold text-white">{dep.airline}</span></p>
-          <p className="text-sm font-bold tabular-nums">{fmt(dep.departureTime)} → {fmt(dep.arrivalTime)}</p>
-          <div className="flex items-center gap-3 mt-0.5">
-            <p className="text-base font-black">₹{dep.price.toLocaleString('en-IN')}</p>
-            <button className="text-xs text-blue-400 hover:text-blue-300 transition-colors">Flight Details</button>
-          </div>
-        </div>
-        <div className="flex-1 px-5 py-3 border-r border-gray-700">
-          <p className="text-xs text-gray-400 mb-0.5">Return · <span className="font-semibold text-white">{ret.airline}</span></p>
-          <p className="text-sm font-bold tabular-nums">{fmt(ret.departureTime)} → {fmt(ret.arrivalTime)}</p>
-          <div className="flex items-center gap-3 mt-0.5">
-            <p className="text-base font-black">₹{ret.price.toLocaleString('en-IN')}</p>
-            <button className="text-xs text-blue-400 hover:text-blue-300 transition-colors">Flight Details</button>
-          </div>
-        </div>
-        <div className="flex items-center gap-4 px-5 py-3">
-          <div className="text-right">
-            <p className="text-2xl font-black tabular-nums">₹{total.toLocaleString('en-IN')}</p>
-            <p className="text-xs text-gray-400">per adult</p>
-            <p className="text-xs text-green-400 font-medium">FLAT ₹{discount} OFF with DEALPANTI</p>
-          </div>
-          <div className="flex flex-col gap-1.5 min-w-[120px]">
-            <button onClick={onBook} className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-5 py-2 rounded-lg text-sm transition-colors">
-              BOOK NOW
-            </button>
-            <button className="border border-gray-500 text-white font-bold px-5 py-2 rounded-lg text-sm hover:bg-white/10 transition-colors text-center">
-              LOCK PRICE
-            </button>
-          </div>
-        </div>
+    <div className="fixed bottom-0 left-0 right-0 z-40 shadow-2xl">
+      {/* Collapse toggle strip */}
+      <div
+        className="flex items-center justify-center bg-gray-800 border-t border-gray-700 py-1 cursor-pointer hover:bg-gray-700 transition-colors"
+        onClick={() => setCollapsed(p => !p)}
+      >
+        <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${collapsed ? '' : 'rotate-180'}`} />
       </div>
+
+      {!collapsed && (
+        <div className="bg-gray-900 text-white border-t border-gray-700">
+          <div className="max-w-6xl mx-auto flex items-stretch">
+
+            {/* Departure leg */}
+            <div className="flex-1 px-5 py-3 border-r border-gray-700">
+              <div className="flex items-center gap-2 mb-1">
+                <AirlineBadge airline={dep.airline} />
+                <p className="text-xs text-gray-400">Departure · <span className="font-semibold text-white">{dep.airline}</span></p>
+              </div>
+              <p className="text-sm font-bold tabular-nums">
+                {fmt(dep.departureTime)} → {fmt(dep.arrivalTime)}
+              </p>
+              <div className="flex items-center gap-3 mt-1">
+                <p className="text-base font-black">₹{dep.price.toLocaleString('en-IN')}</p>
+                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${dep.stops === 0 ? 'bg-green-900 text-green-300' : 'bg-orange-900 text-orange-300'}`}>
+                  {dep.stops === 0 ? 'Non stop' : `${dep.stops} stop`}
+                </span>
+              </div>
+            </div>
+
+            {/* Return leg */}
+            <div className="flex-1 px-5 py-3 border-r border-gray-700">
+              <div className="flex items-center gap-2 mb-1">
+                <AirlineBadge airline={ret.airline} />
+                <p className="text-xs text-gray-400">Return · <span className="font-semibold text-white">{ret.airline}</span></p>
+              </div>
+              <p className="text-sm font-bold tabular-nums">
+                {fmt(ret.departureTime)} → {fmt(ret.arrivalTime)}
+              </p>
+              <div className="flex items-center gap-3 mt-1">
+                <p className="text-base font-black">₹{ret.price.toLocaleString('en-IN')}</p>
+                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${ret.stops === 0 ? 'bg-green-900 text-green-300' : 'bg-orange-900 text-orange-300'}`}>
+                  {ret.stops === 0 ? 'Non stop' : `${ret.stops} stop`}
+                </span>
+              </div>
+            </div>
+
+            {/* Total + actions */}
+            <div className="flex items-center gap-4 px-6 py-3">
+              <div className="text-right">
+                <p className="text-2xl font-black tabular-nums">₹{total.toLocaleString('en-IN')}</p>
+                <p className="text-xs text-gray-400">per adult · ₹{perAdult.toLocaleString('en-IN')} × {Math.max(1, passengerCount)}</p>
+                <button className="text-xs text-blue-400 hover:text-blue-300 transition-colors mt-0.5">Fare Details</button>
+              </div>
+              <div className="flex flex-col gap-2 min-w-[130px]">
+                <button
+                  onClick={onBook}
+                  className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-5 py-2.5 rounded-lg text-sm transition-colors tracking-wide"
+                >
+                  BOOK NOW
+                </button>
+                <button className="border border-gray-500 text-white font-bold px-5 py-2 rounded-lg text-sm hover:bg-white/10 transition-colors text-center tracking-wide">
+                  LOCK PRICE
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -848,6 +1060,8 @@ export default function FlightsPage() {
   const [selectedReturnFlight,   setSelectedReturnFlight]  = useState<FlightDto | null>(null)
   const [depRTSort,  setDepRTSort]  = useState<RTSortKey>('price')
   const [retRTSort,  setRetRTSort]  = useState<RTSortKey>('price')
+  const [rtFilters,  setRtFilters]  = useState<RTFilters>(DEFAULT_RT_FILTERS)
+  const [hasSearched, setHasSearched] = useState(false)
 
   const fetchLowestPriceForDates = useCallback(async (dates: string[]) => {
     const uniqueDates = dates.filter(date => date >= TODAY && !fetchedPriceDates.current.has(date))
@@ -877,9 +1091,11 @@ export default function FlightsPage() {
 
   const fetchFlights = useCallback(async (src = origin, dst = destination, date = departureDate) => {
     if (!src || !dst || !date) return
+    setHasSearched(true)
     setLoading(true)
     setError(null)
     setFilters(DEFAULT_FILTERS)
+    setRtFilters(DEFAULT_RT_FILTERS)
     const total = travellers.adults + travellers.children + travellers.infants
     try {
       const res = await flightService.search({
@@ -983,8 +1199,47 @@ export default function FlightsPage() {
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / RESULTS_PER_PAGE))
 
-  const sortedDepartureFlights = useMemo(() => sortByRTKey(flights, depRTSort), [flights, depRTSort])
-  const sortedReturnFlights    = useMemo(() => sortByRTKey(returnFlights, retRTSort), [returnFlights, retRTSort])
+  const filteredDepartureFlights = useMemo(() => {
+    let list = [...flights]
+    if (rtFilters.depNonStop && !rtFilters.depOneStop) list = list.filter(f => f.stops === 0)
+    else if (rtFilters.depOneStop && !rtFilters.depNonStop) list = list.filter(f => f.stops === 1)
+    else if (rtFilters.depNonStop && rtFilters.depOneStop) list = list.filter(f => f.stops <= 1)
+    if (rtFilters.airlines.length) list = list.filter(f => rtFilters.airlines.includes(f.airline))
+    if (rtFilters.depDepSlots.length) list = list.filter(f => rtFilters.depDepSlots.some(s => slotMatch(flightHour(f, 'dep'), s)))
+    if (rtFilters.depArrSlots.length) list = list.filter(f => rtFilters.depArrSlots.some(s => slotMatch(flightHour(f, 'arr'), s)))
+    return list
+  }, [flights, rtFilters])
+
+  const filteredReturnFlights = useMemo(() => {
+    let list = [...returnFlights]
+    if (rtFilters.retNonStop && !rtFilters.retOneStop) list = list.filter(f => f.stops === 0)
+    else if (rtFilters.retOneStop && !rtFilters.retNonStop) list = list.filter(f => f.stops === 1)
+    else if (rtFilters.retNonStop && rtFilters.retOneStop) list = list.filter(f => f.stops <= 1)
+    if (rtFilters.airlines.length) list = list.filter(f => rtFilters.airlines.includes(f.airline))
+    if (rtFilters.retDepSlots.length) list = list.filter(f => rtFilters.retDepSlots.some(s => slotMatch(flightHour(f, 'dep'), s)))
+    if (rtFilters.retArrSlots.length) list = list.filter(f => rtFilters.retArrSlots.some(s => slotMatch(flightHour(f, 'arr'), s)))
+    return list
+  }, [returnFlights, rtFilters])
+
+  const sortedDepartureFlights = useMemo(() => sortByRTKey(filteredDepartureFlights, depRTSort), [filteredDepartureFlights, depRTSort])
+  const sortedReturnFlights    = useMemo(() => sortByRTKey(filteredReturnFlights, retRTSort), [filteredReturnFlights, retRTSort])
+
+  // Auto-select first flight whenever the sorted lists change (new search or filter change)
+  useEffect(() => {
+    if (sortedDepartureFlights.length > 0) setSelectedDepartureFlight(prev => {
+      if (prev && sortedDepartureFlights.find(f => f.id === prev.id)) return prev
+      return sortedDepartureFlights[0]
+    })
+    else setSelectedDepartureFlight(null)
+  }, [sortedDepartureFlights])
+
+  useEffect(() => {
+    if (sortedReturnFlights.length > 0) setSelectedReturnFlight(prev => {
+      if (prev && sortedReturnFlights.find(f => f.id === prev.id)) return prev
+      return sortedReturnFlights[0]
+    })
+    else setSelectedReturnFlight(null)
+  }, [sortedReturnFlights])
   const paginatedFlights = useMemo(() => {
     const start = (currentPage - 1) * RESULTS_PER_PAGE
     return filtered.slice(start, start + RESULTS_PER_PAGE)
@@ -1101,26 +1356,24 @@ export default function FlightsPage() {
 
               {/* Departure */}
               <div className="flex-1 min-w-[130px] px-4 py-2">
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Departure</label>
-                <input
-                  type="date"
+                <DatePickerInput
+                  label="Departure"
                   value={departureDate}
                   min={TODAY}
-                  onChange={e => setDepartureDate(e.target.value)}
-                  className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none border-b-2 border-gray-300 focus:border-blue-600 pb-1"
+                  onChange={setDepartureDate}
+                  accentColor="blue"
                 />
               </div>
 
               {/* Return */}
               {tripType === 'roundtrip' && (
                 <div className="flex-1 min-w-[130px] px-4 py-2">
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Return</label>
-                  <input
-                    type="date"
+                  <DatePickerInput
+                    label="Return"
                     value={returnDate}
                     min={departureDate || TODAY}
-                    onChange={e => setReturnDate(e.target.value)}
-                    className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none border-b-2 border-gray-300 focus:border-blue-600 pb-1"
+                    onChange={setReturnDate}
+                    accentColor="blue"
                   />
                 </div>
               )}
@@ -1159,11 +1412,20 @@ export default function FlightsPage() {
 
         {/* ── Round-trip two-column selector ────────────────────────────────── */}
         {tripType === 'roundtrip' ? (
-          <div className={selectedDepartureFlight && selectedReturnFlight ? 'pb-28' : ''}>
+          <div className={hasSearched ? 'pb-36' : ''}>
             {error && (
               <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 mb-4">{error}</div>
             )}
-            <div className="grid grid-cols-2 gap-4">
+            {!hasSearched ? null : <div className="flex gap-4">
+              <RTFilterSidebar
+                depFlights={flights}
+                retFlights={returnFlights}
+                filters={rtFilters}
+                setFilters={setRtFilters}
+                origin={origin}
+                destination={destination}
+              />
+              <div className="flex-1 grid grid-cols-2 gap-4">
               {/* Departure column */}
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                 <div className="px-4 py-3 bg-gray-900 text-white">
@@ -1179,7 +1441,7 @@ export default function FlightsPage() {
                       </div>
                     ))
                   : sortedDepartureFlights.length === 0
-                    ? <div className="py-16 text-center text-gray-400 text-sm">No flights found. Try different dates.</div>
+                    ? <div className="py-16 text-center text-gray-400 text-sm">No flights available.</div>
                     : sortedDepartureFlights.map(f => (
                         <RoundTripFlightRow
                           key={f.id}
@@ -1208,7 +1470,7 @@ export default function FlightsPage() {
                         </div>
                       ))
                     : sortedReturnFlights.length === 0
-                      ? <div className="py-16 text-center text-gray-400 text-sm">No return flights found. Try different dates.</div>
+                      ? <div className="py-16 text-center text-gray-400 text-sm">No flights available.</div>
                       : sortedReturnFlights.map(f => (
                           <RoundTripFlightRow
                             key={f.id}
@@ -1219,7 +1481,7 @@ export default function FlightsPage() {
                         ))
                 }
               </div>
-            </div>
+            </div></div>}
 
             {selectedDepartureFlight && selectedReturnFlight && (
               <RoundTripStickyBar

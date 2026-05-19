@@ -38,8 +38,8 @@ export default function TrainsPage() {
   const today = new Date().toISOString().split('T')[0]
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const [origin, setOrigin]           = useState(searchParams.get('origin') || 'Mumbai')
-  const [destination, setDestination] = useState(searchParams.get('destination') || 'Delhi')
+  const [origin, setOrigin]           = useState(searchParams.get('origin') || '')
+  const [destination, setDestination] = useState(searchParams.get('destination') || '')
   const [date, setDate]               = useState(searchParams.get('date') || today)
   const [trainClass, setTrainClass]   = useState('')
   const [passengers, setPassengers]   = useState(Number(searchParams.get('passengers')) || 1)
@@ -55,7 +55,10 @@ export default function TrainsPage() {
   const [sortBy, setSortBy]                 = useState<'departure' | 'duration' | 'price'>('departure')
 
   const trains = useMemo(() => {
+    const now = new Date()
+    const isToday = date === today
     let results = [...rawTrains]
+    if (isToday) results = results.filter(t => new Date(t.departureTime) > now)
     if (filterTatkal)       results = results.filter(t => t.isTatkal)
     if (filterClasses.length) results = results.filter(t => filterClasses.some(c => Object.keys(t.classes).includes(c)))
     if (filterDeptSlot) {
@@ -276,29 +279,33 @@ export default function TrainsPage() {
                     </div>
 
                     {/* Class grid */}
-                    <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+                    <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 items-stretch">
                       {Object.entries(train.classes).map(([cls, info]) => (
-                        <div key={cls} className="border border-gray-200 rounded-lg p-2 text-center">
+                        <div key={cls} className="border border-gray-200 rounded-lg p-2 text-center flex flex-col">
                           <p className="text-xs font-bold text-gray-700">{cls}</p>
                           <p className="text-sm font-bold text-gray-900 mt-0.5">₹{info.price.toLocaleString()}</p>
                           <p className={`text-xs mt-0.5 px-1.5 py-0.5 rounded-full inline-block font-medium ${availabilityColor(info.availability)}`}>
                             {info.availability}
                           </p>
-                          {info.availability === 'AVAILABLE' && info.availableSeats > 0 && (
-                            <p className="text-xs text-gray-400 mt-0.5 flex items-center justify-center gap-0.5">
-                              <Users className="w-3 h-3" />{info.availableSeats} seats
-                            </p>
-                          )}
-                          {info.availability !== 'REGRET' && (
-                            <button
-                              onClick={() => navigate('/trains/book', {
-                                state: { train, classInfo: info, className: cls, passengers }
-                              })}
-                              className="mt-1.5 w-full bg-blue-700 text-white text-xs py-1 rounded-md hover:bg-blue-800 transition font-semibold"
-                            >
-                              BOOK
-                            </button>
-                          )}
+                          <p className="text-xs text-gray-400 mt-0.5 flex items-center justify-center gap-0.5 min-h-[1rem]">
+                            {info.availability === 'AVAILABLE' && info.availableSeats > 0 && (
+                              <><Users className="w-3 h-3" />{info.availableSeats} seats</>
+                            )}
+                          </p>
+                          <div className="mt-auto pt-1.5">
+                            {info.availability !== 'REGRET' ? (
+                              <button
+                                onClick={() => navigate('/trains/book', {
+                                  state: { train, classInfo: info, className: cls, passengers }
+                                })}
+                                className="w-full bg-blue-700 text-white text-xs py-1 rounded-md hover:bg-blue-800 transition font-semibold"
+                              >
+                                BOOK
+                              </button>
+                            ) : (
+                              <div className="w-full py-1" />
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
