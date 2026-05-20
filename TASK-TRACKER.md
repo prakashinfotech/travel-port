@@ -5,6 +5,43 @@
 
 ---
 
+## Bug Fix — HotelDetailPage React Hooks Violation
+**Branch:** `fix/hotel-detail-hooks`
+**Scope:** React Rules of Hooks violation in `HotelDetailPage.tsx` caused crash when hotel data loaded successfully.
+
+| # | Fix | Status | Notes |
+|---|---|---|---|
+| B1 | Move `galleryImgs`, `prevImg` (useCallback), `nextImg` (useCallback) before early returns | ✅ | Prevented "Rendered more hooks than during previous render" crash |
+| B2 | Add `setLoading(true)` + `setError(null)` reset at start of `useEffect` | ✅ | Ensures clean state on re-navigation |
+| B3 | Use `hotel?.images` / `hotel?.imageUrl` optional chaining before hotel is confirmed non-null | ✅ | TypeScript-safe unconditional hook args |
+| B4 | Confirmed backend GET /hotels/{id} returns data correctly (API tested live) | ✅ | Not a backend bug |
+
+---
+
+## Phase 3 — UX Enhancements (Comparison, Deals, Notifications, Price Alerts, Dark Mode)
+**Branch:** `feat/phase3-ux-enhancements`
+**Scope:** 6 cross-cutting UX features layered on top of the existing booking flow without changing it.
+
+| # | Feature | Status | Notes |
+|---|---|---|---|
+| 3.1 | Booking Status Timeline — visual 4-step timeline in BookingDetailPage | ✅ | Booked → Payment Confirmed → Confirmed → Completed; Cancelled greyed out |
+| 3.2 | BookingTimeline component — dot states (done/active/greyed), connector lines, +1 cancelled pill | ✅ | BookingDetailPage.tsx |
+| 3.3 | Flight Comparison — up to 3 flight cards with compare checkbox | ✅ | FlightsPage.tsx — CompareBar (sticky bottom) + CompareModal (side-by-side 9-row table) |
+| 3.4 | Offer/Deal Banner System — `IsFeatured` bool on Coupon entity | ✅ | 4 coupons seeded as featured; GET /coupons/featured endpoint |
+| 3.5 | DealsSection on HomePage — gradient cards, copy-code button, days-left badge | ✅ | HomePage.tsx |
+| 3.6 | Admin IsFeatured toggle — "⭐ Featured on homepage" checkbox in CouponModal | ✅ | AdminPage.tsx |
+| 3.7 | Notifications Center — `Notification` entity + 4 DB endpoints | ✅ | Domain/Entities/Notification.cs; NotificationsController; INotificationService |
+| 3.8 | Notification bell in Navbar — polling, unread badge, mark-read | ✅ | Navbar.tsx — 30s poll, max-h-80 dropdown, emoji icons per type |
+| 3.9 | Auto-notifications on booking confirmed/cancelled | ✅ | FlightService + BookingService — optional INotificationService injection |
+| 3.10 | Price Alert / Fare Watch — `PriceAlert` entity + 3 endpoints | ✅ | PriceAlertsController; GET/POST/DELETE /users/price-alerts |
+| 3.11 | "Watch price" button on FlightCard | ✅ | PriceWatchButton component (auth-gated); Bell/Check icon; 3s feedback |
+| 3.12 | Dark Mode — `darkMode: 'class'` Tailwind config | ✅ | tailwind.config.js |
+| 3.13 | `useDarkMode` hook — localStorage persist, system-preference detection | ✅ | frontend/src/hooks/useDarkMode.ts |
+| 3.14 | Dark mode toggle (Moon/Sun) in Navbar desktop + mobile | ✅ | Navbar.tsx |
+| 3.15 | Dark classes on Layout, Footer, FlightCard, fare modal, notification dropdown | ✅ | dark: variants on all major surfaces |
+
+---
+
 ## Phase 12 — Hotel Reviews, Bus Ticket Details, Flight Layover Support
 **Branch:** `feature/bus-booking-confirmation-ticket-details`
 **Scope:** Hotel guest reviews system, bus booking confirmation page with full ticket details, flight layover fields for 1-stop flights in operator portal.

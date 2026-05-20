@@ -4,12 +4,15 @@ import {
   Plane, Hotel, Bus, Train, Car,
   Search, ArrowLeftRight, CalendarDays,
   ChevronDown, ChevronUp, Clock, MapPin, TrendingUp,
-  Shield, HeadphonesIcon, Tag, BadgePercent, Zap, X
+  Shield, HeadphonesIcon, Tag, BadgePercent, Zap, X, Copy, Check, Sparkles
 } from 'lucide-react'
 import { AirportSearch } from '@/components/search/AirportSearch'
 import { CitySearch } from '@/components/search/CitySearch'
 import { TravellerSelector, type TravellerConfig } from '@/components/search/TravellerSelector'
 import { AuthModal } from '@/components/home/AuthModal'
+import { api } from '@/api/axios'
+import { endpoints } from '@/api/endpoints'
+import type { FeaturedCouponDto } from '@/types'
 
 type TravelMode   = 'flight' | 'hotel' | 'bus' | 'train' | 'cab'
 type TripType     = 'oneway' | 'roundtrip'
@@ -383,6 +386,92 @@ function HotelGuestsDropdown({ value, onChange }: { value: HotelGuestConfig; onC
 }
 
 // ── Main component ───────────────────────────────────────────────────────────
+const DEAL_GRADIENTS = [
+  'from-blue-500 to-indigo-600',
+  'from-rose-500 to-pink-600',
+  'from-emerald-500 to-teal-600',
+  'from-orange-500 to-amber-600',
+  'from-purple-500 to-violet-600',
+  'from-cyan-500 to-sky-600',
+]
+
+function DealsSection() {
+  const [deals, setDeals]         = useState<FeaturedCouponDto[]>([])
+  const [copiedCode, setCopiedCode] = useState<string | null>(null)
+
+  useEffect(() => {
+    api.get(endpoints.coupons.featured)
+      .then(res => setDeals((res.data as { data: FeaturedCouponDto[] }).data ?? []))
+      .catch(() => {})
+  }, [])
+
+  if (deals.length === 0) return null
+
+  const handleCopy = (code: string) => {
+    navigator.clipboard.writeText(code).catch(() => {})
+    setCopiedCode(code)
+    setTimeout(() => setCopiedCode(null), 2000)
+  }
+
+  const daysLeft = (expiresAt?: string) => {
+    if (!expiresAt) return null
+    const diff = Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86_400_000)
+    if (diff < 0) return null
+    if (diff === 0) return 'Expires today'
+    return `${diff}d left`
+  }
+
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mb-6 flex items-center gap-2">
+        <Sparkles className="h-5 w-5 text-amber-500" />
+        <h2 className="text-xl font-bold text-gray-900">Exclusive Deals & Offers</h2>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {deals.map((deal, i) => {
+          const gradient = DEAL_GRADIENTS[i % DEAL_GRADIENTS.length]
+          const expiry = daysLeft(deal.expiresAt)
+          const copied = copiedCode === deal.code
+          return (
+            <div key={deal.code} className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm hover:shadow-md transition-shadow">
+              <div className={`bg-gradient-to-r ${gradient} px-5 py-4`}>
+                <p className="text-2xl font-black text-white">{deal.discount}</p>
+                {deal.maxSaving && <p className="mt-0.5 text-sm text-white/80">{deal.maxSaving}</p>}
+              </div>
+              <div className="flex items-center justify-between gap-3 px-5 py-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-md border border-dashed border-gray-300 bg-gray-50 px-2.5 py-1 font-mono text-sm font-bold tracking-widest text-gray-800">
+                      {deal.code}
+                    </span>
+                    {expiry && (
+                      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                        {expiry}
+                      </span>
+                    )}
+                  </div>
+                  {deal.minOrder && <p className="mt-1.5 text-xs text-gray-500">{deal.minOrder}</p>}
+                </div>
+                <button
+                  onClick={() => handleCopy(deal.code)}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-colors ${
+                    copied
+                      ? 'bg-emerald-500 text-white'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                  {copied ? 'Copied!' : 'Copy Code'}
+                </button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
 export default function HomePage() {
   const navigate = useNavigate()
 
@@ -945,6 +1034,9 @@ export default function HomePage() {
           </div>
         )}
       </section>
+
+      {/* ── DEALS SECTION ── */}
+      <DealsSection />
 
       {/* ── WHY TRAVELPORT ── */}
       <section className="bg-white py-12">

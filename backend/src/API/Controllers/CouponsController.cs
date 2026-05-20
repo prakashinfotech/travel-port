@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using TravelPort.Application.Common.Interfaces;
 using TravelPort.Application.Common.Models;
+using TravelPort.Application.DTOs.Admin;
 using TravelPort.Domain.Enums;
 
 namespace TravelPort.API.Controllers;
@@ -11,6 +12,26 @@ public class CouponsController : BaseApiController
     private readonly ICouponRepository _coupons;
 
     public CouponsController(ICouponRepository coupons) => _coupons = coupons;
+
+    [HttpGet("featured")]
+    public async Task<ActionResult<ApiResponse<List<FeaturedCouponDto>>>> GetFeatured(CancellationToken ct)
+    {
+        var coupons = await _coupons.GetAllCouponsAsync(ct);
+        var featured = coupons
+            .Where(c => c.IsActive && c.IsFeatured && (c.ExpiresAt == null || c.ExpiresAt > DateTime.UtcNow))
+            .Select(c => new FeaturedCouponDto(
+                c.Code,
+                c.Type == CouponType.Fixed
+                    ? $"Flat ₹{c.Value:0} off"
+                    : $"{c.Value:0}% off",
+                c.MinAmount > 0 ? $"Min booking ₹{c.MinAmount:0}" : null,
+                c.MaxDiscount.HasValue ? $"Up to ₹{c.MaxDiscount:0}" : null,
+                c.ExpiresAt
+            ))
+            .ToList();
+
+        return Ok(ApiResponse<List<FeaturedCouponDto>>.Ok(featured));
+    }
 
     [HttpGet("validate")]
     public async Task<ActionResult<ApiResponse<CouponValidateResponse>>> Validate(
@@ -48,3 +69,4 @@ public class CouponsController : BaseApiController
 }
 
 public record CouponValidateResponse(decimal DiscountAmount, string Message);
+public record FeaturedCouponDto(string Code, string Discount, string? MinOrder, string? MaxSaving, DateTime? ExpiresAt);

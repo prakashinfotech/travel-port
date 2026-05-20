@@ -249,11 +249,26 @@ export default function HotelDetailPage() {
 
   useEffect(() => {
     if (!id) return
+    setLoading(true)
+    setError(null)
     hotelService.getById(id)
-      .then(r => setHotel(r.data))
-      .catch(() => setError('Hotel not found.'))
+      .then(r => {
+        if (!r.data) { setError('Hotel not found.'); return }
+        setHotel(r.data)
+      })
+      .catch((err: any) => {
+        const msg = err?.response?.data?.message ?? 'Hotel not found.'
+        setError(msg)
+      })
       .finally(() => setLoading(false))
   }, [id])
+
+  // Derived values — computed unconditionally so hooks order is preserved
+  const galleryImgs = parseImages(hotel?.images, hotel?.imageUrl || FALLBACK_IMG)
+
+  // Hooks must be called unconditionally (before any early return)
+  const prevImg = useCallback(() => setCarouselIdx(i => (i - 1 + galleryImgs.length) % galleryImgs.length), [galleryImgs.length])
+  const nextImg = useCallback(() => setCarouselIdx(i => (i + 1) % galleryImgs.length), [galleryImgs.length])
 
   if (loading) return (
     <div className="min-h-screen bg-gray-50">
@@ -271,12 +286,8 @@ export default function HotelDetailPage() {
     </div>
   )
 
-  const amenities   = parseAmenities(hotel.amenities)
-  const galleryImgs = parseImages(hotel.images, hotel.imageUrl || FALLBACK_IMG)
-  const reviews     = hotel.reviews ?? []
-
-  const prevImg = useCallback(() => setCarouselIdx(i => (i - 1 + galleryImgs.length) % galleryImgs.length), [galleryImgs.length])
-  const nextImg = useCallback(() => setCarouselIdx(i => (i + 1) % galleryImgs.length), [galleryImgs.length])
+  const amenities = parseAmenities(hotel.amenities)
+  const reviews   = hotel.reviews ?? []
   const nights    = checkIn && checkOut
     ? Math.max(1, Math.round((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86400000))
     : 0

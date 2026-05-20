@@ -89,7 +89,7 @@
 - [x] ✅ **Error boundary** — route-level React error boundary added with recovery UI.
 - [x] ✅ **Toast notifications** — shared success/error/info toasts added for profile and payment-card flows.
 - [x] ✅ **Skeleton loaders for Hotels, Buses, Trains, Cabs** — shared non-flight skeleton components now cover transport search pages, while hotels already used dedicated skeleton cards.
-- [ ] 🟢 **Dark mode** — Tailwind config supports it; no dark-mode classes applied.
+- [x] ✅ **Dark mode** — `darkMode: 'class'` in Tailwind config; `useDarkMode` hook persists to localStorage; Moon/Sun toggle in Navbar; `dark:` classes on Layout, Navbar, Footer, FlightCard.
 - [ ] 🟢 **PWA / offline support** — Vite PWA plugin not configured.
 
 ---
@@ -108,6 +108,7 @@
 
 ## Recently Completed ✅
 
+- [x] **Phase 3 — UX Enhancements** — Booking Status Timeline (BookingDetailPage), Flight Comparison (up to 3 flights, sticky bar, side-by-side modal), Deals Section on HomePage (featured coupons with copy code), Notifications Center (bell icon, 4 types, polling, mark-read), Price Alert/Fare Watch (PriceAlerts table, 3 endpoints, Watch price button on FlightCard), Dark Mode (toggle in Navbar, localStorage persist, dark: classes on major components)
 - [x] **Hotel image gallery carousel + lightbox** — `Images` JSON column passed through `HotelDto`; `parseImages()` helper with fallback; full carousel (prev/next arrows, dot indicators, "View all N photos") + lightbox with keyboard nav (←/→/Esc), counter, thumbnail strip on `HotelDetailPage`; `DataSeeder` now seeds 5-image galleries grouped by star rating (3★ budget / 4★ business / 5★ luxury pools)
 - [x] **Bus seat L/U labels** — Seat numbers serialized as `N(L)`/`N(U)` in `BookBusPage`; legend shown on `BusBookingConfirmPage`; PDF e-ticket footer includes "Seat suffix: (L) = Lower Deck, (U) = Upper Deck" note
 - [x] **Flights date picker UX** — `DatePickerInput` gets `variant` prop (`'box'` | `'underline'`); FlightsPage uses `variant="underline"` so departure/return pickers match the FROM/TO underline style

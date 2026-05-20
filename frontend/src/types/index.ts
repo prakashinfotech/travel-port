@@ -486,7 +486,16 @@ export interface CouponDto {
   usedCount: number
   expiresAt?: string
   isActive: boolean
+  isFeatured: boolean
   createdAt: string
+}
+
+export interface FeaturedCouponDto {
+  code: string
+  discount: string
+  minOrder?: string
+  maxSaving?: string
+  expiresAt?: string
 }
 
 export interface CreateCouponRequest {
@@ -507,6 +516,7 @@ export interface UpdateCouponRequest {
   usageLimit?: number
   expiresAt?: string
   isActive: boolean
+  isFeatured?: boolean
 }
 
 export interface MonthlyRevenueDto { month: string; revenue: number; bookingCount: number }

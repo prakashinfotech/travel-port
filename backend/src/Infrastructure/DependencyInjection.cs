@@ -48,6 +48,9 @@ public static class DependencyInjection
         services.AddSingleton<ITrainSearchProvider, TrainSearchProvider>();
         services.AddSingleton<ICabSearchProvider, CabSearchProvider>();
 
+        // ── Notifications ─────────────────────────────────────────────────────
+        services.AddScoped<INotificationService, NotificationService>();
+
         // ── Background workers ────────────────────────────────────────────────
         services.AddHostedService<BookingExpiryWorker>();
         services.AddHostedService<RefreshTokenCleanupWorker>();

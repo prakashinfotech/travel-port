@@ -926,3 +926,39 @@ Seats locked by others shown in amber on the seat map. Booking rejected if a con
 | 422  | Business rule violation  |
 | 429  | Rate limit exceeded      |
 | 500  | Internal server error    |
+
+
+---
+
+## Notifications (Phase 3)
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/v1/users/notifications` | User | List all notifications (newest first) |
+| GET | `/api/v1/users/notifications/unread-count` | User | Returns unread count as integer |
+| PATCH | `/api/v1/users/notifications/:id/read` | User | Mark single notification as read |
+| PATCH | `/api/v1/users/notifications/read-all` | User | Mark all notifications as read |
+
+**Notification types:** `BookingConfirmed`, `BookingCancelled`, `CouponExpiring`, `PriceDrop`
+
+---
+
+## Price Alerts (Phase 3)
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/v1/users/price-alerts` | User | List active price alerts |
+| POST | `/api/v1/users/price-alerts` | User | Create alert (deduplicates by route+date) |
+| DELETE | `/api/v1/users/price-alerts/:id` | User | Deactivate alert |
+
+**POST body:** `{ origin, destination, travelDate, currentPrice, email? }`
+
+---
+
+## Featured Coupons (Phase 3)
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/v1/coupons/featured` | None | Returns active featured non-expired coupons |
+
+**Response:** `{ code, discount, minOrder?, maxSaving?, expiresAt? }[]`

@@ -1,20 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom'
-import { ArrowLeft, Bus, Calendar, Car, CheckCircle, Download, Luggage, Mail, MapPin, Phone, Plane, ShieldCheck, TicketPercent, Train, UserRound } from 'lucide-react'
+import { ArrowLeft, Bus, Calendar, Car, Check, CheckCircle, Download, Luggage, Mail, MapPin, Phone, Plane, ShieldCheck, TicketPercent, Train, UserRound, X } from 'lucide-react'
 import type { BookingDto, BookingStatus } from '@/types'
 import { bookingService } from '@/services/bookingService'
-import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { formatCurrency, formatDateTime, formatDuration } from '@/utils/formatters'
-
-const statusVariant: Record<BookingStatus, 'info' | 'success' | 'danger' | 'warning' | 'default'> = {
-  Pending: 'warning',
-  Confirmed: 'success',
-  Cancelled: 'danger',
-  Completed: 'default',
-}
 
 interface BookingUiSnapshot {
   bookingId: string
@@ -89,6 +81,103 @@ function buildPdfBlob(lines: string[]) {
   pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`
 
   return new Blob([pdf], { type: 'application/pdf' })
+}
+
+const TIMELINE_STEPS = [
+  { label: 'Booked',            sub: 'Booking created' },
+  { label: 'Payment Confirmed', sub: 'Payment received' },
+  { label: 'Confirmed',         sub: 'Booking confirmed' },
+  { label: 'Completed',         sub: 'Journey complete' },
+]
+
+// How many steps are fully "done" (0-based index of last done step, or -1)
+const DONE_THROUGH: Record<BookingStatus, number> = {
+  Pending:   0,   // only Booked is done
+  Confirmed: 2,   // Booked + Payment + Confirmed done
+  Completed: 3,   // all done
+  Cancelled: 1,   // Booked + Payment done; rest greyed
+}
+
+function BookingTimeline({ status, bookingDate }: { status: BookingStatus; bookingDate: string }) {
+  const doneThrough = DONE_THROUGH[status]
+  const isCancelled = status === 'Cancelled'
+  const isCompleted = status === 'Completed'
+
+  type DotState = 'done' | 'active' | 'greyed' | 'pending'
+
+  function dotState(i: number): DotState {
+    if (i <= doneThrough) return 'done'
+    if (isCancelled) return 'greyed'
+    if (!isCompleted && i === doneThrough + 1) return 'active'
+    return 'pending'
+  }
+
+  const bookedOn = new Date(bookingDate).toLocaleDateString('en-IN', {
+    day: 'numeric', month: 'short', year: 'numeric',
+  })
+
+  return (
+    <div className="mt-5 border-t border-gray-100 pt-5">
+      <div className="relative flex items-start">
+        {TIMELINE_STEPS.map((step, i) => {
+          const state = dotState(i)
+          const isLast = i === TIMELINE_STEPS.length - 1
+          const lineGreen = i < doneThrough || (i <= doneThrough && !isCancelled)
+
+          return (
+            <div key={step.label} className="relative flex flex-1 flex-col items-center">
+              {/* connector line — sits at vertical centre of dot */}
+              {!isLast && (
+                <div
+                  className={`absolute left-1/2 top-4 h-0.5 w-full transition-colors ${
+                    lineGreen ? 'bg-emerald-400' : 'bg-gray-200'
+                  }`}
+                />
+              )}
+
+              {/* dot */}
+              <div
+                className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+                  state === 'done'    ? 'border-emerald-500 bg-emerald-500' :
+                  state === 'active'  ? 'border-blue-500 bg-white' :
+                  state === 'greyed'  ? 'border-gray-300 bg-gray-100' :
+                                       'border-gray-300 bg-white'
+                }`}
+              >
+                {state === 'done'   && <Check className="h-4 w-4 text-white" strokeWidth={3} />}
+                {state === 'active' && <span className="block h-2.5 w-2.5 animate-pulse rounded-full bg-blue-500" />}
+                {(state === 'greyed' || state === 'pending') && (
+                  <span className="block h-2 w-2 rounded-full bg-gray-300" />
+                )}
+              </div>
+
+              {/* label */}
+              <p className={`mt-2 px-1 text-center text-[11px] font-bold leading-tight ${
+                state === 'done'   ? 'text-emerald-700' :
+                state === 'active' ? 'text-blue-600'    :
+                                     'text-gray-400'
+              }`}>
+                {step.label}
+              </p>
+
+              {/* timestamp — only on first step */}
+              {i === 0 && (
+                <p className="mt-0.5 text-center text-[10px] leading-tight text-gray-400">{bookedOn}</p>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {isCancelled && (
+        <div className="mt-4 flex items-center justify-center">
+          <span className="flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-4 py-1.5 text-xs font-bold text-red-700">
+            <X className="h-3 w-3" /> Booking Cancelled
+          </span>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function BookingDetailPage() {
@@ -358,12 +447,11 @@ export default function BookingDetailPage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <Badge variant={statusVariant[mergedBooking.status]} className="px-3 py-1 text-xs font-bold">
-                    {mergedBooking.status}
-                  </Badge>
-                  <p className="mt-3 text-sm font-medium text-blue-600">{mergedBooking.bookingReference}</p>
+                  <p className="text-sm font-medium text-blue-600">{mergedBooking.bookingReference}</p>
                 </div>
               </div>
+
+              <BookingTimeline status={mergedBooking.status} bookingDate={mergedBooking.bookingDate} />
 
               <div className="mt-5 rounded-2xl bg-gray-50 p-5">
                 <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 pb-4">

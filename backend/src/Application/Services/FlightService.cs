@@ -20,6 +20,7 @@ public class FlightService : IFlightService
     private readonly IEmailService _email;
     private readonly ICouponRepository _coupons;
     private readonly IExternalFlightProvider? _externalProvider;
+    private readonly INotificationService? _notifications;
 
     private static readonly Dictionary<string, string> AirlineCodeMap = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -39,6 +40,7 @@ public class FlightService : IFlightService
     public FlightService(IFlightRepository flights, IBookingRepository bookings,
         IWalletService wallet, ICacheService cache, IUnitOfWork uow,
         IUserRepository users, IEmailService email, ICouponRepository coupons,
+        INotificationService? notifications = null,
         IExternalFlightProvider? externalProvider = null)
     {
         _flights = flights;
@@ -49,6 +51,7 @@ public class FlightService : IFlightService
         _users = users;
         _email = email;
         _coupons = coupons;
+        _notifications = notifications;
         _externalProvider = externalProvider;
     }
 
@@ -229,6 +232,15 @@ public class FlightService : IFlightService
                     req.CabinClass, req.Passengers,
                     unitPrice, total, discount, req.CouponCode, finalAmount, ct);
             }
+        }
+
+        if (_notifications is not null && flightEntity is not null)
+        {
+            var originCity = CityNames.TryGetValue(flightEntity.Source, out var oc2) ? oc2 : flightEntity.Source;
+            var destCity   = CityNames.TryGetValue(flightEntity.Destination, out var dc2) ? dc2 : flightEntity.Destination;
+            await _notifications.CreateAsync(userId, "BookingConfirmed",
+                "Flight Booking Confirmed!",
+                $"Your flight {originCity} → {destCity} (Ref: {booking.BookingRef}) is confirmed.", ct);
         }
 
         return new BookingCreatedResponse(booking.Id, booking.BookingRef, booking.TotalAmount, booking.Status);

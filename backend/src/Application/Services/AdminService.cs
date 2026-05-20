@@ -212,6 +212,7 @@ public class AdminService : IAdminService
         coupon.UsageLimit  = req.UsageLimit;
         coupon.ExpiresAt   = req.ExpiresAt;
         coupon.IsActive    = req.IsActive;
+        coupon.IsFeatured  = req.IsFeatured;
 
         await _coupons.UpdateAsync(coupon, ct);
         await _uow.SaveChangesAsync(ct);
@@ -553,7 +554,7 @@ public class AdminService : IAdminService
     private static CouponDto ToDto(Coupon c) => new(
         c.Id, c.Code, c.Type.ToString(), c.Value,
         c.MinAmount, c.MaxDiscount, c.UsageLimit, c.UsedCount,
-        c.ExpiresAt, c.IsActive, c.CreatedAt
+        c.ExpiresAt, c.IsActive, c.IsFeatured, c.CreatedAt
     );
 
     private static AdminHotelListDto ToAdminHotelDto(Hotel h, User? manager) => new(

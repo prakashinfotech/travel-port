@@ -13,5 +13,6 @@ public class Coupon : BaseEntity
     public int? UsageLimit { get; set; }
     public int UsedCount { get; set; } = 0;
     public DateTime? ExpiresAt { get; set; }
-    public bool IsActive { get; set; } = true;
+    public bool IsActive    { get; set; } = true;
+    public bool IsFeatured  { get; set; } = false;
 }

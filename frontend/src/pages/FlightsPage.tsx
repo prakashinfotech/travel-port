@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
-import { Search, Home, ChevronRight, ArrowLeftRight, ChevronDown, ChevronLeft, CalendarDays, X } from 'lucide-react'
+import { Search, Home, ChevronRight, ArrowLeftRight, ChevronDown, ChevronLeft, CalendarDays, X, BarChart2, Check, Clock, Luggage, ShieldCheck, Plane } from 'lucide-react'
 import type { FlightDto } from '@/types'
 import { flightService } from '@/services/flightService'
 import { FlightCard } from '@/components/flights/FlightCard'
@@ -1018,6 +1018,224 @@ function RoundTripStickyBar({ dep, ret, passengerCount, onBook }: {
   )
 }
 
+// ── Compare Bar ───────────────────────────────────────────────────────────────
+
+function CompareBar({
+  flights, onRemove, onCompareNow, onClear,
+}: {
+  flights: FlightDto[]
+  onRemove: (id: string) => void
+  onCompareNow: () => void
+  onClear: () => void
+}) {
+  const fmt = (iso: string) => new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })
+  const slots = [0, 1, 2]
+
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-700 shadow-2xl">
+      <div className="mx-auto max-w-6xl flex items-center gap-4 px-4 py-3">
+        <div className="flex items-center gap-2 text-white shrink-0">
+          <BarChart2 className="h-4 w-4 text-blue-400" />
+          <span className="text-sm font-bold">Compare Flights</span>
+          <span className="text-xs text-gray-400">({flights.length}/3)</span>
+        </div>
+
+        <div className="flex flex-1 items-center gap-3 overflow-x-auto">
+          {slots.map(i => {
+            const f = flights[i]
+            if (!f) {
+              return (
+                <div key={i} className="flex h-14 min-w-[160px] flex-1 items-center justify-center rounded-xl border border-dashed border-gray-600 text-xs text-gray-500">
+                  + Add flight
+                </div>
+              )
+            }
+            return (
+              <div key={f.id} className="relative flex h-14 min-w-[160px] flex-1 items-center gap-3 rounded-xl bg-gray-800 px-3">
+                <div className="flex flex-col min-w-0">
+                  <p className="text-xs font-bold text-white truncate">{f.airline}</p>
+                  <p className="text-[11px] text-gray-400 tabular-nums">
+                    {fmt(f.departureTime)} → {fmt(f.arrivalTime)}
+                  </p>
+                  <p className="text-xs font-bold text-orange-400">₹{f.price.toLocaleString('en-IN')}</p>
+                </div>
+                <button
+                  onClick={() => onRemove(f.id)}
+                  className="absolute right-2 top-2 rounded-full p-0.5 text-gray-500 hover:bg-gray-700 hover:text-white"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={onClear}
+            className="text-xs text-gray-400 hover:text-white transition-colors"
+          >
+            Clear
+          </button>
+          <button
+            onClick={onCompareNow}
+            disabled={flights.length < 2}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Compare Now
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Compare Modal ─────────────────────────────────────────────────────────────
+
+function CompareModal({ flights, onClose }: { flights: FlightDto[]; onClose: () => void }) {
+  const fmt = (iso: string) => new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })
+
+  // Best-value indices
+  const minPrice = Math.min(...flights.map(f => f.price))
+  const minDur   = Math.min(...flights.map(f => f.durationMinutes))
+  const minStops = Math.min(...flights.map(f => f.stops))
+
+  type Row = {
+    label: string
+    icon: React.ReactNode
+    values: (f: FlightDto) => React.ReactNode
+    best?: (f: FlightDto) => boolean
+  }
+
+  const rows: Row[] = [
+    {
+      label: 'Price (per adult)',
+      icon: <span className="text-base">₹</span>,
+      values: f => <span className="text-xl font-black tabular-nums">₹{f.price.toLocaleString('en-IN')}</span>,
+      best:  f => f.price === minPrice,
+    },
+    {
+      label: 'Duration',
+      icon: <Clock className="h-4 w-4" />,
+      values: f => formatDuration(f.durationMinutes),
+      best:  f => f.durationMinutes === minDur,
+    },
+    {
+      label: 'Stops',
+      icon: <Plane className="h-4 w-4" />,
+      values: f => f.stops === 0 ? 'Non-stop' : `${f.stops} stop${f.stops > 1 ? 's' : ''}`,
+      best:  f => f.stops === minStops,
+    },
+    {
+      label: 'Departure',
+      icon: <span className="text-sm font-bold">DEP</span>,
+      values: f => fmt(f.departureTime),
+    },
+    {
+      label: 'Arrival',
+      icon: <span className="text-sm font-bold">ARR</span>,
+      values: f => {
+        const dep = new Date(f.departureTime); const arr = new Date(f.arrivalTime)
+        const nextDay = arr.getDate() !== dep.getDate() || arr.getMonth() !== dep.getMonth()
+        return <>{fmt(f.arrivalTime)}{nextDay && <sup className="ml-0.5 text-orange-500">+1</sup>}</>
+      },
+    },
+    {
+      label: 'Cabin Baggage',
+      icon: <Luggage className="h-4 w-4" />,
+      values: () => '7 Kgs',
+    },
+    {
+      label: 'Check-in Baggage',
+      icon: <Luggage className="h-4 w-4" />,
+      values: f => f.baggageIncluded ? (f.checkedBags ? `${f.checkedBags} Kgs` : 'Included') : '15 Kgs (chargeable)',
+      best:  f => !!f.baggageIncluded,
+    },
+    {
+      label: 'Refund Policy',
+      icon: <ShieldCheck className="h-4 w-4" />,
+      values: f => f.isRefundable ? 'Refundable' : 'Non-refundable',
+      best:  f => !!f.isRefundable,
+    },
+    {
+      label: 'Available Seats',
+      icon: <span className="text-sm font-bold">🪑</span>,
+      values: f => f.availableSeats > 0 ? `${f.availableSeats} left` : 'Sold out',
+      best:  f => f.availableSeats > 9,
+    },
+  ]
+
+  return (
+    <div className="fixed inset-0 z-[60] bg-slate-950/60 px-3 py-6 backdrop-blur-sm sm:px-6" onClick={onClose}>
+      <div
+        className="mx-auto flex h-full max-w-5xl items-start justify-center"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="max-h-full w-full overflow-hidden rounded-3xl bg-white shadow-2xl flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-gray-200 px-6 py-5 shrink-0">
+            <div>
+              <h3 className="text-2xl font-extrabold text-gray-900">Flight Comparison</h3>
+              <p className="mt-0.5 text-sm text-gray-500">Best values highlighted in green</p>
+            </div>
+            <button onClick={onClose} className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+
+          {/* Table */}
+          <div className="overflow-auto flex-1">
+            <table className="w-full">
+              <thead className="sticky top-0 z-10 bg-gray-50">
+                <tr>
+                  <th className="w-40 px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Feature</th>
+                  {flights.map(f => (
+                    <th key={f.id} className="px-4 py-4 text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        <div
+                          className="flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold text-white"
+                          style={{ backgroundColor: AIRLINE_COLORS[f.airline] ?? '#555' }}
+                        >
+                          {f.airline.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+                        </div>
+                        <p className="text-sm font-bold text-gray-900 leading-tight">{f.airline}</p>
+                        <p className="text-xs text-gray-400">{f.flightNumber}</p>
+                      </div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, ri) => (
+                  <tr key={row.label} className={ri % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-2 text-xs font-semibold text-gray-500">
+                        {row.icon}
+                        {row.label}
+                      </div>
+                    </td>
+                    {flights.map(f => {
+                      const isBest = row.best?.(f) ?? false
+                      return (
+                        <td key={f.id} className={`px-4 py-3.5 text-center ${isBest ? 'bg-emerald-50' : ''}`}>
+                          <div className={`flex items-center justify-center gap-1.5 text-sm font-semibold ${isBest ? 'text-emerald-700' : 'text-gray-700'}`}>
+                            {isBest && <Check className="h-3.5 w-3.5 shrink-0" />}
+                            {row.values(f)}
+                          </div>
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function FlightsPage() {
@@ -1062,6 +1280,18 @@ export default function FlightsPage() {
   const [retRTSort,  setRetRTSort]  = useState<RTSortKey>('price')
   const [rtFilters,  setRtFilters]  = useState<RTFilters>(DEFAULT_RT_FILTERS)
   const [hasSearched, setHasSearched] = useState(false)
+
+  // Compare state (one-way only)
+  const [compareIds,    setCompareIds]    = useState<string[]>([])
+  const [compareOpen,   setCompareOpen]   = useState(false)
+
+  const handleCompareToggle = useCallback((id: string, checked: boolean) => {
+    setCompareIds(prev =>
+      checked ? (prev.length < 3 ? [...prev, id] : prev) : prev.filter(x => x !== id)
+    )
+  }, [])
+
+  const compareFlights = useMemo(() => flights.filter(f => compareIds.includes(f.id)), [flights, compareIds])
 
   const fetchLowestPriceForDates = useCallback(async (dates: string[]) => {
     const uniqueDates = dates.filter(date => date >= TODAY && !fetchedPriceDates.current.has(date))
@@ -1497,7 +1727,7 @@ export default function FlightsPage() {
         ) : (
 
         /* ── One-way layout ────────────────────────────────────────────── */
-        <div className="flex gap-5">
+        <div className={`flex gap-5 ${compareIds.length > 0 ? 'pb-24' : ''}`}>
           <FilterSidebar
             flights={flights}
             filters={filters}
@@ -1541,7 +1771,16 @@ export default function FlightsPage() {
                       <p className="text-sm mt-1">Try different dates, airports, or adjust filters</p>
                     </div>
                   )
-                  : paginatedFlights.map(f => <FlightCard key={f.id} flight={f} passengerCount={travellers.adults + travellers.children + travellers.infants} />)
+                  : paginatedFlights.map(f => (
+                    <FlightCard
+                      key={f.id}
+                      flight={f}
+                      passengerCount={travellers.adults + travellers.children + travellers.infants}
+                      isCompared={compareIds.includes(f.id)}
+                      compareDisabled={compareIds.length >= 3}
+                      onCompare={checked => handleCompareToggle(f.id, checked)}
+                    />
+                  ))
               }
             </div>
 
@@ -1607,6 +1846,19 @@ export default function FlightsPage() {
         onSelectDate={handleDateSelect}
         onMonthChange={handleCalendarMonthChange}
       />
+
+      {compareIds.length > 0 && tripType === 'oneway' && (
+        <CompareBar
+          flights={compareFlights}
+          onRemove={id => handleCompareToggle(id, false)}
+          onCompareNow={() => setCompareOpen(true)}
+          onClear={() => setCompareIds([])}
+        />
+      )}
+
+      {compareOpen && compareFlights.length >= 2 && (
+        <CompareModal flights={compareFlights} onClose={() => setCompareOpen(false)} />
+      )}
     </div>
   )
 }

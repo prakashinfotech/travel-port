@@ -70,6 +70,7 @@ function CouponModal({ coupon, onClose, onSaved }: {
     usageLimit:  coupon?.usageLimit  != null ? String(coupon.usageLimit)  : '',
     expiresAt:   coupon?.expiresAt   ? coupon.expiresAt.slice(0, 10) : '',
     isActive:    coupon?.isActive    ?? true,
+    isFeatured:  coupon?.isFeatured  ?? false,
   })
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState('')
@@ -85,7 +86,7 @@ function CouponModal({ coupon, onClose, onSaved }: {
           type: form.type, value: Number(form.value), minAmount: Number(form.minAmount),
           maxDiscount: form.maxDiscount !== '' ? Number(form.maxDiscount) : undefined,
           usageLimit:  form.usageLimit  !== '' ? Number(form.usageLimit)  : undefined,
-          expiresAt:   form.expiresAt   || undefined, isActive: form.isActive,
+          expiresAt:   form.expiresAt   || undefined, isActive: form.isActive, isFeatured: form.isFeatured,
         }
         await adminService.updateCoupon(coupon!.id, req)
       } else {
@@ -156,11 +157,19 @@ function CouponModal({ coupon, onClose, onSaved }: {
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             {isEdit && (
-              <div className="flex items-center gap-2 pt-5">
-                <input type="checkbox" id="isActive" checked={form.isActive}
-                  onChange={e => set('isActive', e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600" />
-                <label htmlFor="isActive" className="text-sm font-medium text-gray-700">Active</label>
+              <div className="col-span-2 flex items-center gap-6 pt-2">
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" id="isActive" checked={form.isActive}
+                    onChange={e => set('isActive', e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600" />
+                  <label htmlFor="isActive" className="text-sm font-medium text-gray-700">Active</label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" id="isFeatured" checked={form.isFeatured}
+                    onChange={e => set('isFeatured', e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 text-amber-500" />
+                  <label htmlFor="isFeatured" className="text-sm font-medium text-gray-700">⭐ Featured on homepage</label>
+                </div>
               </div>
             )}
           </div>

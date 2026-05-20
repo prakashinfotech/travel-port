@@ -11,6 +11,7 @@ public record CouponDto(
     int UsedCount,
     DateTime? ExpiresAt,
     bool IsActive,
+    bool IsFeatured,
     DateTime CreatedAt
 );
 
@@ -31,5 +32,6 @@ public record UpdateCouponRequest(
     decimal? MaxDiscount,
     int? UsageLimit,
     DateTime? ExpiresAt,
-    bool IsActive
+    bool IsActive,
+    bool IsFeatured = false
 );

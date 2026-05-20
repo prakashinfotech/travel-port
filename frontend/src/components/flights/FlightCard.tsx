@@ -1,13 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CheckCircle2, Clock, Luggage, ShieldCheck, Star, X } from 'lucide-react'
+import { CheckCircle2, Clock, Luggage, ShieldCheck, Star, X, Bell, Check as CheckIcon } from 'lucide-react'
 import type { FlightDto } from '@/types'
 import { Button } from '@/components/ui/Button'
 import { formatCurrency, formatDuration } from '@/utils/formatters'
+import { api } from '@/api/axios'
+import { useSelector } from 'react-redux'
+import type { RootState } from '@/store'
 
 interface FlightCardProps {
   flight: FlightDto
   passengerCount?: number
+  isCompared?: boolean
+  compareDisabled?: boolean
+  onCompare?: (checked: boolean) => void
 }
 
 type FarePlanId = 'saver' | 'flex' | 'max'
@@ -64,6 +70,50 @@ const FARE_PLANS: FarePlan[] = [
   },
 ]
 
+function PriceWatchButton({ flight }: { flight: FlightDto }) {
+  const isAuthenticated = useSelector((s: RootState) => s.auth.accessToken !== null)
+  const [watching, setWatching] = useState(false)
+  const [done,     setDone]     = useState(false)
+
+  if (!isAuthenticated) return null
+
+  const handleWatch = async () => {
+    if (watching || done) return
+    setWatching(true)
+    try {
+      const travelDate = flight.departureTime.slice(0, 10)
+      await api.post('/users/price-alerts', {
+        origin:       flight.origin,
+        destination:  flight.destination,
+        travelDate,
+        currentPrice: flight.price,
+      })
+      setDone(true)
+      setTimeout(() => setDone(false), 3000)
+    } catch { /* ignore */ } finally {
+      setWatching(false)
+    }
+  }
+
+  return (
+    <button
+      onClick={handleWatch}
+      disabled={watching}
+      title="Watch this price"
+      className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+        done
+          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+          : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200'
+      }`}
+    >
+      {done
+        ? <><CheckIcon className="h-3 w-3" /> Watching</>
+        : <><Bell className="h-3 w-3" /> Watch price</>
+      }
+    </button>
+  )
+}
+
 function AirlineLogo({ airline }: { airline: string }) {
   const color = AIRLINE_COLORS[airline] ?? '#555'
   const initials = airline.split(' ').map(word => word[0]).join('').slice(0, 2).toUpperCase()
@@ -86,7 +136,7 @@ function FareRow({ label, included }: { label: string; included: boolean }) {
   )
 }
 
-export function FlightCard({ flight, passengerCount = 1 }: FlightCardProps) {
+export function FlightCard({ flight, passengerCount = 1, isCompared = false, compareDisabled = false, onCompare }: FlightCardProps) {
   const navigate = useNavigate()
   const [showFareModal, setShowFareModal] = useState(false)
 
@@ -122,18 +172,18 @@ export function FlightCard({ flight, passengerCount = 1 }: FlightCardProps) {
 
   return (
     <>
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+      <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm transition-shadow hover:shadow-md">
         <div className="flex items-center gap-4 px-5 py-4">
           <div className="flex w-20 flex-shrink-0 flex-col items-center gap-1.5">
             <AirlineLogo airline={flight.airline} />
-            <p className="text-center text-xs font-semibold leading-tight text-gray-700">{flight.airline}</p>
-            <p className="text-xs text-gray-400">{flight.flightNumber}</p>
+            <p className="text-center text-xs font-semibold leading-tight text-gray-700 dark:text-gray-200">{flight.airline}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">{flight.flightNumber}</p>
           </div>
 
           <div className="flex min-w-0 flex-1 items-center justify-center gap-2">
             <div className="text-center">
-              <p className="tabular-nums text-2xl font-bold text-gray-900">{fmt(dep)}</p>
-              <p className="mt-0.5 text-sm text-gray-500">{flight.origin}</p>
+              <p className="tabular-nums text-2xl font-bold text-gray-900 dark:text-gray-100">{fmt(dep)}</p>
+              <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{flight.origin}</p>
             </div>
 
             <div className="flex max-w-[140px] min-w-[80px] flex-1 flex-col items-center gap-0.5">
@@ -151,18 +201,18 @@ export function FlightCard({ flight, passengerCount = 1 }: FlightCardProps) {
             </div>
 
             <div className="text-center">
-              <p className="tabular-nums text-2xl font-bold text-gray-900">
+              <p className="tabular-nums text-2xl font-bold text-gray-900 dark:text-gray-100">
                 {fmt(arr)}
                 {isNextDay && <sup className="ml-0.5 text-base text-orange-500">+1</sup>}
               </p>
-              <p className="mt-0.5 text-sm text-gray-500">{flight.destination}</p>
+              <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{flight.destination}</p>
             </div>
           </div>
 
           <div className="flex min-w-[120px] flex-shrink-0 flex-col items-end gap-2">
             <div className="text-right">
-              <p className="text-xl font-bold text-gray-900">{formatCurrency(flight.price)}</p>
-              <p className="text-xs text-gray-400">per adult</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{formatCurrency(flight.price)}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">per adult</p>
             </div>
             <button
               onClick={() => setShowFareModal(true)}
@@ -178,6 +228,7 @@ export function FlightCard({ flight, passengerCount = 1 }: FlightCardProps) {
             {flight.availableSeats > 0 && flight.availableSeats <= 9 && (
               <p className="text-xs font-semibold text-red-500">{flight.availableSeats} seats left!</p>
             )}
+            <PriceWatchButton flight={flight} />
           </div>
         </div>
 
@@ -193,15 +244,30 @@ export function FlightCard({ flight, passengerCount = 1 }: FlightCardProps) {
             )}
           </div>
         )}
+
+        {onCompare && (
+          <label className={`flex cursor-pointer items-center gap-2 border-t border-gray-100 px-5 py-2 transition-colors select-none ${isCompared ? 'bg-blue-50' : 'hover:bg-gray-50'} ${compareDisabled && !isCompared ? 'opacity-50 cursor-not-allowed' : ''}`}>
+            <input
+              type="checkbox"
+              checked={isCompared}
+              disabled={compareDisabled && !isCompared}
+              onChange={e => onCompare(e.target.checked)}
+              className="h-3.5 w-3.5 accent-blue-600"
+            />
+            <span className={`text-xs font-semibold ${isCompared ? 'text-blue-700' : 'text-gray-500'}`}>
+              {isCompared ? 'Added to compare' : 'Compare'}
+            </span>
+          </label>
+        )}
       </div>
 
       {showFareModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/55 px-3 py-6 backdrop-blur-[1px] sm:px-6">
           <div className="mx-auto flex h-full max-w-6xl items-start justify-center">
-            <div className="max-h-full w-full overflow-hidden rounded-[28px] bg-white shadow-2xl">
-              <div className="flex items-center justify-between border-b border-gray-200 px-6 py-5">
+            <div className="max-h-full w-full overflow-hidden rounded-[28px] bg-white dark:bg-gray-900 shadow-2xl">
+              <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-5">
                 <div>
-                  <h3 className="text-2xl font-extrabold text-gray-900">Flight Details and Fare Options available for you!</h3>
+                  <h3 className="text-2xl font-extrabold text-gray-900 dark:text-gray-100">Flight Details and Fare Options available for you!</h3>
                   <p className="mt-1 text-sm text-gray-500">
                     {flight.originCity} to {flight.destinationCity} · {effectivePassengerCount} traveller{effectivePassengerCount > 1 ? 's' : ''}
                   </p>
@@ -216,7 +282,7 @@ export function FlightCard({ flight, passengerCount = 1 }: FlightCardProps) {
               </div>
 
               <div className="max-h-[calc(100vh-10rem)] overflow-y-auto px-6 py-5">
-                <div className="mb-5 rounded-2xl bg-gray-50 px-5 py-4">
+                <div className="mb-5 rounded-2xl bg-gray-50 dark:bg-gray-800 px-5 py-4">
                   <div className="flex flex-wrap items-center gap-3 text-sm font-semibold text-gray-600">
                     <span>{flight.originCity} → {flight.destinationCity}</span>
                     <span className="flex items-center gap-2">
@@ -232,12 +298,12 @@ export function FlightCard({ flight, passengerCount = 1 }: FlightCardProps) {
                   {farePlans.map(plan => (
                     <div
                       key={plan.id}
-                      className={`overflow-hidden rounded-3xl border ${plan.id === 'max' ? 'border-blue-400 shadow-md shadow-blue-100' : 'border-gray-200'}`}
+                      className={`overflow-hidden rounded-3xl border ${plan.id === 'max' ? 'border-blue-400 shadow-md shadow-blue-100 dark:shadow-blue-900/30' : 'border-gray-200 dark:border-gray-700'}`}
                     >
-                      <div className="border-b border-gray-200 px-5 py-5">
-                        <p className="text-4xl font-black tracking-tight text-gray-900">{formatCurrency(plan.total)}</p>
-                        <p className="mt-1 text-sm text-gray-500">per adult</p>
-                        <p className="mt-3 text-sm font-bold tracking-[0.24em] text-gray-500">{plan.name}</p>
+                      <div className="border-b border-gray-200 dark:border-gray-700 px-5 py-5">
+                        <p className="text-4xl font-black tracking-tight text-gray-900 dark:text-gray-100">{formatCurrency(plan.total)}</p>
+                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">per adult</p>
+                        <p className="mt-3 text-sm font-bold tracking-[0.24em] text-gray-500 dark:text-gray-400">{plan.name}</p>
                       </div>
 
                       <div className="flex min-h-[25rem] flex-col px-5 py-4">

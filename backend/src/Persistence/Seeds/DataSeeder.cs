@@ -972,16 +972,16 @@ public static class DataSeeder
         {
             // Generic
             new Coupon { Id = Guid.NewGuid(), Code = "SAVE100",    Type = CouponType.Fixed,      Value = 100, MinAmount = 1000,  UsageLimit = 1000, ExpiresAt = DateTime.UtcNow.AddMonths(3),  IsActive = true },
-            new Coupon { Id = Guid.NewGuid(), Code = "FIRST10",    Type = CouponType.Percentage,  Value = 10,  MinAmount = 500,   MaxDiscount = 500,  UsageLimit = 500,  ExpiresAt = DateTime.UtcNow.AddMonths(6),  IsActive = true },
-            new Coupon { Id = Guid.NewGuid(), Code = "SUMMER20",   Type = CouponType.Percentage,  Value = 20,  MinAmount = 2000,  MaxDiscount = 1000, UsageLimit = 200,  ExpiresAt = DateTime.UtcNow.AddMonths(2),  IsActive = true },
+            new Coupon { Id = Guid.NewGuid(), Code = "FIRST10",    Type = CouponType.Percentage,  Value = 10,  MinAmount = 500,   MaxDiscount = 500,  UsageLimit = 500,  ExpiresAt = DateTime.UtcNow.AddMonths(6),  IsActive = true, IsFeatured = true },
+            new Coupon { Id = Guid.NewGuid(), Code = "SUMMER20",   Type = CouponType.Percentage,  Value = 20,  MinAmount = 2000,  MaxDiscount = 1000, UsageLimit = 200,  ExpiresAt = DateTime.UtcNow.AddMonths(2),  IsActive = true, IsFeatured = true },
             new Coupon { Id = Guid.NewGuid(), Code = "HOTEL500",   Type = CouponType.Fixed,       Value = 500, MinAmount = 3000,  UsageLimit = 300,   ExpiresAt = DateTime.UtcNow.AddMonths(4),  IsActive = true },
             new Coupon { Id = Guid.NewGuid(), Code = "FLAT15",     Type = CouponType.Percentage,  Value = 15,  MinAmount = 1500,  MaxDiscount = 750,  UsageLimit = 400,  ExpiresAt = DateTime.UtcNow.AddMonths(5),  IsActive = true },
             // Flight-specific
-            new Coupon { Id = Guid.NewGuid(), Code = "FLYSAVER",   Type = CouponType.Percentage,  Value = 10,  MinAmount = 500,   MaxDiscount = 800,  UsageLimit = 1000, ExpiresAt = DateTime.UtcNow.AddMonths(6),  IsActive = true },
+            new Coupon { Id = Guid.NewGuid(), Code = "FLYSAVER",   Type = CouponType.Percentage,  Value = 10,  MinAmount = 500,   MaxDiscount = 800,  UsageLimit = 1000, ExpiresAt = DateTime.UtcNow.AddMonths(6),  IsActive = true, IsFeatured = true },
             new Coupon { Id = Guid.NewGuid(), Code = "FLYOFF200",  Type = CouponType.Fixed,       Value = 200, MinAmount = 2000,  UsageLimit = 500,   ExpiresAt = DateTime.UtcNow.AddMonths(4),  IsActive = true },
             new Coupon { Id = Guid.NewGuid(), Code = "FLYDEAL15",  Type = CouponType.Percentage,  Value = 15,  MinAmount = 3000,  MaxDiscount = 1500, UsageLimit = 300,  ExpiresAt = DateTime.UtcNow.AddMonths(3),  IsActive = true },
             // Hotel-specific
-            new Coupon { Id = Guid.NewGuid(), Code = "HOTELOFF15", Type = CouponType.Percentage,  Value = 15,  MinAmount = 3000,  MaxDiscount = 1500, UsageLimit = 300,  ExpiresAt = DateTime.UtcNow.AddMonths(6),  IsActive = true },
+            new Coupon { Id = Guid.NewGuid(), Code = "HOTELOFF15", Type = CouponType.Percentage,  Value = 15,  MinAmount = 3000,  MaxDiscount = 1500, UsageLimit = 300,  ExpiresAt = DateTime.UtcNow.AddMonths(6),  IsActive = true, IsFeatured = true },
             new Coupon { Id = Guid.NewGuid(), Code = "STAYMORE",   Type = CouponType.Fixed,       Value = 750, MinAmount = 5000,  UsageLimit = 200,   ExpiresAt = DateTime.UtcNow.AddMonths(4),  IsActive = true },
             new Coupon { Id = Guid.NewGuid(), Code = "HOTELDEAL",  Type = CouponType.Percentage,  Value = 12,  MinAmount = 2000,  MaxDiscount = 1000, UsageLimit = 500,  ExpiresAt = DateTime.UtcNow.AddMonths(5),  IsActive = true },
         };

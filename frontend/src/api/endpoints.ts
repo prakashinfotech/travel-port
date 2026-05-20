@@ -98,5 +98,6 @@ export const endpoints = {
   },
   coupons: {
     validate: '/coupons/validate',
+    featured: '/coupons/featured',
   },
 }

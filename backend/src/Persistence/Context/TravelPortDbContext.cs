@@ -24,6 +24,8 @@ public class TravelPortDbContext : DbContext
     public DbSet<FlightCompany> FlightCompanies => Set<FlightCompany>();
     public DbSet<BusCompany> BusCompanies => Set<BusCompany>();
     public DbSet<CabCompany> CabCompanies => Set<CabCompany>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<PriceAlert>   PriceAlerts   => Set<PriceAlert>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -46,6 +48,18 @@ public class TravelPortDbContext : DbContext
         modelBuilder.Entity<FlightCompany>().HasQueryFilter(e => e.DeletedAt == null);
         modelBuilder.Entity<BusCompany>().HasQueryFilter(e => e.DeletedAt == null);
         modelBuilder.Entity<CabCompany>().HasQueryFilter(e => e.DeletedAt == null);
+        modelBuilder.Entity<Notification>().HasQueryFilter(e => e.DeletedAt == null);
+        modelBuilder.Entity<PriceAlert>().HasQueryFilter(e => e.DeletedAt == null);
+        modelBuilder.Entity<PriceAlert>()
+            .HasOne(p => p.User)
+            .WithMany()
+            .HasForeignKey(p => p.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<Notification>()
+            .HasOne(n => n.User)
+            .WithMany()
+            .HasForeignKey(n => n.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<Flight>()
             .HasOne(f => f.FlightCompany)

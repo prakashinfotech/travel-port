@@ -18,6 +18,7 @@ public class BookingService : IBookingService
     private readonly IInvoiceDocumentService _invoiceDocumentService;
     private readonly IEmailService _email;
     private readonly IWalletService _wallet;
+    private readonly INotificationService? _notifications;
     private readonly IUnitOfWork _uow;
 
     public BookingService(
@@ -28,7 +29,8 @@ public class BookingService : IBookingService
         IInvoiceDocumentService invoiceDocumentService,
         IEmailService email,
         IWalletService wallet,
-        IUnitOfWork uow)
+        IUnitOfWork uow,
+        INotificationService? notifications = null)
     {
         _bookings = bookings;
         _users = users;
@@ -37,6 +39,7 @@ public class BookingService : IBookingService
         _invoiceDocumentService = invoiceDocumentService;
         _email = email;
         _wallet = wallet;
+        _notifications = notifications;
         _uow = uow;
     }
 
@@ -115,6 +118,13 @@ public class BookingService : IBookingService
             var toEmail = !string.IsNullOrWhiteSpace(booking.GuestEmail) ? booking.GuestEmail : user.Email;
             var toName  = !string.IsNullOrWhiteSpace(booking.GuestName)  ? booking.GuestName  : user.Name;
             await _email.SendBookingCancellationAsync(toEmail, toName, booking.BookingRef, bookingType, refund, ct);
+        }
+
+        if (_notifications is not null)
+        {
+            await _notifications.CreateAsync(userId, "BookingCancelled",
+                "Booking Cancelled",
+                $"Your booking {booking.BookingRef} was cancelled. ₹{refund:0} refunded to wallet.", ct);
         }
 
         return new CancelBookingResponse(bookingId, refund);
