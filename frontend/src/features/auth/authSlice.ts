@@ -37,11 +37,19 @@ const initialState: AuthState = {
 function extractMessage(err: unknown, fallback: string): string {
   if (!axios.isAxiosError(err)) return fallback
   if (!err.response) return 'Cannot connect to server. Please ensure the API is running.'
-  return (
-    err.response.data?.message ??
-    err.response.data?.errors?.[0] ??
-    fallback
-  )
+  const d = err.response.data
+  if (!d) return fallback
+  // Our ApiResponse format
+  if (d.message) return d.message
+  // ASP.NET Core ValidationProblemDetails (FluentValidation auto-validation)
+  // errors is an object keyed by field name, each value is string[]
+  if (d.errors && typeof d.errors === 'object' && !Array.isArray(d.errors)) {
+    const firstField = Object.values(d.errors as Record<string, string[]>)[0]
+    if (Array.isArray(firstField) && firstField[0]) return firstField[0]
+  }
+  if (Array.isArray(d.errors) && d.errors[0]) return String(d.errors[0])
+  if (d.title) return d.title
+  return fallback
 }
 
 export const register = createAsyncThunk<void, RegisterRequest>(
