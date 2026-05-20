@@ -276,6 +276,7 @@ public class HotelService : IHotelService
         h.Id, h.Name, h.City, h.Address ?? string.Empty,
         h.StarRating, h.ReviewScore, h.ReviewCount,
         h.Description ?? string.Empty, h.Amenities ?? string.Empty, h.ImageUrl ?? string.Empty,
+        h.Images,
         h.Rooms.Select(r => new HotelRoomDto(
             r.Id, r.RoomType, r.PricePerNight, r.MaxGuests, r.TotalRooms,
             r.Amenities ?? string.Empty,

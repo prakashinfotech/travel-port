@@ -54,9 +54,9 @@ export function CitySearch({ label, placeholder, value, onChange, focusColor = '
 
   const handleInput = (q: string) => {
     setQuery(q)
+    onChange(q)
     setSuggestions(searchCities(q))
     setOpen(true)
-    if (!q.trim()) onChange('')
   }
 
   const handleFocus = () => {
@@ -85,7 +85,7 @@ export function CitySearch({ label, placeholder, value, onChange, focusColor = '
         />
       </div>
 
-      {open && suggestions.length > 0 && (
+      {open && (
         <div className="absolute top-full left-0 z-50 mt-1 w-64 rounded-xl bg-white shadow-2xl border border-gray-100 overflow-hidden">
           {!query.trim() && (
             <p className="px-4 pt-3 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">Popular Cities</p>
@@ -106,6 +106,12 @@ export function CitySearch({ label, placeholder, value, onChange, focusColor = '
               </div>
             </button>
           ))}
+          {query.trim() && suggestions.length === 0 && (
+            <div className="px-4 py-3 flex items-center gap-2 text-sm text-gray-500">
+              <MapPin className="h-4 w-4 shrink-0 text-gray-300" />
+              <span>Using <span className="font-medium text-gray-700">"{query}"</span> as address</span>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -11,6 +11,7 @@ public record HotelDto(
     string Description,
     string Amenities,
     string ImageUrl,
+    string? Images,
     List<HotelRoomDto> Rooms,
     List<HotelReviewDto>? Reviews = null,
     string? ExternalHotelId = null,

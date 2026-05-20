@@ -119,6 +119,7 @@ export interface HotelDto {
   description: string
   amenities: string
   imageUrl: string
+  images?: string
   rooms: HotelRoomDto[]
   reviews?: HotelReviewDto[]
   externalHotelId?: string

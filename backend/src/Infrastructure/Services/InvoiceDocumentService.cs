@@ -277,14 +277,15 @@ public class InvoiceDocumentService : IInvoiceDocumentService
         );
         y += 10;
 
-        DrawSupportFooter(
-            gfx, ref y,
-            [
-                "This is an e-ticket. No physical ticket required.",
-                "Present this document at boarding if required.",
-                "Valid for the mentioned journey only."
-            ]
-        );
+        var footerNotes = new List<string>
+        {
+            "This is an e-ticket. No physical ticket required.",
+            "Present this document at boarding if required.",
+            "Valid for the mentioned journey only."
+        };
+        if (transportType == "Bus" && !string.IsNullOrWhiteSpace(booking.TransportSeatNumbers))
+            footerNotes.Insert(0, "Seat suffix: (L) = Lower Deck, (U) = Upper Deck");
+        DrawSupportFooter(gfx, ref y, footerNotes.ToArray());
 
         return Save(document);
     }

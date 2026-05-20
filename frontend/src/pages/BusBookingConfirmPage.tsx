@@ -161,6 +161,7 @@ export default function BusBookingConfirmPage() {
                 <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Seat Number</p>
                   <p className="mt-1 text-sm font-bold text-gray-900">{booking.transportSeatNumbers ?? '—'}</p>
+                  <p className="mt-1 text-[11px] text-gray-400">(L) Lower Deck · (U) Upper Deck</p>
                 </div>
                 <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Bus Number</p>

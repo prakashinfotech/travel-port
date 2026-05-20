@@ -885,6 +885,58 @@ public static class DataSeeder
         );
     }
 
+    // Gallery image pools keyed by star tier — each pool has 12 distinct Unsplash hotel photos
+    private static readonly string[][] _galleryPools =
+    [
+        // 3-star budget/midscale
+        [
+            "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800",
+            "https://images.unsplash.com/photo-1595576508898-0ad5c879a061?w=800",
+            "https://images.unsplash.com/photo-1584132967334-10e028bd69f7?w=800",
+            "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800",
+            "https://images.unsplash.com/photo-1631049552057-403cdb8f0658?w=800",
+            "https://images.unsplash.com/photo-1560347876-aeef00ee58a1?w=800",
+            "https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800",
+            "https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=800",
+        ],
+        // 4-star business/superior
+        [
+            "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800",
+            "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=800",
+            "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=800",
+            "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=800",
+            "https://images.unsplash.com/photo-1590523741831-ab7e8b8f9c7f?w=800",
+            "https://images.unsplash.com/photo-1549294413-26f195200c16?w=800",
+            "https://images.unsplash.com/photo-1564501049412-61c2a3083791?w=800",
+            "https://images.unsplash.com/photo-1587474260584-136574528ed5?w=800",
+        ],
+        // 5-star luxury
+        [
+            "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=800",
+            "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800",
+            "https://images.unsplash.com/photo-1561501900-3701fa6a0864?w=800",
+            "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800",
+            "https://images.unsplash.com/photo-1590523741831-ab7e8b8f9c7f?w=800",
+            "https://images.unsplash.com/photo-1564501049412-61c2a3083791?w=800",
+            "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=800",
+            "https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800",
+        ],
+    ];
+
+    private static string BuildGalleryJson(string imageUrl, decimal stars, string name)
+    {
+        var pool = stars >= 5 ? _galleryPools[2] : stars >= 4 ? _galleryPools[1] : _galleryPools[0];
+        // deterministic pick based on name hash so each hotel gets a stable but varied set
+        var hash = Math.Abs(name.GetHashCode());
+        var picked = new List<string> { imageUrl };
+        for (var i = 0; i < 4; i++)
+        {
+            var candidate = pool[(hash + i * 3) % pool.Length];
+            if (!picked.Contains(candidate)) picked.Add(candidate);
+        }
+        return System.Text.Json.JsonSerializer.Serialize(picked);
+    }
+
     private static Hotel MakeHotel(string name, string city, string address,
         decimal stars, decimal reviewScore, int reviewCount,
         string description, string amenities, string imageUrl,
@@ -896,6 +948,7 @@ public static class DataSeeder
             Id = Guid.NewGuid(), Name = name, City = city, Address = address,
             StarRating = stars, ReviewScore = reviewScore, ReviewCount = reviewCount,
             Description = description, Amenities = amenities, ImageUrl = imageUrl,
+            Images = BuildGalleryJson(imageUrl, stars, name),
             Latitude = lat, Longitude = lon, IsActive = true
         };
 

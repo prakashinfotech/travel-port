@@ -227,10 +227,13 @@ Response 201:
 
 ## Buses
 
-| Method | Endpoint          | Auth | Description           |
-|--------|-------------------|------|-----------------------|
-| GET    | `/buses/search`   | ❌   | Search bus routes     |
-| POST   | `/buses/book`     | ✅   | Book a bus seat       |
+| Method | Endpoint                        | Auth | Description                          |
+|--------|---------------------------------|------|--------------------------------------|
+| GET    | `/buses/search`                 | ❌   | Search bus routes                    |
+| POST   | `/buses/book`                   | ✅   | Book a bus seat                      |
+| POST   | `/buses/:busId/seats/lock`      | ✅   | Lock seats during selection (10 min) |
+| DELETE | `/buses/:busId/seats/lock`      | ✅   | Release previously locked seats      |
+| GET    | `/buses/:busId/seats/locked`    | ✅   | Get seats locked by other users      |
 
 ### GET /buses/search
 ```
@@ -872,6 +875,42 @@ Request:
 |--------|-------------------------------|-------------|--------------------------|
 | GET    | `/cab-operator/dashboard`     | CabOperator | Stats + driver overview  |
 | GET    | `/cab-operator/bookings`      | CabOperator | View passenger bookings  |
+
+---
+
+## Version 2 — Phase 2 Changes (2026-05-20)
+
+### Bus Seat Locking Endpoints
+
+**POST /buses/:busId/seats/lock** — Lock seats while user is selecting (10-min TTL, auto-expired)
+```json
+Request:  { "seatNumbers": ["3", "7"] }
+Response: 200 { "success": true, "message": "Seats locked." }
+```
+
+**DELETE /buses/:busId/seats/lock** — Release locks when user deselects or navigates away
+```json
+Request:  { "seatNumbers": ["3"] }
+Response: 200 { "success": true, "message": "Seats unlocked." }
+```
+
+**GET /buses/:busId/seats/locked** — Poll locked seats (excludes current user's own locks)
+```json
+Response: { "success": true, "data": [3, 7, 12] }
+```
+
+Seats locked by others shown in amber on the seat map. Booking rejected if a conflict is detected server-side.
+
+### Hotel Images Gallery
+
+`GET /hotels/:id` now returns `images` (JSON string array of gallery URLs) alongside `imageUrl`:
+```json
+{
+  "imageUrl": "https://…/main.jpg",
+  "images": "[\"https://…/1.jpg\",\"https://…/2.jpg\",\"https://…/3.jpg\",\"https://…/4.jpg\",\"https://…/5.jpg\"]"
+}
+```
+`images` is `null` for Amadeus external results (falls back to `imageUrl`).
 
 ---
 

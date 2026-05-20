@@ -1362,6 +1362,7 @@ export default function FlightsPage() {
                   min={TODAY}
                   onChange={setDepartureDate}
                   accentColor="blue"
+                  variant="underline"
                 />
               </div>
 
@@ -1374,6 +1375,7 @@ export default function FlightsPage() {
                     min={departureDate || TODAY}
                     onChange={setReturnDate}
                     accentColor="blue"
+                    variant="underline"
                   />
                 </div>
               )}

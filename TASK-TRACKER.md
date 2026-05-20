@@ -578,16 +578,38 @@
 
 ---
 
+---
+
+## Phase 13 — Version 2 / Phase-2 Bug Fixes & UX Polish
+**Branch:** `feat/phase2-ux-polish-and-bug-fixes`
+**Date:** 2026-05-20
+**Scope:** Login error handling, bus seat labelling, flight date picker UX, cab free-text address, hotel image gallery carousel
+
+| # | Feature | Status | Notes |
+|---|---|---|---|
+| 13.1 | **Login error message fix** — `extractMessage` handles `ValidationProblemDetails` (FluentValidation format) | ✅ | Reads `d.errors` object + `d.title`; no longer falls back to generic "Login failed" for validation errors |
+| 13.2 | **Bus seat L/U labelling** — selected seats sent as `3(L)`, `22(U)` in booking payload | ✅ | Seats ≤ half total = Lower, rest = Upper; shown on confirmation page and PDF e-ticket |
+| 13.3 | **Bus seat confirmation + PDF** — Boarding point, dropping point, seat with L/U legend | ✅ | `BusBookingConfirmPage` adds `(L) Lower · (U) Upper` note; PDF footer adds legend line |
+| 13.4 | **Flight date picker UX** — departure/return date pickers match FROM/TO underline style | ✅ | New `variant="underline"` on `DatePickerInput`; uppercase label, border-b-2, no box border |
+| 13.5 | **Cab free-text address input** — `CitySearch` now fires `onChange` on every keystroke | ✅ | Users can type any address/landmark; city suggestions appear as optional hints; "Using X as address" shown when no match |
+| 13.6 | **Hotel image gallery carousel** — multi-photo hero with prev/next arrows + dot indicators | ✅ | `Images` JSON column wired end-to-end (backend DTO → seeder pool → frontend parse) |
+| 13.7 | **Hotel lightbox** — full-screen photo viewer with keyboard nav and thumbnail strip | ✅ | Arrow keys + Escape; thumbnail strip at bottom; "View all N photos" button on hero |
+| 13.8 | **Hotel images DB populated** — 75/76 hotels updated with 5-photo gallery via direct SQL | ✅ | Star-tier pools (5★/4★/3★); deterministic per hotel; no migration needed (column existed) |
+| 13.9 | **Docker API crash fix** — `LayoverAirport`/`LayoverDurationMinutes` columns applied via sqlcmd | ✅ | Direct `ALTER TABLE` + `__EFMigrationsHistory` insert; API container healthy |
+| 13.10 | **Hotel Reviews** — confirmed already fully implemented (POST + GET + Admin delete + validation) | ✅ | No code change needed; completed-stay guard, duplicate check, cache invalidation all in place |
+
+---
+
 ## Upcoming / Planned
 
 | # | Feature | Priority | Phase |
 |---|---|---|---|
-| 13.1 | Email verification flow (OTP) | 🟡 Medium | Phase 13 |
-| 13.2 | HTTPS with Let's Encrypt (Nginx + Certbot sidecar) | 🟡 Medium | Phase 13 |
-| 13.3 | Mobile-responsive filter drawer (slide-over panel < 1024px) | 🔴 High | Phase 13 |
-| 13.4 | Unit tests for FlightService, HotelService, WalletService | 🟢 Low | Phase 13 |
-| 13.5 | Redis cache (replace in-memory IMemoryCache) | 🟢 Low | Phase 13 |
-| 13.6 | Real Razorpay webhook handler for production | 🟢 Low | Phase 13 |
+| 14.1 | Email verification flow (OTP) | 🟡 Medium | Phase 14 |
+| 14.2 | HTTPS with Let's Encrypt (Nginx + Certbot sidecar) | 🟡 Medium | Phase 14 |
+| 14.3 | Mobile-responsive filter drawer (slide-over panel < 1024px) | 🔴 High | Phase 14 |
+| 14.4 | Unit tests for FlightService, HotelService, WalletService | 🟢 Low | Phase 14 |
+| 14.5 | Redis cache (replace in-memory IMemoryCache) | 🟢 Low | Phase 14 |
+| 14.6 | Real Razorpay webhook handler for production | 🟢 Low | Phase 14 |
 
 ---
 

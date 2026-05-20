@@ -8,6 +8,7 @@ interface DatePickerInputProps {
   min?: string
   type?: 'date' | 'datetime-local'
   accentColor?: 'blue' | 'green' | 'yellow' | 'orange' | 'indigo'
+  variant?: 'box' | 'underline'
   className?: string
 }
 
@@ -36,7 +37,7 @@ function formatDisplay(value: string, type: string): string | null {
 }
 
 export function DatePickerInput({
-  label, value, onChange, min, type = 'date', accentColor = 'blue', className = '',
+  label, value, onChange, min, type = 'date', accentColor = 'blue', variant = 'box', className = '',
 }: DatePickerInputProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const t = THEME[accentColor] ?? THEME.blue
@@ -46,6 +47,41 @@ export function DatePickerInput({
   const openPicker = () => {
     if (!inputRef.current) return
     try { inputRef.current.showPicker() } catch { inputRef.current.focus() }
+  }
+
+  const hiddenInput = (
+    <input
+      ref={inputRef}
+      type={type}
+      value={value}
+      min={min}
+      onChange={e => onChange(e.target.value)}
+      onKeyDown={e => e.stopPropagation()}
+      className="sr-only"
+      tabIndex={-1}
+      aria-hidden
+    />
+  )
+
+  if (variant === 'underline') {
+    return (
+      <div className={className}>
+        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{label}</label>
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={openPicker}
+          onKeyDown={e => e.key === 'Enter' && openPicker()}
+          className={`flex items-center gap-2 border-b-2 pb-1 cursor-pointer select-none transition-colors ${hasValue ? 'border-blue-600' : 'border-gray-300 hover:border-blue-400'}`}
+        >
+          <CalendarDays className={`h-4 w-4 shrink-0 ${hasValue ? 'text-blue-600' : 'text-gray-400'}`} />
+          <span className={`text-sm font-medium flex-1 leading-tight ${hasValue ? 'text-gray-900' : 'text-gray-400'}`}>
+            {display ?? (type === 'datetime-local' ? 'Select date & time' : 'Select date')}
+          </span>
+          {hiddenInput}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -65,18 +101,7 @@ export function DatePickerInput({
         <span className={`text-sm font-medium flex-1 leading-tight ${hasValue ? t.txt : 'text-gray-400'}`}>
           {display ?? (type === 'datetime-local' ? 'Select date & time' : 'Select date')}
         </span>
-        {/* native input hidden — only used to open system picker + capture value */}
-        <input
-          ref={inputRef}
-          type={type}
-          value={value}
-          min={min}
-          onChange={e => onChange(e.target.value)}
-          onKeyDown={e => e.stopPropagation()}
-          className="sr-only"
-          tabIndex={-1}
-          aria-hidden
-        />
+        {hiddenInput}
       </div>
     </div>
   )

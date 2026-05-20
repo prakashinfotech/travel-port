@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom'
 import {
   Star, MapPin, Wifi, Dumbbell, Waves, Car, Coffee, ArrowLeft,
   Users, CheckCircle, ChevronRight, Home, Info, Trash2,
+  ChevronLeft, ChevronRight as ChevronRightIcon, X, Images as ImagesIcon,
 } from 'lucide-react'
 import type { HotelDto, HotelRoomDto, HotelReviewDto } from '@/types'
 import { hotelService } from '@/services/hotelService'
@@ -26,14 +27,94 @@ function getRoomImage(roomType: string): string {
   return ROOM_IMAGES.find(r => r.keywords.some(k => t.includes(k)))?.url ?? ROOM_FALLBACK
 }
 
-function galleryImg(base: string, n: number): string {
+function parseImages(raw: string | undefined, fallback: string): string[] {
+  if (!raw) return [fallback]
   try {
-    const url = new URL(base)
-    url.searchParams.set('w', '300')
-    url.searchParams.set('q', '60')
-    url.searchParams.set('ar', ['1:1', '4:3', '16:9', '3:4', '2:3'][n % 5])
-    return url.toString()
-  } catch { return base }
+    const arr = JSON.parse(raw) as string[]
+    return arr.length > 0 ? arr : [fallback]
+  } catch { return [fallback] }
+}
+
+// ── Lightbox ──────────────────────────────────────────────────────────────────
+
+function Lightbox({ images, index, onClose, onPrev, onNext, onSelect }: {
+  images: string[]; index: number; onClose: () => void
+  onPrev: () => void; onNext: () => void; onSelect: (i: number) => void
+}) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+      if (e.key === 'ArrowLeft')  onPrev()
+      if (e.key === 'ArrowRight') onNext()
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose, onPrev, onNext])
+
+  return (
+    <div
+      className="fixed inset-0 z-[999] bg-black/95 flex items-center justify-center"
+      onClick={onClose}
+    >
+      {/* Close */}
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 transition-colors"
+      >
+        <X className="h-6 w-6" />
+      </button>
+
+      {/* Counter */}
+      <p className="absolute top-5 left-1/2 -translate-x-1/2 text-white/60 text-sm tabular-nums">
+        {index + 1} / {images.length}
+      </p>
+
+      {/* Prev */}
+      {images.length > 1 && (
+        <button
+          onClick={e => { e.stopPropagation(); onPrev() }}
+          className="absolute left-4 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-3 transition-colors"
+        >
+          <ChevronLeft className="h-7 w-7" />
+        </button>
+      )}
+
+      {/* Image */}
+      <img
+        src={images[index]}
+        alt={`Photo ${index + 1}`}
+        onClick={e => e.stopPropagation()}
+        className="max-h-[85vh] max-w-[90vw] object-contain rounded-lg shadow-2xl"
+        onError={e => { (e.target as HTMLImageElement).src = FALLBACK_IMG }}
+      />
+
+      {/* Next */}
+      {images.length > 1 && (
+        <button
+          onClick={e => { e.stopPropagation(); onNext() }}
+          className="absolute right-4 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-3 transition-colors"
+        >
+          <ChevronRightIcon className="h-7 w-7" />
+        </button>
+      )}
+
+      {/* Thumbnail strip */}
+      {images.length > 1 && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 max-w-[90vw] overflow-x-auto px-2 scrollbar-hide">
+          {images.map((img, i) => (
+            <button
+              key={i}
+              onClick={e => { e.stopPropagation(); onSelect(i) }}
+              className={`h-14 w-20 flex-shrink-0 rounded-md overflow-hidden border-2 transition-all ${i === index ? 'border-white opacity-100' : 'border-transparent opacity-50 hover:opacity-80'}`}
+            >
+              <img src={img} alt="" className="w-full h-full object-cover"
+                onError={e => { (e.target as HTMLImageElement).src = FALLBACK_IMG }} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 function parseAmenities(raw: string): string[] {
@@ -163,6 +244,8 @@ export default function HotelDetailPage() {
   const [reviewBusy, setReviewBusy] = useState(false)
   const [reviewError, setReviewError] = useState<string | null>(null)
   const [reviewSuccess, setReviewSuccess] = useState<string | null>(null)
+  const [carouselIdx, setCarouselIdx]   = useState(0)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -188,8 +271,12 @@ export default function HotelDetailPage() {
     </div>
   )
 
-  const amenities = parseAmenities(hotel.amenities)
-  const reviews = hotel.reviews ?? []
+  const amenities   = parseAmenities(hotel.amenities)
+  const galleryImgs = parseImages(hotel.images, hotel.imageUrl || FALLBACK_IMG)
+  const reviews     = hotel.reviews ?? []
+
+  const prevImg = useCallback(() => setCarouselIdx(i => (i - 1 + galleryImgs.length) % galleryImgs.length), [galleryImgs.length])
+  const nextImg = useCallback(() => setCarouselIdx(i => (i + 1) % galleryImgs.length), [galleryImgs.length])
   const nights    = checkIn && checkOut
     ? Math.max(1, Math.round((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86400000))
     : 0
@@ -252,21 +339,63 @@ export default function HotelDetailPage() {
   return (
     <div className="min-h-screen bg-gray-50">
 
-      {/* Hero image */}
-      <div className="relative h-72 sm:h-96 bg-gray-900 overflow-hidden">
+      {/* Hero carousel */}
+      <div className="relative h-72 sm:h-96 bg-gray-900 overflow-hidden group">
         <img
-          src={hotel.imageUrl || FALLBACK_IMG}
+          src={galleryImgs[carouselIdx]}
           alt={hotel.name}
-          className="w-full h-full object-cover opacity-80"
+          className="w-full h-full object-cover opacity-80 transition-all duration-500 cursor-pointer"
+          onClick={() => setLightboxOpen(true)}
           onError={e => { (e.target as HTMLImageElement).src = FALLBACK_IMG }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
+
+        {/* Back */}
         <button
           onClick={() => navigate(-1)}
           className="absolute top-4 left-4 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white rounded-full p-2 transition-colors"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
+
+        {/* View all photos */}
+        {galleryImgs.length > 1 && (
+          <button
+            onClick={() => setLightboxOpen(true)}
+            className="absolute top-4 right-4 flex items-center gap-1.5 bg-black/50 hover:bg-black/70 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1.5 rounded-full transition-colors"
+          >
+            <ImagesIcon className="h-3.5 w-3.5" /> View all {galleryImgs.length} photos
+          </button>
+        )}
+
+        {/* Prev / Next arrows */}
+        {galleryImgs.length > 1 && (
+          <>
+            <button
+              onClick={prevImg}
+              className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-all"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button
+              onClick={nextImg}
+              className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-all"
+            >
+              <ChevronRightIcon className="h-5 w-5" />
+            </button>
+          </>
+        )}
+
+        {/* Dot indicators */}
+        {galleryImgs.length > 1 && (
+          <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex gap-1.5">
+            {galleryImgs.map((_, i) => (
+              <button key={i} onClick={() => setCarouselIdx(i)}
+                className={`h-1.5 rounded-full transition-all ${i === carouselIdx ? 'w-5 bg-white' : 'w-1.5 bg-white/50'}`} />
+            ))}
+          </div>
+        )}
+
         <div className="absolute bottom-5 left-5 right-5">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight drop-shadow">{hotel.name}</h1>
           <p className="flex items-center gap-1 text-white/80 text-sm mt-1">
@@ -275,21 +404,37 @@ export default function HotelDetailPage() {
         </div>
       </div>
 
-      {/* Gallery strip */}
+      {/* Thumbnail strip */}
       <div className="bg-gray-900 px-4 pb-3">
         <div className="mx-auto max-w-6xl flex gap-2 overflow-x-auto scrollbar-hide">
-          {[0, 1, 2, 3, 4].map(n => (
-            <div key={n} className="h-16 w-24 flex-shrink-0 rounded-md overflow-hidden opacity-60 hover:opacity-100 transition-opacity cursor-pointer">
+          {galleryImgs.map((img, n) => (
+            <button
+              key={n}
+              onClick={() => { setCarouselIdx(n); setLightboxOpen(true) }}
+              className={`h-16 w-24 flex-shrink-0 rounded-md overflow-hidden transition-all ${n === carouselIdx ? 'ring-2 ring-orange-400 opacity-100' : 'opacity-50 hover:opacity-90'}`}
+            >
               <img
-                src={galleryImg(hotel.imageUrl || FALLBACK_IMG, n)}
+                src={img}
                 alt=""
                 className="w-full h-full object-cover"
                 onError={e => { (e.target as HTMLImageElement).src = FALLBACK_IMG }}
               />
-            </div>
+            </button>
           ))}
         </div>
       </div>
+
+      {/* Lightbox */}
+      {lightboxOpen && (
+        <Lightbox
+          images={galleryImgs}
+          index={carouselIdx}
+          onClose={() => setLightboxOpen(false)}
+          onPrev={prevImg}
+          onNext={nextImg}
+          onSelect={setCarouselIdx}
+        />
+      )}
 
       {/* Body */}
       <div className="mx-auto max-w-6xl px-4 py-6 flex flex-col lg:flex-row gap-6">

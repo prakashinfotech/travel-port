@@ -194,6 +194,7 @@ public class AmadeusHotelProvider : IExternalHotelProvider
             Description:     $"Well-located hotel in {hotel.CityCode} offering comfortable rooms and modern amenities.",
             Amenities:       "[\"WiFi\",\"Restaurant\",\"Room Service\",\"Concierge\"]",
             ImageUrl:        image,
+            Images:          null,
             Rooms:           [room],
             ExternalHotelId: hotel.HotelId,
             Latitude:        hotel.Latitude,

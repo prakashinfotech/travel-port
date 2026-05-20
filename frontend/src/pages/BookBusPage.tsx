@@ -290,7 +290,9 @@ export default function BookBusPage() {
         price:           bus.price + windowSurcharge / seats,
         amenities:       bus.amenities,
         seats,
-        selectedSeats:   selectedSeats.length > 0 ? selectedSeats.join(', ') : undefined,
+        selectedSeats:   selectedSeats.length > 0
+          ? selectedSeats.sort((a, b) => a - b).map(n => `${n}(${n > seatsPerDeck ? 'U' : 'L'})`).join(', ')
+          : undefined,
         boardingPoint:   boardingPoint || undefined,
         droppingPoint:   droppingPoint || undefined,
         additionalInfo:  values.additionalInfo || undefined,

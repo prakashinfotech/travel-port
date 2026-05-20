@@ -108,6 +108,11 @@
 
 ## Recently Completed ✅
 
+- [x] **Hotel image gallery carousel + lightbox** — `Images` JSON column passed through `HotelDto`; `parseImages()` helper with fallback; full carousel (prev/next arrows, dot indicators, "View all N photos") + lightbox with keyboard nav (←/→/Esc), counter, thumbnail strip on `HotelDetailPage`; `DataSeeder` now seeds 5-image galleries grouped by star rating (3★ budget / 4★ business / 5★ luxury pools)
+- [x] **Bus seat L/U labels** — Seat numbers serialized as `N(L)`/`N(U)` in `BookBusPage`; legend shown on `BusBookingConfirmPage`; PDF e-ticket footer includes "Seat suffix: (L) = Lower Deck, (U) = Upper Deck" note
+- [x] **Flights date picker UX** — `DatePickerInput` gets `variant` prop (`'box'` | `'underline'`); FlightsPage uses `variant="underline"` so departure/return pickers match the FROM/TO underline style
+- [x] **Cab free-text address input** — `CitySearch` `onChange` fires on every keystroke (not only on selection); "Using X as address" hint shown when no city matches; `CabsPage` placeholders updated to "City, area or landmark"
+- [x] **Login error message fix** — `extractMessage` in `authSlice.ts` handles ASP.NET Core `ValidationProblemDetails` format (`errors` object keyed by field, `title` fallback)
 - [x] **Hotel Reviews** — `HotelReview` entity + EF migration; `POST /hotels/:id/reviews` (completed-stay check, one-per-user); `DELETE /admin/hotels/reviews/:id`; `HotelDetailPage` review form + list + admin delete
 - [x] **Bus booking confirmation page** — `BusBookingConfirmPage` with seat, bus number, boarding/dropping points, driver phone, PDF download
 - [x] **Flight layover support** — `LayoverAirport` + `LayoverDurationMinutes` on `Flight` entity + migration; operator validation + portal UI

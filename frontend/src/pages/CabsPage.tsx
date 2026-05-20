@@ -96,10 +96,10 @@ export default function CabsPage() {
           </h1>
           <div className="bg-white rounded-xl p-4 flex flex-wrap gap-3 items-end">
             <div className="flex-1 min-w-40">
-              <CitySearch label="PICKUP FROM" value={origin} onChange={setOrigin} focusColor="yellow" />
+              <CitySearch label="PICKUP FROM" placeholder="City, area or landmark" value={origin} onChange={setOrigin} focusColor="yellow" />
             </div>
             <div className="flex-1 min-w-40">
-              <CitySearch label="DROP TO" value={destination} onChange={setDest} focusColor="yellow" />
+              <CitySearch label="DROP TO" placeholder="City, area or landmark" value={destination} onChange={setDest} focusColor="yellow" />
             </div>
             <DatePickerInput
               label="PICKUP DATE & TIME"
