@@ -637,6 +637,41 @@
 
 ---
 
+## Phase 4 — Admin Panel Enhancements (Flight Mgmt, Analytics, Announcements, View-as-User)
+**Branch:** `feat/phase4-admin-enhancements`
+**Date:** 2026-05-21
+**Scope:** 5 admin panel features: flight management, bookings CSV export, site-wide announcement banners, coupon usage analytics, and View-as-User inspection modal.
+
+| # | Feature | Status | Notes |
+|---|---|---|---|
+| 4.1 | `AdminFlightDto` + `AdminUpdateFlightRequest` DTOs | ✅ | Application/DTOs/Admin/AdminFlightDto.cs |
+| 4.2 | `IAdminService.GetAllFlightsAsync` + `UpdateFlightAsync` | ✅ | Search on FlightNumber/Airline/Source/Destination; patch-style update |
+| 4.3 | `GET /admin/flights` + `PUT /admin/flights/{id}` endpoints | ✅ | AdminController; cache invalidated on update via `ICacheService.RemoveAsync` |
+| 4.4 | AdminPage — Flights tab with searchable table + edit modal | ✅ | Economy/business price, seats, times, isActive; full inline edit UX |
+| 4.5 | `GET /admin/bookings/export-csv` endpoint | ✅ | Delegates to `GetBookingsAsync`; streams `text/csv` response |
+| 4.6 | AdminPage — "Export CSV" button on Bookings tab | ✅ | `responseType: 'blob'` + `URL.createObjectURL`; triggers browser download |
+| 4.7 | `Announcement` domain entity (Message, Type, ExpiresAt, IsActive, CreatedByUserId) | ✅ | Domain/Entities/Announcement.cs; extends BaseEntity (soft-delete) |
+| 4.8 | `TravelPortDbContext` — `Announcements` DbSet + soft-delete query filter | ✅ | Persistence/Context/TravelPortDbContext.cs |
+| 4.9 | EF Core migration `AddAnnouncementsTable` | ✅ | 20260521121744_AddAnnouncementsTable |
+| 4.10 | `AnnouncementDto`, `CreateAnnouncementRequest`, `UpdateAnnouncementRequest` | ✅ | Application/DTOs/Admin/AnnouncementDto.cs |
+| 4.11 | `IAnnouncementService` + `AnnouncementService` | ✅ | GetActive filters IsActive && (ExpiresAt == null || ExpiresAt > now) |
+| 4.12 | `AnnouncementsController` — 5 endpoints | ✅ | `GET /active` AllowAnonymous; remaining 4 Admin-only |
+| 4.13 | AdminPage — Announcements tab (create form + manage list) | ✅ | Type select (info/warning/success), optional expiry date, pause/resume/delete |
+| 4.14 | `Layout.tsx` — dismissable announcement banner on all pages | ✅ | Fetches `/announcements/active`; info/warning/success color themes; X dismiss button |
+| 4.15 | `CouponAnalyticsDto` + `IAdminService.GetCouponAnalyticsAsync` | ✅ | Aggregates bookings by CouponCode → uses/discount/revenue per coupon |
+| 4.16 | `GET /admin/coupons/analytics` endpoint | ✅ | AdminController |
+| 4.17 | AdminPage — bar chart of top 5 coupons in Coupons tab | ✅ | SimpleBar pattern (no Recharts); shows uses + discount saved |
+| 4.18 | `AdminUserOverviewDto` + `IAdminService.GetUserOverviewAsync` | ✅ | Wallet balance, role, status + last 20 bookings as BookingDtos |
+| 4.19 | `GET /admin/users/{id}/overview` endpoint | ✅ | AdminController |
+| 4.20 | AdminPage — "View" button on Users tab opens User Overview modal | ✅ | Read-only: wallet, account status, member since, recent booking list |
+| 4.21 | Frontend types — `AdminFlightDto`, `AdminUpdateFlightRequest`, `CouponAnalyticsDto`, `AnnouncementDto`, `AdminUserOverviewDto` | ✅ | frontend/src/types/index.ts |
+| 4.22 | `adminService.ts` — 5 new methods | ✅ | getFlights, updateFlight, getCouponAnalytics, getUserOverview, exportBookingsCsv |
+| 4.23 | `announcementService.ts` — new service file | ✅ | getActive, getAll, create, update, delete |
+| 4.24 | `endpoints.ts` — 5 admin + 3 announcements endpoints | ✅ | flights, flight(id), couponAnalytics, userOverview(id), exportCsv; announcements section |
+| 4.25 | TypeScript compile — zero errors | ✅ | `npx tsc --noEmit` clean after all changes |
+
+---
+
 ## Upcoming / Planned
 
 | # | Feature | Priority | Phase |
@@ -666,14 +701,14 @@ dotnet run --project src/API --launch-profile https
 
 | Metric | Value |
 |---|---|
-| Total phases completed | 12 |
-| Total features delivered | 225+ |
+| Total phases completed | 13 (Phase 4 Admin Enhancements added) |
+| Total features delivered | 250+ |
 | Flights in seed DB | 900+ (dynamic demand-based pricing) |
 | Hotels in seed DB | 60+ (12 cities) |
 | Coupons | 11 (5 original + 6 new: FLYSAVER, FLYOFF200, FLYDEAL15, HOTELOFF15, STAYMORE, HOTELDEAL) |
-| API endpoints | 53+ |
-| Frontend pages | 18+ |
-| Frontend components | 30+ (DatePickerInput, CitySearch, SavedTravellerPicker, HeroDatePicker, ...) |
+| API endpoints | 65+ |
+| Frontend pages | 19+ |
+| Frontend components | 32+ (DatePickerInput, CitySearch, SavedTravellerPicker, HeroDatePicker, AnnouncementBanner, ...) |
 | Searchable cities | 65 Indian cities with state (autocomplete) |
 | Airlines covered | 7 |
 | Routes covered | 42 bidirectional |
@@ -683,3 +718,5 @@ dotnet run --project src/API --launch-profile https
 | Payment methods | 3 (Credit/Debit Card, UPI with QR, Net Banking) |
 | Wallet features | Top-up, deduction at booking, 90% refund on cancellation (auto-credited) |
 | Search filter depth | Full (Flights + Hotels + Buses + Trains + Cabs — all with sort tabs, time slots, multi-select filters) |
+| Admin panel tabs | 6 (Dashboard, Users, Bookings, Coupons, Flights, Announcements) |
+| Admin analytics | Coupon usage analytics (uses/discount/revenue per coupon), CSV bookings export |

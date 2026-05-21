@@ -549,7 +549,112 @@ public class AdminService : IAdminService
         return ToCabOperatorDto(company, manager);
     }
 
+    // ── Flight Management ────────────────────────────────────────────────────
+
+    public async Task<List<AdminFlightDto>> GetAllFlightsAsync(string? search, CancellationToken ct = default)
+    {
+        var flights = await _flights.GetAllAsync(ct);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var q = search.ToLower();
+            flights = flights.Where(f =>
+                f.FlightNumber.ToLower().Contains(q) ||
+                (f.Airline ?? "").ToLower().Contains(q) ||
+                f.Source.ToLower().Contains(q) ||
+                f.Destination.ToLower().Contains(q)).ToList();
+        }
+        return flights.OrderBy(f => f.DepartureTime).Select(ToAdminFlightDto).ToList();
+    }
+
+    public async Task<AdminFlightDto> UpdateFlightAsync(Guid id, AdminUpdateFlightRequest req, CancellationToken ct = default)
+    {
+        var flight = await _flights.GetByIdAsync(id, ct)
+            ?? throw new NotFoundException("Flight", id);
+        if (req.EconomyPrice.HasValue)   flight.EconomyPrice   = req.EconomyPrice.Value;
+        if (req.BusinessPrice.HasValue)  flight.BusinessPrice  = req.BusinessPrice.Value;
+        if (req.TotalSeats.HasValue)     flight.TotalSeats     = req.TotalSeats.Value;
+        if (req.AvailableSeats.HasValue) flight.AvailableSeats = req.AvailableSeats.Value;
+        if (req.DepartureTime.HasValue)  flight.DepartureTime  = req.DepartureTime.Value;
+        if (req.ArrivalTime.HasValue)    flight.ArrivalTime    = req.ArrivalTime.Value;
+        if (req.IsActive.HasValue)       flight.IsActive       = req.IsActive.Value;
+        await _flights.UpdateAsync(flight, ct);
+        await _uow.SaveChangesAsync(ct);
+        await _cache.RemoveAsync($"flight:{id}", ct);
+        return ToAdminFlightDto(flight);
+    }
+
+    // ── Coupon Analytics ─────────────────────────────────────────────────────
+
+    public async Task<List<CouponAnalyticsDto>> GetCouponAnalyticsAsync(CancellationToken ct = default)
+    {
+        var coupons  = await _coupons.GetAllCouponsAsync(ct);
+        var bookings = (await _bookings.GetAllAsync(ct))
+            .Where(b => !string.IsNullOrWhiteSpace(b.CouponCode))
+            .ToList();
+        var grouped  = bookings
+            .GroupBy(b => b.CouponCode!.ToUpper())
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        return coupons
+            .Select(c =>
+            {
+                var uses = grouped.TryGetValue(c.Code.ToUpper(), out var g) ? g : new List<Domain.Entities.Booking>();
+                return new CouponAnalyticsDto(
+                    c.Id, c.Code,
+                    uses.Count,
+                    uses.Sum(b => b.DiscountAmount),
+                    uses.Sum(b => b.FinalAmount));
+            })
+            .OrderByDescending(c => c.TotalUses)
+            .ToList();
+    }
+
+    // ── User Overview ────────────────────────────────────────────────────────
+
+    public async Task<AdminUserOverviewDto> GetUserOverviewAsync(Guid userId, CancellationToken ct = default)
+    {
+        var user = await _users.GetByIdAsync(userId, ct)
+            ?? throw new NotFoundException("User", userId);
+        var allBookings = await _bookings.GetUserBookingsAsync(userId, ct);
+        var recent      = allBookings.OrderByDescending(b => b.CreatedAt).Take(20).ToList();
+
+        var dtos = new List<BookingDto>();
+        foreach (var b in recent)
+        {
+            Flight? flight = b.BookingType == BookingType.Flight
+                ? await _flights.GetByIdAsync(b.ReferenceId, ct) : null;
+            Hotel? hotel = b.BookingType == BookingType.Hotel
+                ? await _hotels.GetByIdAsync(b.ReferenceId, ct) : null;
+            dtos.Add(new BookingDto(
+                b.Id, b.BookingRef, b.BookingType.ToString(), b.Status,
+                b.TotalAmount, b.FinalAmount, b.DiscountAmount, b.CreatedAt,
+                b.BookingType == BookingType.Flight ? b.ReferenceId : null,
+                b.BookingType == BookingType.Hotel  ? b.ReferenceId : null,
+                b.Passengers,
+                b.CheckIn?.ToString("yyyy-MM-dd"), b.CheckOut?.ToString("yyyy-MM-dd"),
+                b.CouponCode, b.GuestName ?? user.Name, b.GuestEmail ?? user.Email,
+                b.GuestPhone ?? user.Phone,
+                flight?.Airline, flight?.FlightNumber,
+                flight?.Source, MapCity(flight?.Source),
+                flight?.Destination, MapCity(flight?.Destination),
+                flight?.DepartureTime, flight?.ArrivalTime, flight?.Duration,
+                hotel?.Name, hotel?.Address, hotel?.City, hotel?.StarRating,
+                null, null, null));
+        }
+
+        return new AdminUserOverviewDto(
+            user.Id, user.Name, user.Email, user.Phone,
+            user.Role.ToString(), user.IsActive, user.IsVerified,
+            user.Wallet?.Balance ?? 0m,
+            user.CreatedAt, dtos);
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
+
+    private static AdminFlightDto ToAdminFlightDto(Flight f) => new(
+        f.Id, f.FlightNumber, f.Airline ?? "—", f.Source, f.Destination,
+        f.DepartureTime, f.ArrivalTime, f.Duration, f.TotalSeats, f.AvailableSeats,
+        f.EconomyPrice, f.BusinessPrice, f.Stops, f.IsActive, f.CreatedAt);
 
     private static CouponDto ToDto(Coupon c) => new(
         c.Id, c.Code, c.Type.ToString(), c.Value,

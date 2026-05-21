@@ -17,6 +17,16 @@ public interface IAdminService
     Task DeleteCouponAsync(Guid id, CancellationToken ct = default);
     Task<AdminAnalyticsDto> GetAnalyticsAsync(CancellationToken ct = default);
 
+    // Flight management
+    Task<List<AdminFlightDto>> GetAllFlightsAsync(string? search, CancellationToken ct = default);
+    Task<AdminFlightDto> UpdateFlightAsync(Guid id, AdminUpdateFlightRequest req, CancellationToken ct = default);
+
+    // Coupon analytics
+    Task<List<CouponAnalyticsDto>> GetCouponAnalyticsAsync(CancellationToken ct = default);
+
+    // User overview (view-as-user)
+    Task<AdminUserOverviewDto> GetUserOverviewAsync(Guid userId, CancellationToken ct = default);
+
     // Hotel management
     Task<List<AdminHotelListDto>> GetHotelsAsync(CancellationToken ct = default);
     Task<AdminHotelListDto> RegisterHotelAsync(RegisterHotelRequest req, CancellationToken ct = default);

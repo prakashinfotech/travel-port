@@ -179,10 +179,20 @@ See [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md) for the full workflow.
 | GET | /api/v1/admin/users | Yes (Admin) |
 | POST | /api/v1/admin/users/{id}/block | Yes (Admin) |
 | GET | /api/v1/admin/bookings | Yes (Admin) |
+| GET | /api/v1/admin/users/{id}/overview | Yes (Admin) |
+| GET | /api/v1/admin/bookings/export-csv | Yes (Admin) |
 | GET | /api/v1/admin/coupons | Yes (Admin) |
 | POST | /api/v1/admin/coupons | Yes (Admin) |
 | PUT | /api/v1/admin/coupons/{id} | Yes (Admin) |
 | DELETE | /api/v1/admin/coupons/{id} | Yes (Admin) |
+| GET | /api/v1/admin/coupons/analytics | Yes (Admin) |
+| GET | /api/v1/admin/flights | Yes (Admin) |
+| PUT | /api/v1/admin/flights/{id} | Yes (Admin) |
+| GET | /api/v1/announcements/active | No |
+| GET | /api/v1/announcements | Yes (Admin) |
+| POST | /api/v1/announcements | Yes (Admin) |
+| PUT | /api/v1/announcements/{id} | Yes (Admin) |
+| DELETE | /api/v1/announcements/{id} | Yes (Admin) |
 
 Full reference: [API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md)
 

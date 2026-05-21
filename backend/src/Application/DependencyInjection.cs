@@ -23,6 +23,7 @@ public static class DependencyInjection
         services.AddScoped<IFlightOperatorService, FlightOperatorService>();
         services.AddScoped<IBusOperatorService, BusOperatorService>();
         services.AddScoped<ICabOperatorService, CabOperatorService>();
+        services.AddScoped<IAnnouncementService, AnnouncementService>();
 
         services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
 

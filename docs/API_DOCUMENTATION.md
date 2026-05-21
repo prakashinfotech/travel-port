@@ -510,15 +510,20 @@ All admin endpoints require `[Authorize(Roles = "Admin")]`. Enums serialize as s
 | GET    | `/admin/analytics`              | ✅    | Admin | Monthly revenue + by-type + by-status |
 | GET    | `/admin/users`                  | ✅    | Admin | Paginated user list with search      |
 | POST   | `/admin/users/:id/block`        | ✅    | Admin | Toggle user active/blocked           |
+| GET    | `/admin/users/:id/overview`     | ✅    | Admin | User wallet, status + last 20 bookings |
 | GET    | `/admin/bookings`               | ✅    | Admin | Paginated all bookings with filters  |
+| GET    | `/admin/bookings/export-csv`    | ✅    | Admin | Download all bookings as CSV file    |
 | GET    | `/admin/coupons`                | ✅    | Admin | All coupons                          |
 | POST   | `/admin/coupons`                | ✅    | Admin | Create coupon                        |
 | PUT    | `/admin/coupons/:id`            | ✅    | Admin | Update coupon                        |
 | DELETE | `/admin/coupons/:id`            | ✅    | Admin | Deactivate coupon                    |
+| GET    | `/admin/coupons/analytics`      | ✅    | Admin | Per-coupon usage stats (uses, discount, revenue) |
 | GET    | `/admin/hotels`                 | ✅    | Admin | List all registered hotels           |
 | POST   | `/admin/hotels`                 | ✅    | Admin | Register hotel + create manager account + send credentials email |
 | POST   | `/admin/hotels/:id/toggle`      | ✅    | Admin | Toggle hotel active/inactive         |
 | DELETE | `/admin/hotels/reviews/:id`     | ✅    | Admin | Hard-delete a hotel review           |
+| GET    | `/admin/flights`                | ✅    | Admin | List all seeded flights (searchable) |
+| PUT    | `/admin/flights/:id`            | ✅    | Admin | Edit flight price/seats/times/status |
 
 ### GET /admin/dashboard
 ```json
@@ -703,6 +708,111 @@ Permanently removes a hotel review and recalculates the hotel's `ReviewScore` an
 ```json
 Response 200:
 { "success": true, "message": "Hotel review deleted." }
+```
+
+### GET /admin/users/:id/overview — View-as-User
+Returns a read-only snapshot of a user's account for admin inspection.
+```json
+Response 200:
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "phone": "9876543210",
+    "role": "User",
+    "isActive": true,
+    "isVerified": true,
+    "walletBalance": 2500.00,
+    "createdAt": "2026-01-15T00:00:00Z",
+    "recentBookings": [
+      {
+        "id": "uuid",
+        "bookingReference": "FL2026XXXXXX",
+        "type": "Flight",
+        "status": "Confirmed",
+        "finalAmount": 4500.00,
+        "bookingDate": "2026-05-01T10:00:00Z"
+      }
+    ]
+  }
+}
+```
+
+### GET /admin/bookings/export-csv — Export Bookings as CSV
+Downloads all bookings (optionally filtered by `status` and `type`) as a `text/csv` file.
+```
+Query Params: status=Confirmed&type=Flight (both optional)
+
+Response 200: Content-Type: text/csv
+BookingReference,UserName,UserEmail,Type,Status,Amount,BookingDate,...
+FL2026XXXXXX,John Doe,john@example.com,Flight,Confirmed,4500,2026-05-01,...
+```
+
+### GET /admin/coupons/analytics — Coupon Usage Analytics
+Returns per-coupon stats aggregated from all bookings.
+```json
+Response 200:
+{
+  "success": true,
+  "data": [
+    {
+      "id": "uuid",
+      "code": "FLYSAVER",
+      "totalUses": 42,
+      "totalDiscount": 12600.00,
+      "totalRevenue": 189000.00
+    }
+  ]
+}
+```
+
+### GET /admin/flights — List All Flights
+```
+Query Params: search=IndiGo (optional — filters on FlightNumber/Airline/Source/Destination)
+
+Response 200:
+{
+  "success": true,
+  "data": [
+    {
+      "id": "uuid",
+      "flightNumber": "6E-201",
+      "airline": "IndiGo",
+      "source": "BOM",
+      "destination": "DEL",
+      "departureTime": "2026-06-01T06:00:00Z",
+      "arrivalTime": "2026-06-01T08:15:00Z",
+      "duration": 135,
+      "totalSeats": 180,
+      "availableSeats": 164,
+      "economyPrice": 3500.00,
+      "businessPrice": null,
+      "stops": 0,
+      "isActive": true,
+      "createdAt": "2026-05-01T..."
+    }
+  ]
+}
+```
+
+### PUT /admin/flights/:id — Update Flight
+All fields are optional — only provided fields are patched.
+```json
+Request:
+{
+  "economyPrice": 3200,
+  "businessPrice": 8500,
+  "totalSeats": 180,
+  "availableSeats": 150,
+  "departureTime": "2026-06-01T07:00:00",
+  "arrivalTime": "2026-06-01T09:30:00",
+  "isActive": true
+}
+
+Response 200:
+{ "success": true, "data": { ...AdminFlightDto } }
 ```
 
 ### POST /admin/hotels — Register Hotel
@@ -960,5 +1070,70 @@ Seats locked by others shown in amber on the seat map. Booking rejected if a con
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | GET | `/api/v1/coupons/featured` | None | Returns active featured non-expired coupons |
+
+---
+
+## Announcements (Phase 4)
+
+Site-wide announcement banners created by admins. Active banners are fetched on every page load via the public endpoint and shown as dismissable top banners in the UI.
+
+| Method | Endpoint                    | Auth  | Description                              |
+|--------|-----------------------------|-------|------------------------------------------|
+| GET    | `/announcements/active`     | None  | List currently active (non-expired) banners |
+| GET    | `/announcements`            | Admin | List all announcements (including paused) |
+| POST   | `/announcements`            | Admin | Create a new announcement banner         |
+| PUT    | `/announcements/:id`        | Admin | Update message/type/expiry or pause/resume |
+| DELETE | `/announcements/:id`        | Admin | Soft-delete an announcement              |
+
+### GET /announcements/active
+Returns all active, non-expired announcements. No auth required — called on every page load.
+```json
+Response 200:
+{
+  "success": true,
+  "data": [
+    {
+      "id": "uuid",
+      "message": "Monsoon Sale: Flat 20% off all flights this week!",
+      "type": "info",
+      "expiresAt": "2026-06-01T23:59:59Z",
+      "isActive": true,
+      "createdAt": "2026-05-21T..."
+    }
+  ]
+}
+```
+
+**Types:** `info` (blue banner) · `warning` (yellow banner) · `success` (green banner)
+
+### POST /announcements
+```json
+Request:
+{
+  "message": "Scheduled maintenance on 25 May between 2–4 AM IST.",
+  "type": "warning",
+  "expiresAt": "2026-05-25T04:00:00"
+}
+
+Response 201:
+{ "success": true, "data": { ...AnnouncementDto } }
+```
+
+`expiresAt` is optional — omit for a banner that stays until manually paused or deleted.
+
+### PUT /announcements/:id
+```json
+Request (all fields optional):
+{
+  "message": "Updated message text",
+  "type": "success",
+  "expiresAt": "2026-06-30T23:59:59",
+  "isActive": false
+}
+
+Response 200:
+{ "success": true, "data": { ...AnnouncementDto } }
+```
+Set `isActive: false` to pause without deleting; `isActive: true` to resume.
 
 **Response:** `{ code, discount, minOrder?, maxSaving?, expiresAt? }[]`

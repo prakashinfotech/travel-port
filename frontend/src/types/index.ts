@@ -521,6 +521,77 @@ export interface UpdateCouponRequest {
   isFeatured?: boolean
 }
 
+export interface AdminFlightDto {
+  id: string
+  flightNumber: string
+  airline: string
+  source: string
+  destination: string
+  departureTime: string
+  arrivalTime: string
+  duration: number
+  totalSeats: number
+  availableSeats: number
+  economyPrice: number
+  businessPrice?: number
+  stops: number
+  isActive: boolean
+  createdAt: string
+}
+
+export interface AdminUpdateFlightRequest {
+  economyPrice?: number
+  businessPrice?: number
+  totalSeats?: number
+  availableSeats?: number
+  departureTime?: string
+  arrivalTime?: string
+  isActive?: boolean
+}
+
+export interface CouponAnalyticsDto {
+  id: string
+  code: string
+  totalUses: number
+  totalDiscount: number
+  totalRevenue: number
+}
+
+export interface AnnouncementDto {
+  id: string
+  message: string
+  type: 'info' | 'warning' | 'success'
+  expiresAt?: string
+  isActive: boolean
+  createdAt: string
+}
+
+export interface CreateAnnouncementRequest {
+  message: string
+  type: 'info' | 'warning' | 'success'
+  expiresAt?: string
+}
+
+export interface UpdateAnnouncementRequest {
+  message?: string
+  type?: string
+  expiresAt?: string
+  isActive?: boolean
+}
+
+export interface AdminUserOverviewDto {
+  id: string
+  name: string
+  email: string
+  phone?: string
+  role: string
+  isActive: boolean
+  isVerified: boolean
+  walletBalance: number
+  createdAt: string
+  recentBookings: BookingDto[]
+}
+
 export interface MonthlyRevenueDto { month: string; revenue: number; bookingCount: number }
 export interface BookingsByStatusDto { status: string; count: number }
 export interface BookingsByTypeDto { type: string; count: number; revenue: number }

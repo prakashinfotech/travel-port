@@ -24,8 +24,9 @@ public class TravelPortDbContext : DbContext
     public DbSet<FlightCompany> FlightCompanies => Set<FlightCompany>();
     public DbSet<BusCompany> BusCompanies => Set<BusCompany>();
     public DbSet<CabCompany> CabCompanies => Set<CabCompany>();
-    public DbSet<Notification> Notifications => Set<Notification>();
-    public DbSet<PriceAlert>   PriceAlerts   => Set<PriceAlert>();
+    public DbSet<Notification>   Notifications   => Set<Notification>();
+    public DbSet<PriceAlert>     PriceAlerts     => Set<PriceAlert>();
+    public DbSet<Announcement>   Announcements   => Set<Announcement>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -50,6 +51,7 @@ public class TravelPortDbContext : DbContext
         modelBuilder.Entity<CabCompany>().HasQueryFilter(e => e.DeletedAt == null);
         modelBuilder.Entity<Notification>().HasQueryFilter(e => e.DeletedAt == null);
         modelBuilder.Entity<PriceAlert>().HasQueryFilter(e => e.DeletedAt == null);
+        modelBuilder.Entity<Announcement>().HasQueryFilter(e => e.DeletedAt == null);
         modelBuilder.Entity<PriceAlert>()
             .HasOne(p => p.User)
             .WithMany()

@@ -15,6 +15,14 @@ public record CouponDto(
     DateTime CreatedAt
 );
 
+public record CouponAnalyticsDto(
+    Guid Id,
+    string Code,
+    int TotalUses,
+    decimal TotalDiscount,
+    decimal TotalRevenue
+);
+
 public record CreateCouponRequest(
     string Code,
     string Type,

@@ -7,6 +7,8 @@ import type {
   AdminHotelListDto, RegisterHotelRequest,
   FlightOperatorListDto, BusOperatorListDto, CabOperatorListDto,
   RegisterFlightOperatorRequest, RegisterBusOperatorRequest, RegisterCabOperatorRequest,
+  AdminFlightDto, AdminUpdateFlightRequest,
+  CouponAnalyticsDto, AdminUserOverviewDto,
 } from '@/types'
 
 const e = endpoints.admin
@@ -82,4 +84,23 @@ export const adminService = {
 
   toggleCabOperator: (id: string) =>
     api.post<ApiResponse<CabOperatorListDto>>(e.toggleCabOperator(id)).then(r => r.data.data),
+
+  // Flight management
+  getFlights: (search?: string) =>
+    api.get<ApiResponse<AdminFlightDto[]>>(e.flights, { params: { search } }).then(r => r.data.data),
+
+  updateFlight: (id: string, req: AdminUpdateFlightRequest) =>
+    api.put<ApiResponse<AdminFlightDto>>(e.flight(id), req).then(r => r.data.data),
+
+  // Coupon analytics
+  getCouponAnalytics: () =>
+    api.get<ApiResponse<CouponAnalyticsDto[]>>(e.couponAnalytics).then(r => r.data.data),
+
+  // User overview
+  getUserOverview: (id: string) =>
+    api.get<ApiResponse<AdminUserOverviewDto>>(e.userOverview(id)).then(r => r.data.data),
+
+  // CSV export (returns blob)
+  exportBookingsCsv: (status?: string, type?: string) =>
+    api.get(e.exportCsv, { params: { status, type }, responseType: 'blob' }),
 }

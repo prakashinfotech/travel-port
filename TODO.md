@@ -85,7 +85,12 @@
 - [x] ✅ **Multi-mode HomePage** — mode tabs (Flights/Hotels/Buses/Trains/Cabs); per-mode hero gradients; per-mode form state that resets on tab switch; mode-filtered recent searches.
 - [x] ✅ **Profile page improvements** — upgraded with account overview, wallet feedback, safer delete confirmation, and better status handling.
 - [x] ✅ **Saved travellers management** — profile UI now supports add/delete flows with inline form validation and confirmation.
-- [x] ✅ **Admin panel UI** — full 4-tab dashboard (Dashboard, Users, Bookings, Coupons) with real API integration; `CouponModal`, block/unblock users, `ConfirmDialog` for destructive actions.
+- [x] ✅ **Admin panel UI** — full 6-tab dashboard (Dashboard, Users, Bookings, Coupons, Flights, Announcements) with real API integration; `CouponModal`, block/unblock users, `ConfirmDialog` for destructive actions.
+- [x] ✅ **Admin flight management** — new Flights tab with searchable table of all 900+ seeded flights; inline edit modal for price/seats/times/active status. `GET/PUT /admin/flights`.
+- [x] ✅ **Admin bookings CSV export** — "Export CSV" button on Bookings tab; downloads all filtered bookings as a `.csv` file. `GET /admin/bookings/export-csv`.
+- [x] ✅ **Admin announcement banners** — Announcements tab to create/pause/delete banners; dismissable top banner in `Layout.tsx` shown on all pages; info/warning/success color themes. `GET /announcements/active` (public) + 4 Admin endpoints.
+- [x] ✅ **Coupon usage analytics** — bar chart in Coupons tab showing top 5 coupons by usage, discount given, and revenue impact. `GET /admin/coupons/analytics`.
+- [x] ✅ **View-as-User / Admin impersonation** — "View" button on Users tab opens read-only modal showing wallet balance, account status, member since, and last 20 bookings. `GET /admin/users/{id}/overview`.
 - [x] ✅ **Error boundary** — route-level React error boundary added with recovery UI.
 - [x] ✅ **Toast notifications** — shared success/error/info toasts added for profile and payment-card flows.
 - [x] ✅ **Skeleton loaders for Hotels, Buses, Trains, Cabs** — shared non-flight skeleton components now cover transport search pages, while hotels already used dedicated skeleton cards.

@@ -201,4 +201,61 @@ public class AdminController : BaseApiController
         var result = await _admin.ToggleCabOperatorActiveAsync(id, ct);
         return Ok(ApiResponse<CabOperatorListDto>.Ok(result, result.IsActive ? "Operator activated." : "Operator deactivated."));
     }
+
+    // ── Flights ───────────────────────────────────────────────────────────────
+
+    [HttpGet("flights")]
+    public async Task<ActionResult<ApiResponse<List<AdminFlightDto>>>> GetFlights([FromQuery] string? search, CancellationToken ct)
+    {
+        var result = await _admin.GetAllFlightsAsync(search, ct);
+        return Ok(ApiResponse<List<AdminFlightDto>>.Ok(result));
+    }
+
+    [HttpPut("flights/{id:guid}")]
+    public async Task<ActionResult<ApiResponse<AdminFlightDto>>> UpdateFlight(Guid id, [FromBody] AdminUpdateFlightRequest req, CancellationToken ct)
+    {
+        var result = await _admin.UpdateFlightAsync(id, req, ct);
+        return Ok(ApiResponse<AdminFlightDto>.Ok(result, "Flight updated."));
+    }
+
+    // ── Coupon Analytics ──────────────────────────────────────────────────────
+
+    [HttpGet("coupons/analytics")]
+    public async Task<ActionResult<ApiResponse<List<CouponAnalyticsDto>>>> GetCouponAnalytics(CancellationToken ct)
+    {
+        var result = await _admin.GetCouponAnalyticsAsync(ct);
+        return Ok(ApiResponse<List<CouponAnalyticsDto>>.Ok(result));
+    }
+
+    // ── User Overview ─────────────────────────────────────────────────────────
+
+    [HttpGet("users/{id:guid}/overview")]
+    public async Task<ActionResult<ApiResponse<AdminUserOverviewDto>>> GetUserOverview(Guid id, CancellationToken ct)
+    {
+        var result = await _admin.GetUserOverviewAsync(id, ct);
+        return Ok(ApiResponse<AdminUserOverviewDto>.Ok(result));
+    }
+
+    // ── CSV Export ────────────────────────────────────────────────────────────
+
+    [HttpGet("bookings/export-csv")]
+    public async Task<IActionResult> ExportBookingsCsv([FromQuery] string? status, [FromQuery] string? type, CancellationToken ct)
+    {
+        var (items, _) = await _admin.GetBookingsAsync(1, 10000, status, type, ct);
+        var csv = new System.Text.StringBuilder();
+        csv.AppendLine("Ref,Type,Status,User,Email,Amount,Discount,Final,Date,Details");
+        foreach (var b in items)
+        {
+            var detail = b.Type == "Flight"
+                ? $"{b.Airline} {b.FlightNumber} {b.OriginCity}-{b.DestinationCity}"
+                : b.Type == "Hotel"
+                    ? $"{b.HotelName} {b.HotelCity} {b.CheckIn}-{b.CheckOut}"
+                    : b.Type;
+            csv.AppendLine($"{b.BookingReference},{b.Type},{b.Status},{Escape(b.UserName)},{Escape(b.UserEmail)},{b.TotalAmount},{b.DiscountAmount},{b.FinalAmount},{b.BookingDate:yyyy-MM-dd},{Escape(detail)}");
+        }
+        var bytes = System.Text.Encoding.UTF8.GetBytes(csv.ToString());
+        return File(bytes, "text/csv", $"bookings-{DateTime.UtcNow:yyyyMMdd}.csv");
+
+        static string Escape(string? s) => s == null ? "" : $"\"{s.Replace("\"", "\"\"")}\"";
+    }
 }

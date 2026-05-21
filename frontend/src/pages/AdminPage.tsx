@@ -6,7 +6,7 @@ import {
   TrendingUp, TrendingDown, Plane, Hotel,
   ShieldCheck, ShieldOff, Pencil, Trash2,
   Plus, Search, ChevronLeft, ChevronRight,
-  RefreshCw, X, Bus, Car,
+  RefreshCw, X, Bus, Car, Download, Megaphone, Eye,
 } from 'lucide-react'
 import type { RootState } from '@/store'
 import type {
@@ -15,14 +15,17 @@ import type {
   BookingDto, AdminHotelListDto, RegisterHotelRequest,
   FlightOperatorListDto, BusOperatorListDto, CabOperatorListDto,
   RegisterFlightOperatorRequest, RegisterBusOperatorRequest, RegisterCabOperatorRequest,
+  AdminFlightDto, AdminUpdateFlightRequest,
+  CouponAnalyticsDto, AnnouncementDto, CreateAnnouncementRequest, AdminUserOverviewDto,
 } from '@/types'
 import { adminService } from '@/services/adminService'
+import { announcementService } from '@/services/announcementService'
 import { formatCurrency } from '@/utils/formatters'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
-type Tab = 'dashboard' | 'users' | 'bookings' | 'coupons' | 'hotels' | 'operators'
+type Tab = 'dashboard' | 'users' | 'bookings' | 'coupons' | 'hotels' | 'operators' | 'flights' | 'announcements'
 
 // ── Stat Card ────────────────────────────────────────────────────────────────
 function StatCard({ label, value, icon: Icon, color }: {
@@ -689,6 +692,30 @@ export default function AdminPage() {
   const [registerOperatorType,    setRegisterOperatorType]   = useState<'flight' | 'bus' | 'cab' | null>(null)
   const [togglingOperatorId,      setTogglingOperatorId]     = useState<string | null>(null)
 
+  // Flights
+  const [adminFlights,       setAdminFlights]       = useState<AdminFlightDto[]>([])
+  const [flightsLoading,     setFlightsLoading]     = useState(false)
+  const [flightSearch,       setFlightSearch]       = useState('')
+  const [editingFlight,      setEditingFlight]      = useState<AdminFlightDto | null>(null)
+  const [flightEditForm,     setFlightEditForm]     = useState<AdminUpdateFlightRequest>({})
+  const [savingFlight,       setSavingFlight]       = useState(false)
+
+  // Announcements
+  const [announcements,      setAnnouncements]      = useState<AnnouncementDto[]>([])
+  const [announcementsLoading, setAnnouncementsLoading] = useState(false)
+  const [announcementForm,   setAnnouncementForm]   = useState<CreateAnnouncementRequest>({ message: '', type: 'info' })
+  const [savingAnnouncement, setSavingAnnouncement] = useState(false)
+
+  // Coupon analytics
+  const [couponAnalytics,    setCouponAnalytics]    = useState<CouponAnalyticsDto[]>([])
+
+  // View-as-user
+  const [viewingUser,        setViewingUser]        = useState<AdminUserOverviewDto | null>(null)
+  const [userOverviewLoading, setUserOverviewLoading] = useState(false)
+
+  // CSV export
+  const [exportingCsv,       setExportingCsv]       = useState(false)
+
   const PAGE_SIZE = 15
 
   useEffect(() => {
@@ -758,6 +785,78 @@ export default function AdminPage() {
 
   useEffect(() => { if (tab === 'operators') loadOperators() }, [tab, loadOperators])
 
+  const loadFlights = useCallback(async () => {
+    setFlightsLoading(true)
+    try { setAdminFlights(await adminService.getFlights(flightSearch || undefined)) }
+    finally { setFlightsLoading(false) }
+  }, [flightSearch])
+
+  useEffect(() => { if (tab === 'flights') loadFlights() }, [tab, loadFlights])
+
+  const loadAnnouncements = useCallback(async () => {
+    setAnnouncementsLoading(true)
+    try { setAnnouncements(await announcementService.getAll()) }
+    finally { setAnnouncementsLoading(false) }
+  }, [])
+
+  useEffect(() => { if (tab === 'announcements') loadAnnouncements() }, [tab, loadAnnouncements])
+
+  const loadCouponAnalytics = useCallback(async () => {
+    try { setCouponAnalytics(await adminService.getCouponAnalytics()) }
+    catch { /* analytics are supplemental */ }
+  }, [])
+
+  useEffect(() => { if (tab === 'coupons') loadCouponAnalytics() }, [tab, loadCouponAnalytics])
+
+  const handleViewUser = async (userId: string) => {
+    setUserOverviewLoading(true)
+    try { setViewingUser(await adminService.getUserOverview(userId)) }
+    finally { setUserOverviewLoading(false) }
+  }
+
+  const handleSaveFlight = async () => {
+    if (!editingFlight) return
+    setSavingFlight(true)
+    try {
+      const updated = await adminService.updateFlight(editingFlight.id, flightEditForm)
+      setAdminFlights(prev => prev.map(f => f.id === updated.id ? updated : f))
+      setEditingFlight(null)
+    } finally { setSavingFlight(false) }
+  }
+
+  const handleCreateAnnouncement = async () => {
+    if (!announcementForm.message.trim()) return
+    setSavingAnnouncement(true)
+    try {
+      const created = await announcementService.create(announcementForm)
+      setAnnouncements(prev => [created, ...prev])
+      setAnnouncementForm({ message: '', type: 'info' })
+    } finally { setSavingAnnouncement(false) }
+  }
+
+  const handleToggleAnnouncement = async (a: AnnouncementDto) => {
+    const updated = await announcementService.update(a.id, { isActive: !a.isActive })
+    setAnnouncements(prev => prev.map(x => x.id === updated.id ? updated : x))
+  }
+
+  const handleDeleteAnnouncement = async (id: string) => {
+    await announcementService.delete(id)
+    setAnnouncements(prev => prev.filter(a => a.id !== id))
+  }
+
+  const handleExportCsv = async () => {
+    setExportingCsv(true)
+    try {
+      const res = await adminService.exportBookingsCsv(bookingStatus || undefined, bookingType || undefined)
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'text/csv' }))
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `bookings-${new Date().toISOString().slice(0,10)}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    } finally { setExportingCsv(false) }
+  }
+
   const handleToggleOperator = async (id: string, type: 'flight' | 'bus' | 'cab') => {
     setTogglingOperatorId(id)
     try {
@@ -807,12 +906,14 @@ export default function AdminPage() {
   })
 
   const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'users',     label: 'Users',     icon: Users },
-    { id: 'bookings',  label: 'Bookings',  icon: BookOpen },
-    { id: 'coupons',   label: 'Coupons',   icon: Tag },
-    { id: 'hotels',    label: 'Hotels',    icon: Hotel },
-    { id: 'operators', label: 'Operators', icon: Plane },
+    { id: 'dashboard',     label: 'Dashboard',     icon: LayoutDashboard },
+    { id: 'users',         label: 'Users',         icon: Users },
+    { id: 'bookings',      label: 'Bookings',      icon: BookOpen },
+    { id: 'flights',       label: 'Flights',       icon: Plane },
+    { id: 'coupons',       label: 'Coupons',       icon: Tag },
+    { id: 'hotels',        label: 'Hotels',        icon: Hotel },
+    { id: 'operators',     label: 'Operators',     icon: Bus },
+    { id: 'announcements', label: 'Announcements', icon: Megaphone },
   ]
 
   const skeletonRows = (cols: number) =>
@@ -1021,18 +1122,24 @@ export default function AdminPage() {
                       <td className="px-4 py-3.5 text-gray-600">{u.totalBookings}</td>
                       <td className="px-4 py-3.5 text-xs text-gray-400">{fmtDate(u.createdAt)}</td>
                       <td className="px-4 py-3.5">
-                        {u.role !== 'Admin' && (
-                          <button onClick={() => setBlockTarget(u)}
-                            className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors ${
-                              u.isActive
-                                ? 'bg-red-50 text-red-600 hover:bg-red-100'
-                                : 'bg-green-50 text-green-600 hover:bg-green-100'
-                            }`}>
-                            {u.isActive
-                              ? <><ShieldOff className="h-3.5 w-3.5" /> Block</>
-                              : <><ShieldCheck className="h-3.5 w-3.5" /> Unblock</>}
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => handleViewUser(u.id)}
+                            className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors">
+                            <Eye className="h-3.5 w-3.5" /> View
                           </button>
-                        )}
+                          {u.role !== 'Admin' && (
+                            <button onClick={() => setBlockTarget(u)}
+                              className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors ${
+                                u.isActive
+                                  ? 'bg-red-50 text-red-600 hover:bg-red-100'
+                                  : 'bg-green-50 text-green-600 hover:bg-green-100'
+                              }`}>
+                              {u.isActive
+                                ? <><ShieldOff className="h-3.5 w-3.5" /> Block</>
+                                : <><ShieldCheck className="h-3.5 w-3.5" /> Unblock</>}
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -1062,6 +1169,14 @@ export default function AdminPage() {
                 <RefreshCw className="h-4 w-4 text-gray-500" />
               </button>
               <span className="text-sm text-gray-400">{bookingTotal} total</span>
+              <button
+                onClick={handleExportCsv}
+                disabled={exportingCsv}
+                className="ml-auto flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+              >
+                <Download className="h-4 w-4" />
+                {exportingCsv ? 'Exporting…' : 'Export CSV'}
+              </button>
             </div>
 
             <div className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-x-auto">
@@ -1201,6 +1316,29 @@ export default function AdminPage() {
                 </tbody>
               </table>
             </div>
+
+            {/* Coupon Analytics Chart */}
+            {couponAnalytics.length > 0 && (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <h3 className="text-sm font-bold text-gray-700 mb-4">Top Coupons by Usage</h3>
+                <div className="space-y-3">
+                  {couponAnalytics.slice(0, 5).map(ca => {
+                    const maxUses = Math.max(...couponAnalytics.slice(0, 5).map(c => c.totalUses), 1)
+                    return (
+                      <div key={ca.id} className="flex items-center gap-3 text-sm">
+                        <span className="w-24 text-right text-xs text-gray-500 shrink-0 font-mono">{ca.code}</span>
+                        <div className="flex-1 bg-gray-100 rounded-full h-2.5">
+                          <div className="h-2.5 rounded-full bg-blue-500 transition-all"
+                            style={{ width: `${Math.round((ca.totalUses / maxUses) * 100)}%` }} />
+                        </div>
+                        <span className="text-xs text-gray-600 w-20 shrink-0">{ca.totalUses} uses</span>
+                        <span className="text-xs text-emerald-600 font-semibold w-28 shrink-0 text-right">{formatCurrency(ca.totalDiscount)} saved</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -1464,6 +1602,263 @@ export default function AdminPage() {
                 </table>
               </div>
             )}
+          </div>
+        )}
+
+        {/* ── FLIGHTS ───────────────────────────────────────────────── */}
+        {tab === 'flights' && (
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <h2 className="text-lg font-bold text-gray-900">Flight Management</h2>
+              <div className="ml-auto flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2">
+                <Search className="h-4 w-4 text-gray-400" />
+                <input
+                  placeholder="Search flight, airline, route…"
+                  value={flightSearch}
+                  onChange={e => setFlightSearch(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && loadFlights()}
+                  className="w-56 text-sm outline-none"
+                />
+              </div>
+              <button onClick={loadFlights} className="p-2 rounded-xl border border-gray-200 hover:bg-gray-50">
+                <RefreshCw className="h-4 w-4 text-gray-500" />
+              </button>
+            </div>
+
+            {flightsLoading ? (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <table className="w-full"><tbody>{skeletonRows(7)}</tbody></table>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-x-auto">
+                <table className="w-full text-sm min-w-[900px]">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      <th className="text-left px-5 py-3">Flight</th>
+                      <th className="text-left px-5 py-3">Route</th>
+                      <th className="text-left px-5 py-3">Departure</th>
+                      <th className="text-right px-5 py-3">Economy</th>
+                      <th className="text-right px-5 py-3">Business</th>
+                      <th className="text-center px-5 py-3">Seats</th>
+                      <th className="text-center px-5 py-3">Status</th>
+                      <th className="px-5 py-3" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {adminFlights.map(f => (
+                      <tr key={f.id} className="hover:bg-gray-50/50">
+                        <td className="px-5 py-3.5">
+                          <p className="font-bold text-gray-900">{f.flightNumber}</p>
+                          <p className="text-xs text-gray-400">{f.airline}</p>
+                        </td>
+                        <td className="px-5 py-3.5 text-gray-700">{f.source} → {f.destination}</td>
+                        <td className="px-5 py-3.5 text-xs text-gray-500">
+                          {new Date(f.departureTime).toLocaleString('en-IN', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}
+                        </td>
+                        <td className="px-5 py-3.5 text-right font-semibold text-gray-800">{formatCurrency(f.economyPrice)}</td>
+                        <td className="px-5 py-3.5 text-right text-gray-500 text-xs">{f.businessPrice ? formatCurrency(f.businessPrice) : '—'}</td>
+                        <td className="px-5 py-3.5 text-center text-gray-700">{f.availableSeats}/{f.totalSeats}</td>
+                        <td className="px-5 py-3.5 text-center">
+                          <Badge variant={f.isActive ? 'success' : 'danger'}>{f.isActive ? 'Active' : 'Inactive'}</Badge>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <button
+                            onClick={() => { setEditingFlight(f); setFlightEditForm({ economyPrice: f.economyPrice, businessPrice: f.businessPrice, totalSeats: f.totalSeats, availableSeats: f.availableSeats, isActive: f.isActive }) }}
+                            className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                          >
+                            <Pencil className="h-3.5 w-3.5" /> Edit
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Flight edit modal */}
+            {editingFlight && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setEditingFlight(null)} />
+                <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+                  <div className="flex items-center justify-between mb-5">
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900">Edit {editingFlight.flightNumber}</h3>
+                      <p className="text-xs text-gray-400">{editingFlight.airline} · {editingFlight.source}→{editingFlight.destination}</p>
+                    </div>
+                    <button onClick={() => setEditingFlight(null)}><X className="h-5 w-5 text-gray-400" /></button>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      {([
+                        { label: 'Economy Price (₹)', key: 'economyPrice' },
+                        { label: 'Business Price (₹)', key: 'businessPrice' },
+                        { label: 'Total Seats',        key: 'totalSeats' },
+                        { label: 'Available Seats',    key: 'availableSeats' },
+                      ] as { label: string; key: keyof AdminUpdateFlightRequest }[]).map(f => (
+                        <div key={f.key}>
+                          <label className="block text-xs font-semibold text-gray-500 mb-1">{f.label}</label>
+                          <input
+                            type="number"
+                            value={(flightEditForm[f.key] as number | undefined) ?? ''}
+                            onChange={e => setFlightEditForm(prev => ({ ...prev, [f.key]: Number(e.target.value) }))}
+                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                      <input type="checkbox" checked={flightEditForm.isActive ?? true}
+                        onChange={e => setFlightEditForm(prev => ({ ...prev, isActive: e.target.checked }))}
+                        className="h-4 w-4 accent-blue-600" />
+                      Active (visible to customers)
+                    </label>
+                  </div>
+                  <div className="flex justify-end gap-3 mt-6">
+                    <button onClick={() => setEditingFlight(null)} className="px-4 py-2 text-sm text-gray-600 rounded-lg border border-gray-200 hover:bg-gray-50">Cancel</button>
+                    <Button loading={savingFlight} onClick={handleSaveFlight} className="bg-blue-600 hover:bg-blue-700">Save Changes</Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── ANNOUNCEMENTS ─────────────────────────────────────────── */}
+        {tab === 'announcements' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <h3 className="font-bold text-gray-900 mb-4">Create Announcement</h3>
+              <div className="grid gap-3 md:grid-cols-[1fr_140px_160px_auto]">
+                <input
+                  placeholder="Announcement message…"
+                  value={announcementForm.message}
+                  onChange={e => setAnnouncementForm(f => ({ ...f, message: e.target.value }))}
+                  className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <select
+                  value={announcementForm.type}
+                  onChange={e => setAnnouncementForm(f => ({ ...f, type: e.target.value as 'info' | 'warning' | 'success' }))}
+                  className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="info">Info</option>
+                  <option value="warning">Warning</option>
+                  <option value="success">Success</option>
+                </select>
+                <input
+                  type="date"
+                  value={announcementForm.expiresAt ?? ''}
+                  onChange={e => setAnnouncementForm(f => ({ ...f, expiresAt: e.target.value || undefined }))}
+                  className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <Button loading={savingAnnouncement} onClick={handleCreateAnnouncement} className="bg-blue-600 hover:bg-blue-700 whitespace-nowrap">
+                  <Plus className="h-4 w-4 mr-1" /> Publish
+                </Button>
+              </div>
+            </div>
+
+            {announcementsLoading ? (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center text-gray-400 text-sm">Loading…</div>
+            ) : announcements.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-16 text-center">
+                <Megaphone className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500 text-sm">No announcements yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {announcements.map(a => (
+                  <div key={a.id} className={`flex items-start gap-4 rounded-2xl border p-4 ${
+                    a.type === 'warning' ? 'bg-amber-50 border-amber-200' :
+                    a.type === 'success' ? 'bg-emerald-50 border-emerald-200' :
+                    'bg-blue-50 border-blue-200'
+                  }`}>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900">{a.message}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Type: <strong className="capitalize">{a.type}</strong>
+                        {a.expiresAt && ` · Expires ${fmtDate(a.expiresAt)}`}
+                        · Published {fmtDate(a.createdAt)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge variant={a.isActive ? 'success' : 'danger'}>{a.isActive ? 'Active' : 'Paused'}</Badge>
+                      <button onClick={() => handleToggleAnnouncement(a)}
+                        className="text-xs font-semibold px-2 py-1 rounded-lg border border-gray-300 hover:bg-white transition-colors">
+                        {a.isActive ? 'Pause' : 'Resume'}
+                      </button>
+                      <button onClick={() => handleDeleteAnnouncement(a.id)}
+                        className="p-1 text-gray-400 hover:text-red-600 transition-colors">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── USER OVERVIEW MODAL ────────────────────────────────────── */}
+        {(viewingUser || userOverviewLoading) && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => { setViewingUser(null) }} />
+            <div className="relative w-full max-w-2xl rounded-2xl bg-white shadow-2xl max-h-[90vh] overflow-y-auto">
+              {userOverviewLoading ? (
+                <div className="p-16 text-center text-gray-400">Loading user profile…</div>
+              ) : viewingUser ? (
+                <>
+                  <div className="sticky top-0 bg-white flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900">{viewingUser.name}</h3>
+                      <p className="text-xs text-gray-400">{viewingUser.email} · {viewingUser.role}</p>
+                    </div>
+                    <button onClick={() => setViewingUser(null)}><X className="h-5 w-5 text-gray-400" /></button>
+                  </div>
+                  <div className="p-6 space-y-5">
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div className="rounded-xl bg-gray-50 p-3 text-center">
+                        <p className="text-xs text-gray-400">Wallet Balance</p>
+                        <p className="font-bold text-gray-900 mt-1">{formatCurrency(viewingUser.walletBalance)}</p>
+                      </div>
+                      <div className="rounded-xl bg-gray-50 p-3 text-center">
+                        <p className="text-xs text-gray-400">Status</p>
+                        <p className={`font-bold mt-1 ${viewingUser.isActive ? 'text-emerald-600' : 'text-red-600'}`}>
+                          {viewingUser.isActive ? 'Active' : 'Blocked'}
+                        </p>
+                      </div>
+                      <div className="rounded-xl bg-gray-50 p-3 text-center">
+                        <p className="text-xs text-gray-400">Member Since</p>
+                        <p className="font-bold text-gray-900 mt-1">{fmtDate(viewingUser.createdAt)}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-700 mb-3">Recent Bookings ({viewingUser.recentBookings.length})</h4>
+                      {viewingUser.recentBookings.length === 0 ? (
+                        <p className="text-sm text-gray-400">No bookings yet.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {viewingUser.recentBookings.map(b => (
+                            <div key={b.id} className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm">
+                              <div>
+                                <p className="font-mono text-xs font-bold text-gray-800">{b.bookingReference}</p>
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                  {b.type} · {b.type === 'Flight' ? `${b.originCity}→${b.destinationCity}` : (b.hotelName ?? b.type)}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-semibold text-gray-900">{formatCurrency(b.finalAmount)}</p>
+                                <Badge variant={String(b.status) === 'Confirmed' ? 'success' : String(b.status) === 'Cancelled' ? 'danger' : 'default'}
+                                  className="text-xs mt-0.5">{String(b.status)}</Badge>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : null}
+            </div>
           </div>
         )}
 

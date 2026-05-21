@@ -69,6 +69,16 @@ export const endpoints = {
     toggleBusOperator:      (id: string) => `/admin/bus-operators/${id}/toggle`,
     cabOperators:           '/admin/cab-operators',
     toggleCabOperator:      (id: string) => `/admin/cab-operators/${id}/toggle`,
+    flights:                '/admin/flights',
+    flight:                 (id: string) => `/admin/flights/${id}`,
+    couponAnalytics:        '/admin/coupons/analytics',
+    userOverview:           (id: string) => `/admin/users/${id}/overview`,
+    exportCsv:              '/admin/bookings/export-csv',
+  },
+  announcements: {
+    active: '/announcements/active',
+    all:    '/announcements',
+    item:   (id: string) => `/announcements/${id}`,
   },
   flightOperator: {
     dashboard: '/flight-operator/dashboard',
