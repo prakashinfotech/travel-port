@@ -1,6 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { AlertTriangle, Home, RefreshCw } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -62,4 +62,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       </div>
     )
   }
+}
+
+/**
+ * Wraps ErrorBoundary with a location key so it remounts (and resets hasError)
+ * on every route change — prevents stale error state after logout/login transitions.
+ */
+export function LocationAwareErrorBoundary({ children }: { children: ReactNode }) {
+  const { key } = useLocation()
+  return <ErrorBoundary key={key}>{children}</ErrorBoundary>
 }

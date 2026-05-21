@@ -185,9 +185,19 @@ function RoomCard({ room, hotelId, checkIn, checkOut, guests }: {
           <h3 className="font-bold text-gray-900 text-base">{room.roomType}</h3>
           <div className="flex flex-wrap gap-3 mt-2 text-sm text-gray-500">
             <span className="flex items-center gap-1"><Users className="h-4 w-4" /> Up to {room.maxOccupancy} guests</span>
-            {room.availableRooms > 0 && (
+            {checkIn && checkOut ? (
+              room.availableRooms > 0 ? (
+                <span className="flex items-center gap-1 text-green-600 font-medium">
+                  <CheckCircle className="h-4 w-4" /> {room.availableRooms} room{room.availableRooms !== 1 ? 's' : ''} left
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-red-500 font-medium">
+                  Sold out for selected dates
+                </span>
+              )
+            ) : (
               <span className="flex items-center gap-1 text-green-600 font-medium">
-                <CheckCircle className="h-4 w-4" /> {room.availableRooms} rooms left
+                <CheckCircle className="h-4 w-4" /> {room.availableRooms} room{room.availableRooms !== 1 ? 's' : ''} available
               </span>
             )}
           </div>
@@ -213,9 +223,10 @@ function RoomCard({ room, hotelId, checkIn, checkOut, guests }: {
           )}
           <button
             onClick={() => navigate(`/hotels/${hotelId}/book/${room.id}?${params}`)}
-            className="mt-3 px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm rounded-lg transition-colors"
+            disabled={checkIn && checkOut ? room.availableRooms === 0 : false}
+            className="mt-3 px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Book Now
+            {checkIn && checkOut && room.availableRooms === 0 ? 'Sold Out' : 'Book Now'}
           </button>
         </div>
         </div>
@@ -251,7 +262,7 @@ export default function HotelDetailPage() {
     if (!id) return
     setLoading(true)
     setError(null)
-    hotelService.getById(id)
+    hotelService.getById(id, checkIn || undefined, checkOut || undefined)
       .then(r => {
         if (!r.data) { setError('Hotel not found.'); return }
         setHotel(r.data)
@@ -261,7 +272,7 @@ export default function HotelDetailPage() {
         setError(msg)
       })
       .finally(() => setLoading(false))
-  }, [id])
+  }, [id, checkIn, checkOut])
 
   // Derived values — computed unconditionally so hooks order is preserved
   const galleryImgs = parseImages(hotel?.images, hotel?.imageUrl || FALLBACK_IMG)

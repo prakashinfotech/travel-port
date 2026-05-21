@@ -86,16 +86,19 @@ public class HotelService : IHotelService
         return (paged, total);
     }
 
-    public async Task<HotelDto> GetByIdAsync(Guid hotelId, CancellationToken ct = default)
+    public async Task<HotelDto> GetByIdAsync(Guid hotelId, DateTime? checkIn = null, DateTime? checkOut = null, CancellationToken ct = default)
     {
-        var key = $"hotel:{hotelId}";
+        // Include dates in cache key when provided so availability is not stale
+        var key = checkIn.HasValue && checkOut.HasValue
+            ? $"hotel:{hotelId}:{checkIn:yyyyMMdd}:{checkOut:yyyyMMdd}"
+            : $"hotel:{hotelId}";
         var cached = await _cache.GetAsync<HotelDto>(key, ct);
         if (cached is not null) return cached;
 
         var hotel = await _hotels.GetByIdAsync(hotelId, ct)
             ?? throw new NotFoundException("Hotel", hotelId);
-        var dto = await ToDtoAsync(hotel, ct);
-        await _cache.SetAsync(key, dto, TimeSpan.FromMinutes(30), ct);
+        var dto = await ToDtoAsync(hotel, checkIn, checkOut, ct);
+        await _cache.SetAsync(key, dto, TimeSpan.FromMinutes(5), ct);
         return dto;
     }
 
@@ -184,6 +187,10 @@ public class HotelService : IHotelService
             referenceId = req.HotelId;
         }
 
+        // Add meal plan charges
+        if (req.MealPlanAmountPerNight > 0)
+            total += req.MealPlanAmountPerNight * nights * req.Guests;
+
         var bookingRef = await _bookings.GenerateBookingRefAsync("HT", ct);
 
         // Apply coupon discount
@@ -218,6 +225,7 @@ public class HotelService : IHotelService
             UserId         = userId,
             BookingType    = BookingType.Hotel,
             ReferenceId    = referenceId,
+            RoomId         = req.RoomId,
             CheckIn        = req.CheckIn,
             CheckOut       = req.CheckOut,
             CouponCode     = req.CouponCode,
@@ -287,7 +295,7 @@ public class HotelService : IHotelService
         )).ToList(),
         Reviews: null);
 
-    private async Task<HotelDto> ToDtoAsync(Hotel hotel, CancellationToken ct)
+    private async Task<HotelDto> ToDtoAsync(Hotel hotel, DateTime? checkIn, DateTime? checkOut, CancellationToken ct)
     {
         var reviewEntities = (await _reviews.FindAsync(r => r.HotelId == hotel.Id, ct))
             .OrderByDescending(r => r.CreatedAt)
@@ -300,9 +308,42 @@ public class HotelService : IHotelService
             reviewUsers[userId] = user?.Name ?? "Guest";
         }
 
-        return ToDto(hotel) with
+        // Count confirmed bookings per room for the requested date range
+        var bookedCountByRoom = new Dictionary<Guid, int>();
+        if (checkIn.HasValue && checkOut.HasValue)
         {
-            Reviews = [.. reviewEntities.Select(r => new HotelReviewDto(
+            var overlapping = await _bookings.FindAsync(b =>
+                b.BookingType == BookingType.Hotel &&
+                b.ReferenceId == hotel.Id &&
+                b.RoomId.HasValue &&
+                b.Status == BookingStatus.Confirmed &&
+                b.CheckIn < checkOut && b.CheckOut > checkIn, ct);
+
+            foreach (var b in overlapping)
+                bookedCountByRoom[b.RoomId!.Value] = bookedCountByRoom.GetValueOrDefault(b.RoomId.Value) + 1;
+        }
+
+        var rooms = hotel.Rooms.Select(r =>
+        {
+            var booked = bookedCountByRoom.GetValueOrDefault(r.Id, 0);
+            var available = Math.Max(0, r.TotalRooms - booked);
+            return new HotelRoomDto(
+                r.Id, r.RoomType, r.PricePerNight, r.MaxGuests, available,
+                r.Amenities ?? string.Empty,
+                CancellationPolicy: "Free cancellation before 24 hours",
+                MealPlan: "Room only",
+                IsRefundable: true,
+                ExternalOfferId: null
+            );
+        }).ToList();
+
+        return new HotelDto(
+            hotel.Id, hotel.Name, hotel.City, hotel.Address ?? string.Empty,
+            hotel.StarRating, hotel.ReviewScore, hotel.ReviewCount,
+            hotel.Description ?? string.Empty, hotel.Amenities ?? string.Empty, hotel.ImageUrl ?? string.Empty,
+            hotel.Images,
+            rooms,
+            Reviews: [.. reviewEntities.Select(r => new HotelReviewDto(
                 r.Id,
                 r.UserId,
                 reviewUsers.GetValueOrDefault(r.UserId, "Guest"),
@@ -310,7 +351,7 @@ public class HotelService : IHotelService
                 r.Comment,
                 r.CreatedAt
             ))]
-        };
+        );
     }
 
 }

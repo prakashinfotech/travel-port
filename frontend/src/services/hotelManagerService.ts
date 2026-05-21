@@ -52,4 +52,9 @@ export const hotelManagerService = {
   deleteRoom: async (roomId: string): Promise<void> => {
     await api.delete(endpoints.hotelManager.room(roomId))
   },
+
+  getRooms: async (): Promise<HotelRoomManagerDto[]> => {
+    const res = await api.get<ApiResponse<HotelRoomManagerDto[]>>(endpoints.hotelManager.rooms)
+    return res.data.data
+  },
 }

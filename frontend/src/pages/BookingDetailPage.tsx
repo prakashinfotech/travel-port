@@ -108,7 +108,7 @@ function BookingTimeline({ status, bookingDate }: { status: BookingStatus; booki
   function dotState(i: number): DotState {
     if (i <= doneThrough) return 'done'
     if (isCancelled) return 'greyed'
-    if (!isCompleted && i === doneThrough + 1) return 'active'
+    if (!isCompleted && i === doneThrough + 1 && i < TIMELINE_STEPS.length - 1) return 'active'
     return 'pending'
   }
 

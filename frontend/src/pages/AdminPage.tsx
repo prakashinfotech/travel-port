@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -188,6 +188,148 @@ function CouponModal({ coupon, onClose, onSaved }: {
   )
 }
 
+// ── Shared city + type lists ──────────────────────────────────────────────────
+const HOTEL_CITIES = [
+  'Agra', 'Ahmedabad', 'Amritsar', 'Aurangabad', 'Bangalore', 'Bhopal',
+  'Bhubaneswar', 'Chandigarh', 'Chennai', 'Coimbatore', 'Delhi', 'Goa',
+  'Guwahati', 'Hyderabad', 'Indore', 'Jaipur', 'Jammu', 'Jodhpur',
+  'Kochi', 'Kolkata', 'Lucknow', 'Ludhiana', 'Madurai', 'Mangalore',
+  'Mumbai', 'Mysore', 'Nagpur', 'Nashik', 'Patna', 'Pondicherry',
+  'Pune', 'Raipur', 'Ranchi', 'Shimla', 'Surat', 'Udaipur',
+  'Vadodara', 'Varanasi', 'Vijayawada', 'Visakhapatnam',
+]
+
+const BUS_TYPES = [
+  'AC Seater', 'Non-AC Seater', 'AC Sleeper', 'Non-AC Sleeper',
+  'Volvo AC', 'Mercedes Luxury', 'Semi-Sleeper', 'Luxury Coach',
+  'Mini Bus', 'Electric Bus', 'Double Decker', 'Scania',
+]
+
+const CAB_TYPES = [
+  'Mini (Hatchback)', 'Sedan', 'SUV', 'Innova / Crysta',
+  'Tempo Traveller', 'Luxury Sedan', 'Luxury SUV',
+  'Electric Car', 'Auto Rickshaw', 'Bike Taxi',
+]
+
+function CityCombobox({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState(value)
+  const ref = useRef<HTMLDivElement>(null)
+
+  const filtered = HOTEL_CITIES.filter(c =>
+    c.toLowerCase().includes(query.toLowerCase())
+  )
+
+  useEffect(() => { setQuery(value) }, [value])
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  function select(city: string) {
+    onChange(city)
+    setQuery(city)
+    setOpen(false)
+  }
+
+  function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
+    setQuery(e.target.value)
+    onChange(e.target.value)
+    setOpen(true)
+  }
+
+  return (
+    <div ref={ref} className="relative">
+      <input
+        value={query}
+        onChange={handleInput}
+        onFocus={() => setOpen(true)}
+        placeholder="Search city…"
+        autoComplete="off"
+        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+      {open && filtered.length > 0 && (
+        <ul className="absolute z-50 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg text-sm">
+          {filtered.map(city => (
+            <li
+              key={city}
+              onMouseDown={() => select(city)}
+              className={`cursor-pointer px-3 py-2 hover:bg-blue-50 hover:text-blue-700 ${
+                city === value ? 'bg-blue-50 font-semibold text-blue-700' : 'text-gray-700'
+              }`}
+            >
+              {city}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+// ── Multi-select dropdown ─────────────────────────────────────────────────────
+function MultiSelectDropdown({ options, selected, onChange, placeholder }: {
+  options: string[]
+  selected: string[]
+  onChange: (v: string[]) => void
+  placeholder?: string
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const fn = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', fn)
+    return () => document.removeEventListener('mousedown', fn)
+  }, [])
+
+  const toggle = (opt: string) =>
+    onChange(selected.includes(opt) ? selected.filter(s => s !== opt) : [...selected, opt])
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full min-h-[36px] text-left rounded-lg border border-gray-200 px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
+        {selected.length > 0 ? (
+          <span className="flex flex-wrap gap-1">
+            {selected.map(s => (
+              <span key={s} className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-xs">
+                {s}
+                <span onMouseDown={e => { e.stopPropagation(); toggle(s) }} className="cursor-pointer hover:text-blue-900">×</span>
+              </span>
+            ))}
+          </span>
+        ) : (
+          <span className="text-gray-400 text-sm">{placeholder ?? 'Select types…'}</span>
+        )}
+      </button>
+      {open && (
+        <ul className="absolute z-50 mt-1 max-h-52 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg text-sm">
+          {options.map(opt => (
+            <li
+              key={opt}
+              onMouseDown={() => toggle(opt)}
+              className="flex items-center gap-2 cursor-pointer px-3 py-2 hover:bg-blue-50"
+            >
+              <input type="checkbox" readOnly checked={selected.includes(opt)} className="h-3.5 w-3.5 accent-blue-600" />
+              <span className={selected.includes(opt) ? 'text-blue-700 font-medium' : 'text-gray-700'}>{opt}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 // ── Register Hotel Modal ──────────────────────────────────────────────────────
 function RegisterHotelModal({ onClose, onRegistered }: {
   onClose: () => void
@@ -239,8 +381,7 @@ function RegisterHotelModal({ onClose, onRegistered }: {
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1">City *</label>
-              <input value={form.city} onChange={e => set('city', e.target.value)}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <CityCombobox value={form.city} onChange={v => set('city', v)} />
             </div>
           </div>
           <div>
@@ -302,8 +443,10 @@ function RegisterOperatorModal({ type, onClose, onRegistered }: {
     iataCode: '', headquartersCity: '', city: '', contactPhone: '',
     busTypes: '', cabTypes: '', isIndividualDriver: false, driverLicenseNumber: '',
   })
+  const [busTypesArr, setBusTypesArr] = useState<string[]>([])
+  const [cabTypesArr, setCabTypesArr] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError]   = useState('')
 
   const set = (k: string, v: string | boolean) => setForm(f => ({ ...f, [k]: v }))
 
@@ -311,17 +454,27 @@ function RegisterOperatorModal({ type, onClose, onRegistered }: {
     if (!form.companyName || !form.managerEmail || !form.managerPassword || !form.managerName) {
       setError('Company name, manager name, email, and password are required.'); return
     }
+    const phone = String(form.contactPhone).replace(/\D/g, '')
+    if (form.contactPhone && phone.length !== 10) {
+      setError('Contact phone must be exactly 10 digits.'); return
+    }
     setSaving(true); setError('')
     try {
+      const payload = {
+        ...form,
+        busTypes: type === 'bus' ? busTypesArr.join(', ') : form.busTypes,
+        cabTypes: type === 'cab' ? cabTypesArr.join(', ') : form.cabTypes,
+      }
       let result: FlightOperatorListDto | BusOperatorListDto | CabOperatorListDto
       if (type === 'flight') {
-        result = await adminService.registerFlightOperator(form as unknown as RegisterFlightOperatorRequest)
+        result = await adminService.registerFlightOperator(payload as unknown as RegisterFlightOperatorRequest)
       } else if (type === 'bus') {
-        result = await adminService.registerBusOperator(form as unknown as RegisterBusOperatorRequest)
+        result = await adminService.registerBusOperator(payload as unknown as RegisterBusOperatorRequest)
       } else {
-        result = await adminService.registerCabOperator({ ...form, isIndividualDriver: !!form.isIndividualDriver } as unknown as RegisterCabOperatorRequest)
+        result = await adminService.registerCabOperator(payload as unknown as RegisterCabOperatorRequest)
       }
       onRegistered(result)
+      onClose()
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
       setError(msg ?? 'Failed to register operator.')
@@ -360,42 +513,45 @@ function RegisterOperatorModal({ type, onClose, onRegistered }: {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1">HQ City</label>
-                <input value={form.headquartersCity as string} onChange={e => set('headquartersCity', e.target.value)}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <CityCombobox value={form.headquartersCity as string} onChange={v => set('headquartersCity', v)} />
               </div>
             </div>
           )}
 
           {type === 'bus' && (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">HQ City</label>
-                <input value={form.headquartersCity as string} onChange={e => set('headquartersCity', e.target.value)}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">HQ City</label>
+                  <CityCombobox value={form.headquartersCity as string} onChange={v => set('headquartersCity', v)} />
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1">Bus Types</label>
-                <input value={form.busTypes as string} onChange={e => set('busTypes', e.target.value)}
-                  placeholder="AC, Sleeper, Volvo"
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <MultiSelectDropdown
+                  options={BUS_TYPES}
+                  selected={busTypesArr}
+                  onChange={setBusTypesArr}
+                  placeholder="Select bus types…"
+                />
               </div>
-            </div>
+            </>
           )}
 
           {type === 'cab' && (
             <>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1">City</label>
-                  <input value={form.city as string} onChange={e => set('city', e.target.value)}
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1">Cab Types</label>
-                  <input value={form.cabTypes as string} onChange={e => set('cabTypes', e.target.value)}
-                    placeholder="Mini, Sedan, SUV"
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Operating City</label>
+                <CityCombobox value={form.city as string} onChange={v => set('city', v)} />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Cab Types</label>
+                <MultiSelectDropdown
+                  options={CAB_TYPES}
+                  selected={cabTypesArr}
+                  onChange={setCabTypesArr}
+                  placeholder="Select cab types…"
+                />
               </div>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={!!form.isIndividualDriver}
@@ -414,9 +570,18 @@ function RegisterOperatorModal({ type, onClose, onRegistered }: {
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1">Contact Phone</label>
-            <input value={form.contactPhone as string} onChange={e => set('contactPhone', e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <label className="block text-xs font-semibold text-gray-500 mb-1">Contact Phone (10 digits)</label>
+            <input
+              value={form.contactPhone as string}
+              onChange={e => set('contactPhone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+              placeholder="9876543210"
+              maxLength={10}
+              inputMode="numeric"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            {form.contactPhone && String(form.contactPhone).length > 0 && String(form.contactPhone).length !== 10 && (
+              <p className="text-xs text-red-500 mt-1">Must be exactly 10 digits</p>
+            )}
           </div>
 
           <div className="border-t border-gray-100 pt-4">

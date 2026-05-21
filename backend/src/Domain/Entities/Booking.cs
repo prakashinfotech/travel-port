@@ -19,6 +19,8 @@ public class Booking : BaseEntity
     public BookingStatus Status { get; set; } = BookingStatus.Pending;
     public DateTime? CancelledAt { get; set; }
     public decimal? RefundAmount { get; set; }
+    // For hotel bookings: which specific room was booked
+    public Guid? RoomId { get; set; }
     // Guest contact details (for hotel bookings where guest may differ from account holder)
     public string? GuestName { get; set; }
     public string? GuestEmail { get; set; }

@@ -9,7 +9,7 @@ import { PrivateRoute } from './PrivateRoute'
 import { HotelRoute } from './HotelRoute'
 import { OperatorRoute } from './OperatorRoute'
 import { FullPageSpinner } from '@/components/ui/Spinner'
-import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
+import { LocationAwareErrorBoundary } from '@/components/ui/ErrorBoundary'
 
 const HomePage             = lazy(() => import('@/pages/HomePage'))
 const LoginPage            = lazy(() => import('@/pages/LoginPage'))
@@ -42,10 +42,11 @@ const ProfilePage          = lazy(() => import('@/pages/ProfilePage'))
 const AdminPage            = lazy(() => import('@/pages/AdminPage'))
 const PaymentPage          = lazy(() => import('@/pages/PaymentPage'))
 
-const HotelDashboardPage   = lazy(() => import('@/pages/hotel/HotelDashboardPage'))
-const HotelBookingsPage    = lazy(() => import('@/pages/hotel/HotelBookingsPage'))
-const HotelRoomsPage       = lazy(() => import('@/pages/hotel/HotelRoomsPage'))
-const HotelProfilePage     = lazy(() => import('@/pages/hotel/HotelProfilePage'))
+const HotelDashboardPage      = lazy(() => import('@/pages/hotel/HotelDashboardPage'))
+const HotelBookingsPage       = lazy(() => import('@/pages/hotel/HotelBookingsPage'))
+const HotelRoomsPage          = lazy(() => import('@/pages/hotel/HotelRoomsPage'))
+const HotelProfilePage        = lazy(() => import('@/pages/hotel/HotelProfilePage'))
+const HotelAvailabilityPage   = lazy(() => import('@/pages/hotel/HotelAvailabilityPage'))
 
 const FlightOperatorDashboardPage = lazy(() => import('@/pages/operator/FlightOperatorDashboardPage'))
 const FlightOperatorFlightsPage   = lazy(() => import('@/pages/operator/FlightOperatorFlightsPage'))
@@ -60,7 +61,7 @@ const CabOperatorBookingsPage     = lazy(() => import('@/pages/operator/CabOpera
 export function AppRouter() {
   return (
     <BrowserRouter>
-      <ErrorBoundary>
+      <LocationAwareErrorBoundary>
         <Suspense fallback={<FullPageSpinner />}>
           <Routes>
             <Route element={<Layout />}>
@@ -104,10 +105,11 @@ export function AppRouter() {
 
             {/* Hotel Portal — sidebar layout, no main Navbar/Footer */}
             <Route path="hotel" element={<HotelRoute><HotelLayout /></HotelRoute>}>
-              <Route path="dashboard" element={<HotelDashboardPage />} />
-              <Route path="bookings"  element={<HotelBookingsPage />} />
-              <Route path="rooms"     element={<HotelRoomsPage />} />
-              <Route path="profile"   element={<HotelProfilePage />} />
+              <Route path="dashboard"    element={<HotelDashboardPage />} />
+              <Route path="bookings"     element={<HotelBookingsPage />} />
+              <Route path="rooms"        element={<HotelRoomsPage />} />
+              <Route path="availability" element={<HotelAvailabilityPage />} />
+              <Route path="profile"      element={<HotelProfilePage />} />
             </Route>
 
             {/* Flight Operator Portal */}
@@ -130,7 +132,7 @@ export function AppRouter() {
             </Route>
           </Routes>
         </Suspense>
-      </ErrorBoundary>
+      </LocationAwareErrorBoundary>
     </BrowserRouter>
   )
 }

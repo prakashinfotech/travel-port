@@ -6,25 +6,24 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace TravelPort.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class AddCouponIsFeatured : Migration
+    public partial class AddRoomIdToBooking : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<bool>(
-                name: "IsFeatured",
-                table: "Coupons",
-                type: "bit",
-                nullable: false,
-                defaultValue: false);
+            migrationBuilder.AddColumn<Guid>(
+                name: "RoomId",
+                table: "Bookings",
+                type: "uniqueidentifier",
+                nullable: true);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "IsFeatured",
-                table: "Coupons");
+                name: "RoomId",
+                table: "Bookings");
         }
     }
 }

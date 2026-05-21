@@ -435,6 +435,8 @@ export interface BookHotelRequest {
   guestName?: string
   guestEmail?: string
   guestPhone?: string
+  mealPlan?: string
+  mealPlanAmountPerNight?: number
 }
 
 export interface BookingCreatedResponse {

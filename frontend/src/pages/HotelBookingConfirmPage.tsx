@@ -13,23 +13,25 @@ import { Skeleton } from '@/components/ui/Skeleton'
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 interface HotelUiSnapshot {
-  bookingId:    string
-  bookingType:  'Hotel'
-  guestName:    string
-  email:        string
-  phone:        string
-  hotelName:    string
-  hotelAddress: string
-  hotelCity:    string
-  hotelStars:   number
-  roomType:     string
-  checkIn:      string
-  checkOut:     string
-  nights:       number
-  guests:       number
-  pricePerNight: number
-  taxes:        number
-  totalAmount:  number
+  bookingId:      string
+  bookingType:    'Hotel'
+  guestName:      string
+  email:          string
+  phone:          string
+  hotelName:      string
+  hotelAddress:   string
+  hotelCity:      string
+  hotelStars:     number
+  roomType:       string
+  checkIn:        string
+  checkOut:       string
+  nights:         number
+  guests:         number
+  pricePerNight:  number
+  mealPlan?:      string
+  mealPlanAmount?: number
+  taxes:          number
+  totalAmount:    number
 }
 
 // ── PDF builder ────────────────────────────────────────────────────────────────
@@ -69,6 +71,7 @@ function buildHotelPdf(snap: HotelUiSnapshot, ref: string, status: string): Blob
     'PRICE SUMMARY',
     `Room Rate  : ${formatCurrency(snap.pricePerNight)} x ${snap.nights} night${snap.nights !== 1 ? 's' : ''}`,
     `Base Amount: ${formatCurrency(snap.pricePerNight * snap.nights)}`,
+    ...(snap.mealPlan && snap.mealPlanAmount ? [`Meal Plan  : ${snap.mealPlan} = ${formatCurrency(snap.mealPlanAmount)}`] : []),
     `Taxes      : ${formatCurrency(snap.taxes)}`,
     `Total Paid : ${formatCurrency(snap.totalAmount)}`,
     '',
@@ -298,11 +301,17 @@ export default function HotelBookingConfirmPage() {
                   )}
                 </div>
 
-                {/* Room type */}
-                <div className="flex items-center gap-2 mb-4 p-3 bg-white rounded-lg border border-gray-100">
+                {/* Room type + meal plan */}
+                <div className="flex items-center gap-2 mb-2 p-3 bg-white rounded-lg border border-gray-100">
                   <Bed className="h-4 w-4 text-orange-500 flex-shrink-0" />
                   <span className="text-sm font-semibold text-gray-800">{snap?.roomType ?? 'Room'}</span>
                 </div>
+                {snap?.mealPlan && (
+                  <div className="flex items-center gap-2 mb-4 p-3 bg-orange-50 rounded-lg border border-orange-100">
+                    <span className="text-base">🍽️</span>
+                    <span className="text-sm font-semibold text-orange-700">{snap.mealPlan} included</span>
+                  </div>
+                )}
 
                 {/* Check-in / Check-out */}
                 <div className="grid grid-cols-3 gap-3">
@@ -426,6 +435,12 @@ export default function HotelBookingConfirmPage() {
                     <span className="text-gray-500">Room Rate × {nights} night{nights > 1 ? 's' : ''}</span>
                     <span className="text-gray-800">{formatCurrency(baseAmount)}</span>
                   </div>
+                  {snap?.mealPlan && snap.mealPlanAmount ? (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Meal Plan ({snap.mealPlan})</span>
+                      <span className="text-gray-800">{formatCurrency(snap.mealPlanAmount)}</span>
+                    </div>
+                  ) : null}
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Taxes & Fees (12% GST)</span>
                     <span className="text-gray-800">{formatCurrency(taxes)}</span>

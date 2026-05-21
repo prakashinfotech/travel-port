@@ -11,5 +11,7 @@ public record BookHotelRequest(
     Guid? SavedCardId = null,
     string? GuestName = null,
     string? GuestEmail = null,
-    string? GuestPhone = null
+    string? GuestPhone = null,
+    string? MealPlan = null,
+    decimal MealPlanAmountPerNight = 0
 );

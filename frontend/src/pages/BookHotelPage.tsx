@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, MapPin, Star, Users, Calendar,
-  CheckCircle, Shield, Tag, Info, ChevronRight, Home, BriefcaseBusiness, X, CreditCard,
+  CheckCircle, Shield, Tag, Info, ChevronRight, Home, BriefcaseBusiness, X, CreditCard, UtensilsCrossed,
 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -25,10 +25,29 @@ const schema = z.object({
   firstName:  z.string().min(1, 'First name required'),
   lastName:   z.string().min(1, 'Last name required'),
   email:      z.string().email('Valid email required'),
-  phone:      z.string().min(10, 'Valid phone required'),
+  phone:      z.string().regex(/^\d{10}$/, 'Enter valid 10-digit mobile number'),
   couponCode: z.string().optional(),
 })
 type FormValues = z.infer<typeof schema>
+
+// ── Meal Plans ────────────────────────────────────────────────────────────────
+
+type MealPlanId = 'RoomOnly' | 'Breakfast' | 'LunchDinner' | 'AllInclusive'
+
+interface MealPlan {
+  id: MealPlanId
+  label: string
+  desc: string
+  icon: string
+  pricePerNightPerGuest: number
+}
+
+const MEAL_PLANS: MealPlan[] = [
+  { id: 'RoomOnly',     label: 'Room Only',       icon: '🛏️', desc: 'No meals included',                        pricePerNightPerGuest: 0 },
+  { id: 'Breakfast',    label: 'Breakfast',        icon: '☕', desc: 'Continental/buffet breakfast',              pricePerNightPerGuest: 500 },
+  { id: 'LunchDinner',  label: 'Lunch + Dinner',   icon: '🍽️', desc: 'Afternoon & evening meals included',       pricePerNightPerGuest: 800 },
+  { id: 'AllInclusive', label: 'All Inclusive',    icon: '🌟', desc: 'Breakfast, lunch & dinner included',       pricePerNightPerGuest: 1200 },
+]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -70,6 +89,7 @@ export default function BookHotelPage() {
   const [couponError,   setCouponError]   = useState('')
   const [appliedCode,   setAppliedCode]   = useState('')
 
+  const [selectedMealPlan, setSelectedMealPlan] = useState<MealPlan>(MEAL_PLANS[0])
   const [includeContribution, setIncludeContribution] = useState(false)
   const [showFareRules, setShowFareRules] = useState(false)
   const [showContributionInfo, setShowContributionInfo] = useState(false)
@@ -121,9 +141,10 @@ export default function BookHotelPage() {
 
   const amenities   = parseAmenities(room.amenities)
   const basePrice   = room.pricePerNight * nights
-  const taxes       = Math.round(basePrice * 0.12)
+  const mealPlanAmount = selectedMealPlan.pricePerNightPerGuest * nights * guests
+  const taxes       = Math.round((basePrice + mealPlanAmount) * 0.12)
   const contributionAmount = includeContribution ? 10 : 0
-  const discountedBookingAmount = Math.max(0, basePrice + taxes - discount)
+  const discountedBookingAmount = Math.max(0, basePrice + mealPlanAmount + taxes - discount)
   const cancellationPenaltyAmount = discountedBookingAmount
   const total       = discountedBookingAmount + contributionAmount
 
@@ -152,6 +173,8 @@ export default function BookHotelPage() {
         guestName,
         guestEmail: values.email,
         guestPhone: values.phone,
+        mealPlan:   selectedMealPlan.id !== 'RoomOnly' ? selectedMealPlan.label : undefined,
+        mealPlanAmountPerNight: selectedMealPlan.pricePerNightPerGuest,
       })
 
       // Save UI snapshot so HotelBookingConfirmPage can render hotel info
@@ -171,6 +194,8 @@ export default function BookHotelPage() {
         nights,
         guests,
         pricePerNight: room.pricePerNight,
+        mealPlan:      selectedMealPlan.id !== 'RoomOnly' ? selectedMealPlan.label : undefined,
+        mealPlanAmount,
         taxes,
         totalAmount:  res.data.totalAmount,
       }))
@@ -278,6 +303,44 @@ export default function BookHotelPage() {
                     )}
                   </div>
                 </div>
+              </div>
+
+              {/* Meal Plan selector */}
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <UtensilsCrossed className="h-5 w-5 text-orange-500" />
+                  Meal Plan
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {MEAL_PLANS.map(plan => (
+                    <button
+                      key={plan.id}
+                      type="button"
+                      onClick={() => setSelectedMealPlan(plan)}
+                      className={`flex flex-col items-center gap-1 rounded-xl border-2 p-3 text-center transition-all ${
+                        selectedMealPlan.id === plan.id
+                          ? 'border-orange-500 bg-orange-50'
+                          : 'border-gray-200 bg-white hover:border-orange-300'
+                      }`}
+                    >
+                      <span className="text-2xl">{plan.icon}</span>
+                      <span className={`text-xs font-bold ${selectedMealPlan.id === plan.id ? 'text-orange-700' : 'text-gray-900'}`}>{plan.label}</span>
+                      <span className="text-[10px] text-gray-500 leading-tight">{plan.desc}</span>
+                      {plan.pricePerNightPerGuest > 0 ? (
+                        <span className={`text-xs font-semibold ${selectedMealPlan.id === plan.id ? 'text-orange-600' : 'text-gray-600'}`}>
+                          +{formatCurrency(plan.pricePerNightPerGuest)}/night/guest
+                        </span>
+                      ) : (
+                        <span className="text-xs text-green-600 font-semibold">Included</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                {selectedMealPlan.id !== 'RoomOnly' && (
+                  <p className="mt-3 text-xs text-orange-700 bg-orange-50 rounded-lg px-3 py-2">
+                    {selectedMealPlan.icon} <strong>{selectedMealPlan.label}</strong> for {guests} guest{guests > 1 ? 's' : ''} × {nights} night{nights > 1 ? 's' : ''} = {formatCurrency(mealPlanAmount)}
+                  </p>
+                )}
               </div>
 
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
@@ -477,6 +540,12 @@ export default function BookHotelPage() {
                       <span className="text-gray-600">Base Amount</span>
                       <span className="font-medium text-gray-800">{formatCurrency(basePrice)}</span>
                     </div>
+                    {mealPlanAmount > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">{selectedMealPlan.icon} {selectedMealPlan.label}</span>
+                        <span className="font-medium text-gray-800">{formatCurrency(mealPlanAmount)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Taxes & Fees (12%)</span>
                       <span className="font-medium text-gray-800">{formatCurrency(taxes)}</span>

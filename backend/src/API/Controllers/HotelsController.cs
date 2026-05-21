@@ -22,9 +22,13 @@ public class HotelsController : BaseApiController
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<ApiResponse<HotelDto>>> GetById(Guid id, CancellationToken ct)
+    public async Task<ActionResult<ApiResponse<HotelDto>>> GetById(
+        Guid id,
+        [FromQuery] DateTime? checkIn,
+        [FromQuery] DateTime? checkOut,
+        CancellationToken ct)
     {
-        var result = await _hotels.GetByIdAsync(id, ct);
+        var result = await _hotels.GetByIdAsync(id, checkIn, checkOut, ct);
         return Ok(ApiResponse<HotelDto>.Ok(result));
     }
 

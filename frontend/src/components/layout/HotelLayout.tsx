@@ -6,14 +6,16 @@ import {
   Building2,
   LogOut,
   Hotel,
+  CalendarSearch,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 
 const navItems = [
-  { to: '/hotel/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/hotel/bookings',  icon: BookOpen,         label: 'Bookings'  },
-  { to: '/hotel/rooms',     icon: BedDouble,         label: 'Rooms'     },
-  { to: '/hotel/profile',   icon: Building2,         label: 'My Hotel'  },
+  { to: '/hotel/dashboard',    icon: LayoutDashboard, label: 'Dashboard'    },
+  { to: '/hotel/bookings',     icon: BookOpen,        label: 'Bookings'     },
+  { to: '/hotel/rooms',        icon: BedDouble,       label: 'Rooms'        },
+  { to: '/hotel/availability', icon: CalendarSearch,  label: 'Availability' },
+  { to: '/hotel/profile',      icon: Building2,       label: 'My Hotel'     },
 ]
 
 export function HotelLayout() {
