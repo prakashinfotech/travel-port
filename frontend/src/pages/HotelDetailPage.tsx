@@ -161,23 +161,47 @@ function RoomCard({ room, hotelId, checkIn, checkOut, guests }: {
     ? Math.max(1, Math.round((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86400000))
     : 1
   const total    = room.pricePerNight * nights
+  const [roomImgIdx, setRoomImgIdx] = useState(0)
 
   const params = new URLSearchParams()
   if (checkIn)  params.set('checkIn',  checkIn)
   if (checkOut) params.set('checkOut', checkOut)
   params.set('guests', String(guests))
 
+  const roomImgs = parseImages(room.images, getRoomImage(room.roomType))
+
   return (
     <div className="rounded-xl border border-gray-200 bg-white overflow-hidden hover:border-orange-300 hover:shadow-sm transition-all">
       <div className="flex flex-col sm:flex-row">
         {/* Room image */}
-        <div className="sm:w-44 h-40 sm:h-auto flex-shrink-0 overflow-hidden">
+        <div className="sm:w-44 h-40 sm:h-auto flex-shrink-0 overflow-hidden relative group">
           <img
-            src={getRoomImage(room.roomType)}
+            src={roomImgs[roomImgIdx]}
             alt={room.roomType}
             className="w-full h-full object-cover"
             onError={e => { (e.target as HTMLImageElement).src = ROOM_FALLBACK }}
           />
+          {roomImgs.length > 1 && (
+            <>
+              <button
+                onClick={e => { e.stopPropagation(); setRoomImgIdx(i => (i - 1 + roomImgs.length) % roomImgs.length) }}
+                className="absolute left-1 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                onClick={e => { e.stopPropagation(); setRoomImgIdx(i => (i + 1) % roomImgs.length) }}
+                className="absolute right-1 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <ChevronRightIcon className="h-4 w-4" />
+              </button>
+              <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-1">
+                {roomImgs.map((_, i) => (
+                  <span key={i} className={`w-1.5 h-1.5 rounded-full transition-colors ${i === roomImgIdx ? 'bg-white' : 'bg-white/40'}`} />
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         <div className="flex flex-1 flex-col sm:flex-row sm:items-start justify-between gap-4 p-5">

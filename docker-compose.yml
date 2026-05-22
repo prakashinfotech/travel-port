@@ -52,6 +52,7 @@ services:
       AllowedOrigins__1: "${ALLOWED_ORIGIN_1:-https://localhost}"
       Duffel__Enabled: "false"
       Amadeus__Enabled: "false"
+      Claude__ApiKey: "${CLAUDE_API_KEY:-}"
     networks:
       - travelport
     restart: unless-stopped

@@ -291,7 +291,8 @@ public class HotelService : IHotelService
             CancellationPolicy: "Free cancellation before 24 hours",
             MealPlan: "Room only",
             IsRefundable: true,
-            ExternalOfferId: null
+            ExternalOfferId: null,
+            Images: r.Images
         )).ToList(),
         Reviews: null);
 
@@ -333,7 +334,8 @@ public class HotelService : IHotelService
                 CancellationPolicy: "Free cancellation before 24 hours",
                 MealPlan: "Room only",
                 IsRefundable: true,
-                ExternalOfferId: null
+                ExternalOfferId: null,
+                Images: r.Images
             );
         }).ToList();
 

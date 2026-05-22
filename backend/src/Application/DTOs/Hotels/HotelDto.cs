@@ -29,5 +29,6 @@ public record HotelRoomDto(
     string? CancellationPolicy = null,
     string? MealPlan = null,
     bool IsRefundable = false,
-    string? ExternalOfferId = null
+    string? ExternalOfferId = null,
+    string? Images = null
 );

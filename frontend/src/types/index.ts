@@ -92,6 +92,7 @@ export interface HotelRoomDto {
   mealPlan?: string
   isRefundable?: boolean
   externalOfferId?: string
+  images?: string
 }
 
 export interface HotelReviewDto {
