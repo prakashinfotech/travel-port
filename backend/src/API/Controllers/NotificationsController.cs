@@ -45,4 +45,11 @@ public class NotificationsController : BaseApiController
         await _notifications.MarkAllReadAsync(UserId, ct);
         return Ok(ApiResponse<object>.Ok(null!, "All notifications marked as read."));
     }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<ActionResult<ApiResponse<object>>> Delete(Guid id, CancellationToken ct)
+    {
+        await _notifications.DeleteAsync(id, UserId, ct);
+        return Ok(ApiResponse<object>.Ok(null!, "Notification deleted."));
+    }
 }

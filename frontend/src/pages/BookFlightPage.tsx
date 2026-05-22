@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { AlertCircle, ArrowLeft, Armchair, BriefcaseBusiness, ChevronRight, CreditCard, Luggage, Mail, Phone, Plane, ShieldAlert, Tag, TicketPercent, UserRound, X } from 'lucide-react'
+import { AlertCircle, ArrowLeft, BriefcaseBusiness, ChevronRight, CreditCard, Luggage, Mail, Phone, Plane, ShieldAlert, Tag, TicketPercent, UserRound, X } from 'lucide-react'
 import type { FlightDto } from '@/types'
 import { flightService } from '@/services/flightService'
 import { userService } from '@/services/userService'
@@ -18,6 +18,7 @@ import { useAppSelector } from '@/hooks/useAppDispatch'
 
 type FarePlanId = 'saver' | 'flex' | 'max'
 type TravellerGender = 'Male' | 'Female' | 'Other'
+
 
 interface TravellerForm {
   fullName: string
@@ -84,131 +85,6 @@ const FARE_PLANS = {
   },
 }
 
-const SEAT_ROWS = 30
-const SEAT_COLS = ['A', 'B', 'C', 'D', 'E', 'F'] as const
-type SeatCol = typeof SEAT_COLS[number]
-
-function hashSeat(flightId: string, row: number, col: SeatCol): number {
-  const str = `${flightId}-${row}-${col}`
-  let hash = 0
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0
-  }
-  return Math.abs(hash)
-}
-
-interface FlightSeatMapProps {
-  flight: FlightDto
-  selectedSeats: string[]
-  onToggle: (seatId: string) => void
-}
-
-function FlightSeatMap({ flight, selectedSeats, onToggle }: FlightSeatMapProps) {
-  const totalSeats = SEAT_ROWS * 6
-  const bookedCount = Math.max(0, Math.min(totalSeats - 1, totalSeats - flight.availableSeats))
-
-  const allSeats = useMemo(() => {
-    const seats = []
-    for (let r = 1; r <= SEAT_ROWS; r++) {
-      for (const c of SEAT_COLS) {
-        seats.push({ id: `${r}${c}`, row: r, col: c, hash: hashSeat(flight.id, r, c) })
-      }
-    }
-    seats.sort((a, b) => a.hash - b.hash)
-    return seats
-  }, [flight.id])
-
-  const bookedSet = useMemo(() => new Set(allSeats.slice(0, bookedCount).map(s => s.id)), [allSeats, bookedCount])
-
-  const getSeatColor = (seatId: string) => {
-    if (bookedSet.has(seatId)) return 'bg-red-400 cursor-not-allowed border-red-500'
-    if (selectedSeats.includes(seatId)) return 'bg-orange-400 border-orange-500 ring-2 ring-orange-300'
-    return 'bg-emerald-100 border-emerald-300 hover:bg-emerald-200 cursor-pointer'
-  }
-
-  return (
-    <div className="space-y-4">
-      {/* Legend */}
-      <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-gray-600">
-        <span className="flex items-center gap-1.5"><span className="h-4 w-4 rounded border border-emerald-300 bg-emerald-100" />Available</span>
-        <span className="flex items-center gap-1.5"><span className="h-4 w-4 rounded border border-orange-500 bg-orange-400" />Selected</span>
-        <span className="flex items-center gap-1.5"><span className="h-4 w-4 rounded border border-red-500 bg-red-400" />Booked</span>
-      </div>
-
-      {/* Stats */}
-      <div className="flex gap-4 text-sm text-gray-600">
-        <span className="font-semibold text-emerald-700">{flight.availableSeats} available</span>
-        <span className="text-orange-600 font-semibold">{selectedSeats.length} selected</span>
-        <span className="text-red-500">{bookedCount} booked</span>
-      </div>
-
-      {/* Seat grid */}
-      <div className="max-h-80 overflow-y-auto rounded-2xl border border-gray-200 bg-gray-50 p-4">
-        {/* Column headers */}
-        <div className="mb-3 grid grid-cols-[32px_repeat(3,28px)_16px_repeat(3,28px)] items-center gap-1 text-center text-xs font-bold text-gray-400">
-          <span />
-          <span>A</span><span>B</span><span>C</span>
-          <span />
-          <span>D</span><span>E</span><span>F</span>
-        </div>
-
-        <div className="space-y-1.5">
-          {Array.from({ length: SEAT_ROWS }, (_, ri) => {
-            const row = ri + 1
-            return (
-              <div key={row} className="grid grid-cols-[32px_repeat(3,28px)_16px_repeat(3,28px)] items-center gap-1">
-                <span className="text-center text-xs text-gray-400">{row}</span>
-                {(['A', 'B', 'C'] as SeatCol[]).map(col => {
-                  const seatId = `${row}${col}`
-                  return (
-                    <button
-                      key={col}
-                      type="button"
-                      disabled={bookedSet.has(seatId)}
-                      onClick={() => onToggle(seatId)}
-                      className={`h-6 w-full rounded text-[9px] font-bold border transition-all ${getSeatColor(seatId)}`}
-                      title={seatId}
-                    >
-                      {col}
-                    </button>
-                  )
-                })}
-                {/* Aisle */}
-                <span />
-                {(['D', 'E', 'F'] as SeatCol[]).map(col => {
-                  const seatId = `${row}${col}`
-                  return (
-                    <button
-                      key={col}
-                      type="button"
-                      disabled={bookedSet.has(seatId)}
-                      onClick={() => onToggle(seatId)}
-                      className={`h-6 w-full rounded text-[9px] font-bold border transition-all ${getSeatColor(seatId)}`}
-                      title={seatId}
-                    >
-                      {col}
-                    </button>
-                  )
-                })}
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {selectedSeats.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {selectedSeats.map(seat => (
-            <span key={seat} className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-700">
-              Seat {seat}
-              <button type="button" onClick={() => onToggle(seat)} className="ml-0.5 hover:text-orange-900">×</button>
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
 
 function createTravellers(count: number): TravellerForm[] {
   return Array.from({ length: Math.max(1, count) }, () => ({
@@ -279,7 +155,6 @@ export default function BookFlightPage() {
   const [walletBalance, setWalletBalance] = useState(0)
   const [paymentChoice, setPaymentChoice] = useState<PaymentChoice>({ type: 'new_card' })
   const [showAddCard, setShowAddCard] = useState(false)
-  const [selectedSeats, setSelectedSeats] = useState<string[]>([])
   const [mobileError, setMobileError] = useState('')
 
   useEffect(() => {
@@ -332,24 +207,6 @@ export default function BookFlightPage() {
     if (!flight) return ''
     return `${flight.origin}-${flight.destination}`
   }, [flight])
-
-  const toggleSeat = (seatId: string) => {
-    setSelectedSeats(prev =>
-      prev.includes(seatId) ? prev.filter(s => s !== seatId) : [...prev, seatId]
-    )
-  }
-
-  useEffect(() => {
-    if (selectedSeats.length === 0) return
-    const count = selectedSeats.length
-    setTravellers(current => {
-      if (current.length === count) return current
-      if (count > current.length) {
-        return [...current, ...createTravellers(count - current.length)]
-      }
-      return current.slice(0, count)
-    })
-  }, [selectedSeats])
 
   const updateTraveller = (index: number, patch: Partial<TravellerForm>) => {
     setTravellers(current => current.map((traveller, currentIndex) => (
@@ -454,7 +311,6 @@ export default function BookFlightPage() {
           returnArrivalTime: returnFlight.arrivalTime,
           returnDurationMinutes: returnFlight.durationMinutes,
         } : {}),
-        ...(selectedSeats.length > 0 ? { seatNumbers: selectedSeats } : {}),
       }
       sessionStorage.setItem(`booking-ui:${depResponse.data.id}`, JSON.stringify(snapshot))
 
@@ -678,41 +534,6 @@ export default function BookFlightPage() {
               </div>
             </section>
 
-            {/* Seat Selection */}
-            {flight && (
-              <section className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
-                      <Armchair className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h2 className="text-2xl font-extrabold text-gray-900">Select Seats</h2>
-                      <p className="text-sm text-gray-500">Economy · 3+3 seating · {flight.availableSeats} seats available</p>
-                    </div>
-                  </div>
-                  {selectedSeats.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedSeats([])}
-                      className="text-sm font-medium text-red-500 hover:underline"
-                    >
-                      Clear all
-                    </button>
-                  )}
-                </div>
-                <div className="mt-5">
-                  <FlightSeatMap
-                    flight={flight}
-                    selectedSeats={selectedSeats}
-                    onToggle={toggleSeat}
-                  />
-                </div>
-                {selectedSeats.length === 0 && (
-                  <p className="mt-3 text-sm text-gray-400 italic">Seat selection is optional. Select seats to pre-assign travellers. For bulk booking, select multiple seats.</p>
-                )}
-              </section>
-            )}
 
             <section className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
               <h2 className="text-2xl font-extrabold text-gray-900">Traveller Details</h2>
@@ -737,14 +558,7 @@ export default function BookFlightPage() {
                         </div>
                         <div>
                           <p className="font-bold text-gray-900">ADULT {index + 1} (12 yrs+)</p>
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm text-gray-500">Traveller {index + 1} of {seatCount}</p>
-                            {selectedSeats[index] && (
-                              <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-bold text-orange-700">
-                                Seat {selectedSeats[index]}
-                              </span>
-                            )}
-                          </div>
+                          <p className="text-sm text-gray-500">Traveller {index + 1} of {seatCount}</p>
                         </div>
                       </div>
                       <span className="text-sm font-semibold text-gray-500">{traveller.fullName.trim() ? 'Details added' : 'Pending details'}</span>

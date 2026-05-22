@@ -105,7 +105,13 @@ export function FlightSeatMapModal({ onClose }: Props) {
   const handleSeatClick = (e: React.MouseEvent, seat: SeatDto) => {
     if (seat.isBooked) {
       const rect = (e.target as HTMLElement).getBoundingClientRect()
-      setTooltip({ seat, x: rect.left, y: rect.bottom + 6 })
+      // Place tooltip below seat; if it would overflow viewport bottom, flip above
+      const tooltipHeight = 160
+      const y = rect.bottom + 6 + tooltipHeight > window.innerHeight
+        ? rect.top - tooltipHeight - 6
+        : rect.bottom + 6
+      const x = Math.min(Math.max(rect.left, 8), window.innerWidth - 272)
+      setTooltip({ seat, x, y })
     } else {
       toggleSeat(seat.seatNumber, seat)
     }
@@ -491,7 +497,7 @@ export function FlightSeatMapModal({ onClose }: Props) {
         <div
           ref={tooltipRef}
           className="fixed z-[60] bg-white border border-gray-200 rounded-xl shadow-xl p-4 w-64"
-          style={{ top: tooltip.y, left: Math.min(tooltip.x, window.innerWidth - 280) }}
+          style={{ top: tooltip.y, left: tooltip.x }}
         >
           <div className="flex items-center justify-between mb-2">
             <span className="font-bold text-gray-800 text-sm">Seat {tooltip.seat.seatNumber}</span>

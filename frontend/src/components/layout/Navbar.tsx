@@ -84,6 +84,13 @@ export function Navbar() {
     setUnreadCount(c => Math.max(0, c - 1))
   }
 
+  const handleDelete = async (e: React.MouseEvent, id: string, isRead: boolean) => {
+    e.stopPropagation()
+    await api.delete(`/users/notifications/${id}`).catch(() => {})
+    setNotifications(prev => prev.filter(n => n.id !== id))
+    if (!isRead) setUnreadCount(c => Math.max(0, c - 1))
+  }
+
   const notifIcon: Record<string, string> = {
     BookingConfirmed: '✈️',
     BookingCancelled: '❌',
@@ -194,23 +201,32 @@ export function Navbar() {
                           </div>
                         ) : (
                           notifications.map(n => (
-                            <button
+                            <div
                               key={n.id}
-                              onClick={() => !n.isRead && handleMarkRead(n.id)}
-                              className={`w-full text-left px-4 py-3 border-b border-gray-50 transition-colors hover:bg-gray-50 ${n.isRead ? '' : 'bg-blue-50/50'}`}
+                              className={`group relative flex items-start gap-3 px-4 py-3 border-b border-gray-50 dark:border-gray-700 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/50 ${n.isRead ? '' : 'bg-blue-50/50 dark:bg-blue-900/20'}`}
                             >
-                              <div className="flex items-start gap-3">
+                              <button
+                                onClick={() => !n.isRead && handleMarkRead(n.id)}
+                                className="flex items-start gap-3 min-w-0 flex-1 text-left"
+                              >
                                 <span className="text-xl shrink-0 mt-0.5">{notifIcon[n.type] ?? '🔔'}</span>
-                                <div className="min-w-0 flex-1">
-                                  <p className={`text-sm leading-snug ${n.isRead ? 'text-gray-700' : 'font-semibold text-gray-900'}`}>{n.title}</p>
-                                  <p className="mt-0.5 text-xs text-gray-500 leading-snug">{n.message}</p>
-                                  <p className="mt-1 text-[10px] text-gray-400">
+                                <div className="min-w-0 flex-1 pr-5">
+                                  <p className={`text-sm leading-snug ${n.isRead ? 'text-gray-700 dark:text-gray-300' : 'font-semibold text-gray-900 dark:text-gray-100'}`}>{n.title}</p>
+                                  <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 leading-snug">{n.message}</p>
+                                  <p className="mt-1 text-[10px] text-gray-400 dark:text-gray-500">
                                     {new Date(n.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                                   </p>
                                 </div>
-                                {!n.isRead && <span className="mt-1.5 h-2 w-2 rounded-full bg-blue-500 shrink-0" />}
-                              </div>
-                            </button>
+                              </button>
+                              {!n.isRead && <span className="mt-1.5 h-2 w-2 rounded-full bg-blue-500 shrink-0" />}
+                              <button
+                                onClick={e => handleDelete(e, n.id, n.isRead)}
+                                className="absolute right-2 top-2 p-1 rounded-md text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-600 hover:text-gray-600 dark:hover:text-gray-200 transition-all"
+                                title="Dismiss"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
                           ))
                         )}
                       </div>

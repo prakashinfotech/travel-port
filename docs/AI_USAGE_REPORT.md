@@ -91,15 +91,24 @@
   - `CreateRoomRequestValidatorTests` — price/guest/room boundaries, optional field max-length
 - **AI Updated:** All documentation — ARCHITECTURE.md, DATABASE_DESIGN.md, SECURITY_GUIDE.md, AI_USAGE_REPORT.md, DEPLOYMENT.md, API_DOCUMENTATION.md, TESTING_GUIDE.md, README.md, TASK-TRACKER.md, TODO.md
 
-### Phase 11 — AI-Powered Features (Claude Integration)
-- **AI Generated:** `AiController.cs` — 5 endpoints proxying Claude API via `HttpClient` (SSE streaming + JSON); API key stays server-side
+### Phase 11 — AI-Powered Features (Gemini Integration)
+- **AI Generated:** `AiController.cs` — 5 endpoints proxying Gemini API (`gemini-1.5-flash-8b`) via `HttpClient` (SSE streaming + JSON); API key stays server-side
 - **AI Generated:** `AiChatWidget.tsx` — floating chat bubble on every page; `fetch` + `ReadableStream` consumer; streaming text with typing cursor; suggested prompts; Escape/Stop support
-- **AI Generated:** `NaturalLanguageSearch.tsx` — plain-English search bar on homepage; parses intent via Claude → navigates to correct search page with URL params; 5 travel modes supported
-- **AI Generated:** `AiRecommendations.tsx` — 4-card personalised destination grid using Claude; city images, tagline, reason, "best for" tag; refresh button
+- **AI Generated:** `NaturalLanguageSearch.tsx` — plain-English search bar on homepage; parses intent via Gemini → navigates to correct search page with URL params; 5 travel modes supported
+- **AI Generated:** `AiRecommendations.tsx` — 4-card personalised destination grid using Gemini; city images, tagline, reason, "best for" tag; refresh button
 - **AI Generated:** `AiPlannerPage.tsx` — `/ai-planner` route; streaming itinerary with markdown rendering; `[BOOK_FLIGHT:...]`/`[BOOK_HOTEL:...]` markers parsed into clickable booking buttons
-- **AI Generated:** `PriceTrendInsight.tsx` — one-line Claude tip above flight results; `GET /ai/price-insight` with 30-min server-side response cache
-- **AI Decided:** Backend proxy architecture (vs frontend direct) — API key stays in `appsettings.Development.json`, never exposed to browser
-- **AI Generated:** Graceful degradation — all 5 features show fallback messages / hide themselves when `Claude:ApiKey` is absent
+- **AI Generated:** `PriceTrendInsight.tsx` — one-line Gemini tip above flight results; `GET /ai/price-insight` with 30-min server-side response cache
+- **AI Decided:** Backend proxy architecture (vs frontend direct) — API key configured in `appsettings.json`, never exposed to browser
+- **AI Generated:** Graceful degradation — all 5 features show fallback messages / hide themselves when `Gemini:ApiKey` is absent
+- **AI Migrated:** Switched from Claude to Gemini (`gemini-1.5-flash-8b`) for free-tier quota; `system_instruction` Gemini API format; role mapping (`assistant` → `model`)
+
+### Phase 15 — Flight Seat Map Fixes & AI Search Config
+- **AI Fixed:** `BookFlightRequest` — added `List<string>? SeatNumbers` parameter
+- **AI Fixed:** `FlightService.BookAsync` — auto-assigns random seats from flight layout on every user booking; `AssignRandomSeatsAsync` helper uses actual booked-seat map to avoid conflicts
+- **AI Fixed:** `FlightOperatorService.GetSeatLayoutAsync` — unassigned-seat bookings now store real booking ID and passenger name in the seat map; cancel button now works for all booked seats
+- **AI Fixed:** `BookFlightPage.tsx` — removed manual seat selection UI entirely; seats auto-assigned server-side
+- **AI Fixed:** `FlightSeatMapModal.tsx` — tooltip flip logic: opens above seat when near viewport bottom; horizontal clamping prevents off-screen overflow
+- **AI Configured:** Gemini API key set in `appsettings.json` (`gemini-1.5-flash-8b`) so AI search, chat, trip planner and recommendations work out of the box
 
 ---
 

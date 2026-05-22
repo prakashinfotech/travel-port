@@ -733,6 +733,19 @@
 
 ---
 
+## Phase 15 — Flight Seat Map Fixes & AI Search Configuration
+
+| # | Feature | Status | Notes |
+|---|---|---|---|
+| 15.1 | Gemini API key configured in `appsettings.json` (`gemini-1.5-flash-8b`) | ✅ | AI chat, NL search, trip planner, recommendations and price insights now work out of the box |
+| 15.2 | `BookFlightRequest` — added `List<string>? SeatNumbers` field | ✅ | Allows explicit seat assignment from booking payload |
+| 15.3 | `FlightService.BookAsync` — auto-assign random seats on every user booking | ✅ | `AssignRandomSeatsAsync` picks random available seats from flight layout; saves to `booking.SeatNumbers` |
+| 15.4 | `FlightOperatorService.GetSeatLayoutAsync` — real booking ID for unassigned seats | ✅ | Unassigned-seat bookings now carry actual `bookingId` + passenger name; Cancel & Refund button now visible |
+| 15.5 | `BookFlightPage.tsx` — removed manual seat selection UI | ✅ | Seat layout section, `FlightSeatMap` component, `hashSeat`, `selectedSeats` state all removed |
+| 15.6 | `FlightSeatMapModal.tsx` — tooltip flip & clamp logic | ✅ | Tooltip opens above seat near viewport bottom; horizontal clamping prevents off-screen overflow |
+
+---
+
 ## Upcoming / Planned
 
 | # | Feature | Priority | Phase |

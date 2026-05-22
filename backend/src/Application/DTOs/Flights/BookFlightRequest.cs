@@ -9,5 +9,6 @@ public record BookFlightRequest(
     Guid? SavedCardId = null,
     string? GuestName = null,
     string? GuestEmail = null,
-    string? GuestPhone = null
+    string? GuestPhone = null,
+    List<string>? SeatNumbers = null
 );

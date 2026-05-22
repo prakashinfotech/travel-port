@@ -210,27 +210,34 @@ public class FlightOperatorService : IFlightOperatorService
                 bookedMap[seat] = (name, email, phone, b.BookingRef, b.Id);
         }
 
-        // Count online-booked passengers with no specific seat (normal booking flow)
-        var unassignedPassengers = active
-            .Where(b => string.IsNullOrEmpty(b.SeatNumbers))
-            .Sum(b => b.Passengers ?? 1);
+        // For bookings without explicit seat numbers, auto-assign seats sequentially for display
+        // Each booking keeps its real ID and passenger name so cancel works correctly
+        var unassignedBookings    = active.Where(b => string.IsNullOrEmpty(b.SeatNumbers)).ToList();
+        var unassignedPassengers  = unassignedBookings.Sum(b => b.Passengers ?? 1);
 
-        // Auto-assign unassigned passengers to seats sequentially (for display only)
         var sections  = layoutConfig.Split('-').Select(int.Parse).ToArray();
         var totalCols = sections.Sum();
 
         if (unassignedPassengers > 0)
         {
-            var assigned = 0;
-            for (int row = 1; row <= rows && assigned < unassignedPassengers; row++)
+            foreach (var b in unassignedBookings)
             {
-                for (int col = 0; col < totalCols && assigned < unassignedPassengers; col++)
+                var name   = b.GuestName  ?? b.User?.Name  ?? "Guest";
+                var email  = b.GuestEmail ?? b.User?.Email ?? "";
+                var phone  = b.GuestPhone ?? b.User?.Phone ?? "";
+                var pax    = b.Passengers ?? 1;
+                var placed = 0;
+
+                for (int row = 1; row <= rows && placed < pax; row++)
                 {
-                    var seatId = $"{row}{(char)('A' + col)}";
-                    if (!bookedMap.ContainsKey(seatId))
+                    for (int col = 0; col < totalCols && placed < pax; col++)
                     {
-                        bookedMap[seatId] = ("Online Booking", "", "", "Online", Guid.Empty);
-                        assigned++;
+                        var seatId = $"{row}{(char)('A' + col)}";
+                        if (!bookedMap.ContainsKey(seatId))
+                        {
+                            bookedMap[seatId] = (name, email, phone, b.BookingRef, b.Id);
+                            placed++;
+                        }
                     }
                 }
             }

@@ -188,6 +188,11 @@ public class FlightService : IFlightService
         if (req.UseWallet)
             await _wallet.DeductAsync(userId, finalAmount, $"Flight booking {bookingRef}", referenceId, ct);
 
+        // Auto-assign seats if the flight has a layout and no seats were explicitly requested
+        List<string>? assignedSeats = req.SeatNumbers?.Count > 0 ? req.SeatNumbers : null;
+        if (assignedSeats == null && flightEntity != null)
+            assignedSeats = await AssignRandomSeatsAsync(flightEntity, req.Passengers, ct);
+
         var booking = new Booking
         {
             Id             = Guid.NewGuid(),
@@ -204,6 +209,7 @@ public class FlightService : IFlightService
             GuestName      = req.GuestName,
             GuestEmail     = req.GuestEmail,
             GuestPhone     = req.GuestPhone,
+            SeatNumbers    = assignedSeats?.Count > 0 ? JsonSerializer.Serialize(assignedSeats) : null,
         };
 
         await _bookings.AddAsync(booking, ct);
@@ -244,6 +250,33 @@ public class FlightService : IFlightService
         }
 
         return new BookingCreatedResponse(booking.Id, booking.BookingRef, booking.TotalAmount, booking.Status);
+    }
+
+    private async Task<List<string>> AssignRandomSeatsAsync(Domain.Entities.Flight flight, int count, CancellationToken ct)
+    {
+        var layout    = flight.SeatLayoutConfig ?? "3-3";
+        var rows      = flight.SeatRows > 0 ? flight.SeatRows : 30;
+        var sections  = layout.Split('-').Select(int.Parse).ToArray();
+        var totalCols = sections.Sum();
+
+        var bookings = await _bookings.GetBookingsByFlightIdsAsync(new[] { flight.Id }, ct);
+        var bookedSeats = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var b in bookings.Where(b => b.Status != BookingStatus.Cancelled && !string.IsNullOrEmpty(b.SeatNumbers)))
+        {
+            var seats = JsonSerializer.Deserialize<List<string>>(b.SeatNumbers!) ?? new();
+            foreach (var s in seats) bookedSeats.Add(s);
+        }
+
+        var available = new List<string>(rows * totalCols);
+        for (int row = 1; row <= rows; row++)
+            for (int col = 0; col < totalCols; col++)
+            {
+                var seatId = $"{row}{(char)('A' + col)}";
+                if (!bookedSeats.Contains(seatId))
+                    available.Add(seatId);
+            }
+
+        return available.OrderBy(_ => Random.Shared.Next()).Take(count).ToList();
     }
 
     private async Task<List<FlightDto>> SearchDbAsync(FlightSearchRequest req, CancellationToken ct)

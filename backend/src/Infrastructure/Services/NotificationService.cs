@@ -64,6 +64,14 @@ public class NotificationService : INotificationService
         await _uow.SaveChangesAsync(ct);
     }
 
+    public async Task DeleteAsync(Guid notificationId, Guid userId, CancellationToken ct = default)
+    {
+        var n = await _repo.GetByIdAsync(notificationId, ct);
+        if (n is null || n.UserId != userId) return;
+        await _repo.DeleteAsync(n, ct);
+        await _uow.SaveChangesAsync(ct);
+    }
+
     private static NotificationDto ToDto(Notification n) =>
         new(n.Id, n.Type, n.Title, n.Message, n.IsRead, n.CreatedAt);
 }
