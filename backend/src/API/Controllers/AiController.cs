@@ -15,8 +15,8 @@ public class AiController : BaseApiController
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<AiController> _logger;
 
-    private const string AnthropicApiUrl = "https://api.anthropic.com/v1/messages";
-    private const string AnthropicVersion = "2023-06-01";
+    private const string GeminiBaseUrl = "https://generativelanguage.googleapis.com/v1beta/models";
+    private const string GeminiModel   = "gemini-2.0-flash";
 
     private const string SystemPrompt = """
         You are TravelPort AI, a smart travel assistant built into the TravelPort booking platform — India's leading travel portal.
@@ -48,48 +48,60 @@ public class AiController : BaseApiController
         _logger = logger;
     }
 
+    private string ApiKey => _config["Gemini:ApiKey"] ?? "";
+    private string Model  => _config["Gemini:Model"]  ?? GeminiModel;
+
+    private string StreamUrl  => $"{GeminiBaseUrl}/{Model}:streamGenerateContent?key={ApiKey}&alt=sse";
+    private string GenerateUrl => $"{GeminiBaseUrl}/{Model}:generateContent?key={ApiKey}";
+
+    private static object BuildContents(string systemPrompt, IEnumerable<object> messages) => new
+    {
+        system_instruction = new { parts = new[] { new { text = systemPrompt } } },
+        contents = messages
+    };
+
+    private static string ExtractGeminiText(JsonDocument doc)
+    {
+        return doc.RootElement
+            .GetProperty("candidates")[0]
+            .GetProperty("content")
+            .GetProperty("parts")[0]
+            .GetProperty("text")
+            .GetString() ?? "";
+    }
+
     // ── Chat (SSE streaming) ─────────────────────────────────────────────────
     [HttpPost("chat")]
     [AllowAnonymous]
     public async Task Chat([FromBody] AiChatRequest request, CancellationToken ct)
     {
-        var apiKey = _config["Claude:ApiKey"] ?? "";
-        var model = _config["Claude:Model"] ?? "claude-haiku-4-5-20251001";
+        Response.ContentType = "text/event-stream";
+        Response.Headers.CacheControl = "no-cache";
+        Response.Headers.Connection = "keep-alive";
 
-        if (string.IsNullOrEmpty(apiKey))
+        if (string.IsNullOrEmpty(ApiKey))
         {
-            Response.ContentType = "text/event-stream";
-            Response.Headers.CacheControl = "no-cache";
-            await Response.WriteAsync("data: \"I'm not configured yet. Please add a Claude API key to enable the AI assistant.\"\n\n", ct);
+            await Response.WriteAsync("data: \"I'm not configured yet. Please add a Gemini API key to enable the AI assistant.\"\n\n", ct);
             await Response.WriteAsync("data: [DONE]\n\n", ct);
             return;
         }
 
-        var messages = request.Messages
-            .Select(m => new { role = m.Role, content = m.Content })
-            .ToArray();
-
-        var body = JsonSerializer.Serialize(new
+        // Convert messages: Anthropic uses "assistant", Gemini uses "model"
+        var contents = request.Messages.Select(m => new
         {
-            model,
-            max_tokens = 1024,
-            stream = true,
-            system = SystemPrompt,
-            messages
+            role    = m.Role == "assistant" ? "model" : "user",
+            parts   = new[] { new { text = m.Content } }
         });
 
+        var body = JsonSerializer.Serialize(BuildContents(SystemPrompt, contents));
+
         using var httpClient = _httpClientFactory.CreateClient();
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, AnthropicApiUrl)
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, StreamUrl)
         {
             Content = new StringContent(body, Encoding.UTF8, "application/json")
         };
-        httpRequest.Headers.Add("x-api-key", apiKey);
-        httpRequest.Headers.Add("anthropic-version", AnthropicVersion);
         httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
 
-        Response.ContentType = "text/event-stream";
-        Response.Headers.CacheControl = "no-cache";
-        Response.Headers.Connection = "keep-alive";
         await Response.Body.FlushAsync(ct);
 
         try
@@ -100,7 +112,7 @@ public class AiController : BaseApiController
             if (!response.IsSuccessStatusCode)
             {
                 var err = await response.Content.ReadAsStringAsync(ct);
-                _logger.LogError("Claude API error {Status}: {Error}", response.StatusCode, err);
+                _logger.LogError("Gemini API error {Status}: {Error}", response.StatusCode, err);
                 await Response.WriteAsync("data: \"Sorry, I couldn't connect to the AI service right now. Please try again later.\"\n\n", ct);
                 await Response.WriteAsync("data: [DONE]\n\n", ct);
                 return;
@@ -113,45 +125,34 @@ public class AiController : BaseApiController
             {
                 var line = await reader.ReadLineAsync(ct);
                 if (line == null) break;
-
                 if (!line.StartsWith("data: ")) continue;
-                var json = line[6..];
-                if (json == "[DONE]") break;
+                var json = line[6..].Trim();
+                if (json is "[DONE]" or "") continue;
 
                 try
                 {
                     using var doc = JsonDocument.Parse(json);
-                    var root = doc.RootElement;
+                    var text = doc.RootElement
+                        .GetProperty("candidates")[0]
+                        .GetProperty("content")
+                        .GetProperty("parts")[0]
+                        .GetProperty("text")
+                        .GetString() ?? "";
 
-                    if (root.TryGetProperty("type", out var typeEl) &&
-                        typeEl.GetString() == "content_block_delta" &&
-                        root.TryGetProperty("delta", out var delta) &&
-                        delta.TryGetProperty("type", out var deltaType) &&
-                        deltaType.GetString() == "text_delta" &&
-                        delta.TryGetProperty("text", out var textEl))
+                    if (!string.IsNullOrEmpty(text))
                     {
-                        var text = textEl.GetString() ?? "";
-                        if (!string.IsNullOrEmpty(text))
-                        {
-                            var encoded = JsonSerializer.Serialize(text);
-                            await Response.WriteAsync($"data: {encoded}\n\n", ct);
-                            await Response.Body.FlushAsync(ct);
-                        }
+                        var encoded = JsonSerializer.Serialize(text);
+                        await Response.WriteAsync($"data: {encoded}\n\n", ct);
+                        await Response.Body.FlushAsync(ct);
                     }
                 }
-                catch (JsonException)
-                {
-                    // Skip malformed lines
-                }
+                catch (JsonException) { }
             }
         }
-        catch (OperationCanceledException)
-        {
-            // Client disconnected — normal
-        }
+        catch (OperationCanceledException) { }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error streaming from Claude API");
+            _logger.LogError(ex, "Error streaming from Gemini API");
             await Response.WriteAsync("data: \"An error occurred. Please try again.\"\n\n", ct);
         }
 
@@ -164,13 +165,8 @@ public class AiController : BaseApiController
     [AllowAnonymous]
     public async Task<ActionResult> Recommendations([FromBody] RecommendationsRequest request, CancellationToken ct)
     {
-        var apiKey = _config["Claude:ApiKey"] ?? "";
-        var model  = _config["Claude:Model"] ?? "claude-haiku-4-5-20251001";
-
-        if (string.IsNullOrEmpty(apiKey))
-        {
+        if (string.IsNullOrEmpty(ApiKey))
             return BadRequest(new { error = "AI not configured." });
-        }
 
         var context = request.BookingHistory?.Count > 0
             ? $"The user has previously visited: {string.Join(", ", request.BookingHistory)}."
@@ -192,22 +188,16 @@ public class AiController : BaseApiController
             "Pick diverse destinations from: Goa, Mumbai, Delhi, Bangalore, Jaipur, Hyderabad, Chennai, Kolkata, Kochi, Lucknow, Pune, Ahmedabad. " +
             "If the user has booking history, avoid repeating those cities and suggest complementary destinations.";
 
-        var body = JsonSerializer.Serialize(new
+        var body = JsonSerializer.Serialize(BuildContents(systemPrompt, new[]
         {
-            model,
-            max_tokens = 1024,
-            stream = false,
-            system = systemPrompt,
-            messages = new[] { new { role = "user", content = context } }
-        });
+            new { role = "user", parts = new[] { new { text = context } } }
+        }));
 
         using var httpClient = _httpClientFactory.CreateClient();
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, AnthropicApiUrl)
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, GenerateUrl)
         {
             Content = new StringContent(body, Encoding.UTF8, "application/json")
         };
-        httpRequest.Headers.Add("x-api-key", apiKey);
-        httpRequest.Headers.Add("anthropic-version", AnthropicVersion);
 
         try
         {
@@ -216,17 +206,13 @@ public class AiController : BaseApiController
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogError("Claude recommendations error {Status}: {Body}", response.StatusCode, rawJson);
+                _logger.LogError("Gemini recommendations error {Status}: {Body}", response.StatusCode, rawJson);
                 return StatusCode(502, new { error = "AI service unavailable." });
             }
 
             using var doc = JsonDocument.Parse(rawJson);
-            var text = doc.RootElement
-                .GetProperty("content")[0]
-                .GetProperty("text")
-                .GetString() ?? "[]";
+            var text = ExtractGeminiText(doc).Trim();
 
-            text = text.Trim();
             if (text.StartsWith("```"))
             {
                 var start = text.IndexOf('\n') + 1;
@@ -249,14 +235,13 @@ public class AiController : BaseApiController
     [AllowAnonymous]
     public async Task TripPlan([FromBody] TripPlanRequest request, CancellationToken ct)
     {
-        var apiKey = _config["Claude:ApiKey"] ?? "";
-        var model  = _config["Claude:Model"] ?? "claude-haiku-4-5-20251001";
+        Response.ContentType = "text/event-stream";
+        Response.Headers.CacheControl = "no-cache";
+        Response.Headers.Connection = "keep-alive";
 
-        if (string.IsNullOrEmpty(apiKey))
+        if (string.IsNullOrEmpty(ApiKey))
         {
-            Response.ContentType = "text/event-stream";
-            Response.Headers.CacheControl = "no-cache";
-            await Response.WriteAsync("data: \"AI trip planner is not configured. Please add a Claude API key.\"\n\n", ct);
+            await Response.WriteAsync("data: \"AI trip planner is not configured. Please add a Gemini API key.\"\n\n", ct);
             await Response.WriteAsync("data: [DONE]\n\n", ct);
             return;
         }
@@ -281,27 +266,18 @@ public class AiController : BaseApiController
             "Use IATA codes: Mumbai=BOM, Delhi=DEL, Bangalore=BLR, Chennai=MAA, Kolkata=CCU, Hyderabad=HYD, Pune=PNQ, Goa=GOI, Jaipur=JAI, Kochi=COK. " +
             "Keep each day section focused and actionable.";
 
-        var body = JsonSerializer.Serialize(new
+        var body = JsonSerializer.Serialize(BuildContents(tripSystemPrompt, new[]
         {
-            model,
-            max_tokens = 2048,
-            stream = true,
-            system = tripSystemPrompt,
-            messages = new[] { new { role = "user", content = request.Brief } }
-        });
+            new { role = "user", parts = new[] { new { text = request.Brief } } }
+        }));
 
         using var httpClient = _httpClientFactory.CreateClient();
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, AnthropicApiUrl)
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, StreamUrl)
         {
             Content = new StringContent(body, Encoding.UTF8, "application/json")
         };
-        httpRequest.Headers.Add("x-api-key", apiKey);
-        httpRequest.Headers.Add("anthropic-version", AnthropicVersion);
         httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
 
-        Response.ContentType = "text/event-stream";
-        Response.Headers.CacheControl = "no-cache";
-        Response.Headers.Connection = "keep-alive";
         await Response.Body.FlushAsync(ct);
 
         try
@@ -311,7 +287,7 @@ public class AiController : BaseApiController
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogError("Claude trip plan error {Status}", response.StatusCode);
+                _logger.LogError("Gemini trip plan error {Status}", response.StatusCode);
                 await Response.WriteAsync("data: \"Sorry, could not generate the trip plan. Please try again.\"\n\n", ct);
                 await Response.WriteAsync("data: [DONE]\n\n", ct);
                 return;
@@ -325,28 +301,24 @@ public class AiController : BaseApiController
                 var line = await reader.ReadLineAsync(ct);
                 if (line == null) break;
                 if (!line.StartsWith("data: ")) continue;
-                var json = line[6..];
-                if (json == "[DONE]") break;
+                var json = line[6..].Trim();
+                if (json is "[DONE]" or "") continue;
 
                 try
                 {
                     using var doc = JsonDocument.Parse(json);
-                    var root = doc.RootElement;
+                    var text = doc.RootElement
+                        .GetProperty("candidates")[0]
+                        .GetProperty("content")
+                        .GetProperty("parts")[0]
+                        .GetProperty("text")
+                        .GetString() ?? "";
 
-                    if (root.TryGetProperty("type", out var typeEl) &&
-                        typeEl.GetString() == "content_block_delta" &&
-                        root.TryGetProperty("delta", out var delta) &&
-                        delta.TryGetProperty("type", out var deltaType) &&
-                        deltaType.GetString() == "text_delta" &&
-                        delta.TryGetProperty("text", out var textEl))
+                    if (!string.IsNullOrEmpty(text))
                     {
-                        var text = textEl.GetString() ?? "";
-                        if (!string.IsNullOrEmpty(text))
-                        {
-                            var encoded = JsonSerializer.Serialize(text);
-                            await Response.WriteAsync($"data: {encoded}\n\n", ct);
-                            await Response.Body.FlushAsync(ct);
-                        }
+                        var encoded = JsonSerializer.Serialize(text);
+                        await Response.WriteAsync($"data: {encoded}\n\n", ct);
+                        await Response.Body.FlushAsync(ct);
                     }
                 }
                 catch (JsonException) { }
@@ -355,7 +327,7 @@ public class AiController : BaseApiController
         catch (OperationCanceledException) { }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error streaming trip plan");
+            _logger.LogError(ex, "Error streaming trip plan from Gemini");
             await Response.WriteAsync("data: \"An error occurred. Please try again.\"\n\n", ct);
         }
 
@@ -366,17 +338,12 @@ public class AiController : BaseApiController
     // ── Price Trend Insight ───────────────────────────────────────────────────
     [HttpGet("price-insight")]
     [AllowAnonymous]
-    [ResponseCache(Duration = 1800)] // Cache 30 min per route pair
+    [ResponseCache(Duration = 1800)]
     public async Task<ActionResult> PriceInsight(
         [FromQuery] string origin, [FromQuery] string destination, CancellationToken ct)
     {
-        var apiKey = _config["Claude:ApiKey"] ?? "";
-        var model  = _config["Claude:Model"] ?? "claude-haiku-4-5-20251001";
-
-        if (string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(origin) || string.IsNullOrEmpty(destination))
-        {
+        if (string.IsNullOrEmpty(ApiKey) || string.IsNullOrEmpty(origin) || string.IsNullOrEmpty(destination))
             return Ok(new { insight = (string?)null });
-        }
 
         var systemPrompt =
             "You are a flight price trend analyst for Indian domestic routes. " +
@@ -387,37 +354,26 @@ public class AiController : BaseApiController
 
         var userMessage = $"Provide a price trend insight for the {origin} to {destination} domestic flight route in India.";
 
-        var body = JsonSerializer.Serialize(new
+        var body = JsonSerializer.Serialize(BuildContents(systemPrompt, new[]
         {
-            model,
-            max_tokens = 100,
-            stream = false,
-            system = systemPrompt,
-            messages = new[] { new { role = "user", content = userMessage } }
-        });
+            new { role = "user", parts = new[] { new { text = userMessage } } }
+        }));
 
         using var httpClient = _httpClientFactory.CreateClient();
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, AnthropicApiUrl)
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, GenerateUrl)
         {
             Content = new StringContent(body, Encoding.UTF8, "application/json")
         };
-        httpRequest.Headers.Add("x-api-key", apiKey);
-        httpRequest.Headers.Add("anthropic-version", AnthropicVersion);
 
         try
         {
             using var response = await httpClient.SendAsync(httpRequest, ct);
-            var rawJson = await response.Content.ReadAsStringAsync(ct);
-
             if (!response.IsSuccessStatusCode) return Ok(new { insight = (string?)null });
 
+            var rawJson = await response.Content.ReadAsStringAsync(ct);
             using var doc = JsonDocument.Parse(rawJson);
-            var text = doc.RootElement
-                .GetProperty("content")[0]
-                .GetProperty("text")
-                .GetString() ?? "{}";
+            var text = ExtractGeminiText(doc).Trim();
 
-            text = text.Trim();
             if (text.StartsWith("```"))
             {
                 var start = text.IndexOf('\n') + 1;
@@ -440,15 +396,10 @@ public class AiController : BaseApiController
     [AllowAnonymous]
     public async Task<ActionResult> NlSearch([FromBody] NlSearchRequest request, CancellationToken ct)
     {
-        var apiKey = _config["Claude:ApiKey"] ?? "";
-        var model  = _config["Claude:Model"] ?? "claude-haiku-4-5-20251001";
-
-        if (string.IsNullOrEmpty(apiKey))
-        {
+        if (string.IsNullOrEmpty(ApiKey))
             return BadRequest(new { error = "AI not configured." });
-        }
 
-        var today = DateTime.UtcNow.AddHours(5).AddMinutes(30); // IST
+        var today = DateTime.UtcNow.AddHours(5).AddMinutes(30);
         var systemPrompt =
             $"Today's date is {today:yyyy-MM-dd} ({today:dddd}).\n" +
             "Parse the travel search query below and return ONLY valid JSON — no markdown, no explanation.\n\n" +
@@ -470,22 +421,16 @@ public class AiController : BaseApiController
             "IATA map: Mumbai=BOM, Delhi=DEL, Bangalore=BLR, Chennai=MAA, Kolkata=CCU, Hyderabad=HYD, Pune=PNQ, Goa=GOI, Jaipur=JAI, Kochi=COK, Ahmedabad=AMD, Lucknow=LKO, Amritsar=ATQ, Chandigarh=IXC.\n" +
             "If query type is unclear, default to \"flight\". If a city is ambiguous, pick the most common match.";
 
-        var body = JsonSerializer.Serialize(new
+        var body = JsonSerializer.Serialize(BuildContents(systemPrompt, new[]
         {
-            model,
-            max_tokens = 512,
-            stream = false,
-            system = systemPrompt,
-            messages = new[] { new { role = "user", content = request.Query } }
-        });
+            new { role = "user", parts = new[] { new { text = request.Query } } }
+        }));
 
         using var httpClient = _httpClientFactory.CreateClient();
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, AnthropicApiUrl)
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, GenerateUrl)
         {
             Content = new StringContent(body, Encoding.UTF8, "application/json")
         };
-        httpRequest.Headers.Add("x-api-key", apiKey);
-        httpRequest.Headers.Add("anthropic-version", AnthropicVersion);
 
         try
         {
@@ -494,18 +439,13 @@ public class AiController : BaseApiController
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogError("Claude NL search error {Status}: {Body}", response.StatusCode, rawJson);
+                _logger.LogError("Gemini NL search error {Status}: {Body}", response.StatusCode, rawJson);
                 return StatusCode(502, new { error = "AI service unavailable." });
             }
 
             using var doc = JsonDocument.Parse(rawJson);
-            var text = doc.RootElement
-                .GetProperty("content")[0]
-                .GetProperty("text")
-                .GetString() ?? "{}";
+            var text = ExtractGeminiText(doc).Trim();
 
-            // Strip markdown code fences if Claude wrapped in ```json ... ```
-            text = text.Trim();
             if (text.StartsWith("```"))
             {
                 var start = text.IndexOf('\n') + 1;
@@ -523,4 +463,3 @@ public class AiController : BaseApiController
         }
     }
 }
-
