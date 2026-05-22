@@ -16,7 +16,7 @@ public class AiController : BaseApiController
     private readonly ILogger<AiController> _logger;
 
     private const string GeminiBaseUrl = "https://generativelanguage.googleapis.com/v1beta/models";
-    private const string GeminiModel   = "gemini-2.0-flash";
+    private const string GeminiModel   = "gemini-1.5-flash-8b";
 
     private const string SystemPrompt = """
         You are TravelPort AI, a smart travel assistant built into the TravelPort booking platform — India's leading travel portal.
