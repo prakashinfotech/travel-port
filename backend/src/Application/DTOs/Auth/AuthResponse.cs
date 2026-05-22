@@ -7,4 +7,4 @@ public record AuthResponse(
     UserTokenDto User
 );
 
-public record UserTokenDto(Guid Id, string Name, string Email, string Role);
+public record UserTokenDto(Guid Id, string Name, string Email, string Role, Guid? HotelId = null, Guid? OperatorCompanyId = null);

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Navigate } from 'react-router-dom'
+import { useAuth } from '@/hooks/useAuth'
 import {
   Plane, Hotel, Bus, Train, Car,
   Search, ArrowLeftRight, CalendarDays,
@@ -476,6 +477,14 @@ function DealsSection() {
 
 export default function HomePage() {
   const navigate = useNavigate()
+  const { user } = useAuth()
+
+  // Admin and role-specific users should land on their dashboards, not the search page
+  if (user?.role === 'Admin') return <Navigate to="/admin" replace />
+  if (user?.role === 'Hotel') return <Navigate to="/hotel/dashboard" replace />
+  if (user?.role === 'FlightOperator') return <Navigate to="/flight-operator/dashboard" replace />
+  if (user?.role === 'BusOperator') return <Navigate to="/bus-operator/dashboard" replace />
+  if (user?.role === 'CabOperator') return <Navigate to="/cab-operator/dashboard" replace />
 
   const [mode, setMode]               = useState<TravelMode>('flight')
   const [tripType, setTripType]       = useState<TripType>('oneway')
@@ -617,9 +626,6 @@ export default function HomePage() {
       <section className="relative text-white transition-all duration-500" style={{ background: theme.bg }}>
         <div className="mx-auto max-w-7xl px-4 pt-8 pb-20 sm:px-6 lg:px-8">
 
-          {/* AI Natural Language Search */}
-          <NaturalLanguageSearch />
-
           {/* Mode tab bar */}
           <div className="flex gap-1 mb-6 bg-white/10 rounded-2xl p-1 w-fit">
             {MODES.map(({ id, label, icon: Icon }) => (
@@ -685,147 +691,170 @@ export default function HomePage() {
                   </div>
                 </div>
               </form>
+              <div className="mt-3">
+                <NaturalLanguageSearch />
+              </div>
             </div>
           )}
 
           {/* ── HOTEL SEARCH ── */}
           {mode === 'hotel' && (
-            <form onSubmit={handleHotelSearch}>
-              <div className="rounded-2xl bg-white shadow-xl">
-                <div className="flex flex-col divide-y divide-gray-200 lg:flex-row lg:items-stretch lg:divide-x lg:divide-y-0">
+            <div>
+              <form onSubmit={handleHotelSearch}>
+                <div className="rounded-2xl bg-white shadow-xl">
+                  <div className="flex flex-col divide-y divide-gray-200 lg:flex-row lg:items-stretch lg:divide-x lg:divide-y-0">
 
-                  {/* City */}
-                  <div className="relative z-20 flex-[2] px-4 py-4 lg:min-w-0">
-                    <HotelCitySearch value={hotelCity} onChange={setHotelCity} />
-                  </div>
+                    {/* City */}
+                    <div className="relative z-20 flex-[2] px-4 py-4 lg:min-w-0">
+                      <HotelCitySearch value={hotelCity} onChange={setHotelCity} />
+                    </div>
 
-                  {/* Check-in */}
-                  <div className="px-4 py-4 lg:w-[220px]">
-                    <HotelDateField label="Check-in" value={checkIn} min={TODAY} onChange={setCheckIn} />
-                  </div>
+                    {/* Check-in */}
+                    <div className="px-4 py-4 lg:w-[220px]">
+                      <HotelDateField label="Check-in" value={checkIn} min={TODAY} onChange={setCheckIn} />
+                    </div>
 
-                  {/* Check-out */}
-                  <div className="px-4 py-4 lg:w-[220px]">
-                    <HotelDateField label="Check-out" value={checkOut} min={checkIn || TODAY} onChange={setCheckOut} nights={hotelNights} />
-                  </div>
+                    {/* Check-out */}
+                    <div className="px-4 py-4 lg:w-[220px]">
+                      <HotelDateField label="Check-out" value={checkOut} min={checkIn || TODAY} onChange={setCheckOut} nights={hotelNights} />
+                    </div>
 
-                  {/* Guests & Rooms */}
-                  <div className="relative z-10 px-4 py-4 lg:w-[280px]">
-                    <HotelGuestsDropdown value={hotelGuests} onChange={setHotelGuests} />
-                  </div>
+                    {/* Guests & Rooms */}
+                    <div className="relative z-10 px-4 py-4 lg:w-[280px]">
+                      <HotelGuestsDropdown value={hotelGuests} onChange={setHotelGuests} />
+                    </div>
 
-                  {/* Search button */}
-                  <div className="px-4 py-4 lg:flex lg:items-center lg:justify-center">
-                    <button
-                      type="submit"
-                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-orange-600 lg:w-auto"
-                    >
-                      <Search className="h-5 w-5" /> Search
-                    </button>
+                    {/* Search button */}
+                    <div className="px-4 py-4 lg:flex lg:items-center lg:justify-center">
+                      <button
+                        type="submit"
+                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-orange-600 lg:w-auto"
+                      >
+                        <Search className="h-5 w-5" /> Search
+                      </button>
+                    </div>
                   </div>
                 </div>
+              </form>
+              <div className="mt-3">
+                <NaturalLanguageSearch />
               </div>
-            </form>
+            </div>
           )}
 
           {/* ── BUS SEARCH ── */}
           {mode === 'bus' && (
-            <form onSubmit={handleBusSearch}>
-              <div className="bg-white rounded-2xl shadow-2xl p-4">
-                <div className="flex flex-wrap gap-0 divide-x divide-gray-200">
-                  <div className="flex-1 min-w-[160px] px-4 py-2">
-                    <CitySearch label="From" placeholder="e.g. Mumbai" value={tOrigin} onChange={setTOrigin} focusColor="green" />
+            <div>
+              <form onSubmit={handleBusSearch}>
+                <div className="bg-white rounded-2xl shadow-2xl p-4">
+                  <div className="flex flex-wrap gap-0 divide-x divide-gray-200">
+                    <div className="flex-1 min-w-[160px] px-4 py-2">
+                      <CitySearch label="From" placeholder="e.g. Mumbai" value={tOrigin} onChange={setTOrigin} focusColor="green" />
+                    </div>
+                    <div className="flex items-center px-2">
+                      <button type="button" onClick={swapTransport} className="h-8 w-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-green-300 transition-colors">
+                        <ArrowLeftRight className="h-4 w-4 text-gray-400" />
+                      </button>
+                    </div>
+                    <div className="flex-1 min-w-[160px] px-4 py-2">
+                      <CitySearch label="To" placeholder="e.g. Pune" value={tDest} onChange={setTDest} focusColor="green" />
+                    </div>
+                    <HeroDatePicker label="Date" value={tDate}  min={TODAY}   onChange={setTDate} />
+                    <HeroInput label="Passengers" type="number" placeholder="1" value={tPassengers} onChange={setTPass} />
                   </div>
-                  <div className="flex items-center px-2">
-                    <button type="button" onClick={swapTransport} className="h-8 w-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-green-300 transition-colors">
-                      <ArrowLeftRight className="h-4 w-4 text-gray-400" />
+                  <div className="mt-4 flex justify-center">
+                    <button type="submit" className="flex items-center gap-2 rounded-full px-10 py-3 font-bold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-100" style={{ background: `linear-gradient(90deg, #15803d, ${theme.accent})` }}>
+                      <Search className="h-5 w-5" /> Search
                     </button>
                   </div>
-                  <div className="flex-1 min-w-[160px] px-4 py-2">
-                    <CitySearch label="To" placeholder="e.g. Pune" value={tDest} onChange={setTDest} focusColor="green" />
-                  </div>
-                  <HeroDatePicker label="Date" value={tDate}  min={TODAY}   onChange={setTDate} />
-                  <HeroInput label="Passengers" type="number" placeholder="1" value={tPassengers} onChange={setTPass} />
                 </div>
-                <div className="mt-4 flex justify-center">
-                  <button type="submit" className="flex items-center gap-2 rounded-full px-10 py-3 font-bold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-100" style={{ background: `linear-gradient(90deg, #15803d, ${theme.accent})` }}>
-                    <Search className="h-5 w-5" /> Search
-                  </button>
-                </div>
+              </form>
+              <div className="mt-3">
+                <NaturalLanguageSearch />
               </div>
-            </form>
+            </div>
           )}
 
           {/* ── TRAIN SEARCH ── */}
           {mode === 'train' && (
-            <form onSubmit={handleTrainSearch}>
-              <div className="bg-white rounded-2xl shadow-2xl p-4">
-                <div className="flex flex-wrap gap-0 divide-x divide-gray-200">
-                  <div className="flex-1 min-w-[160px] px-4 py-2">
-                    <CitySearch label="From" placeholder="e.g. Delhi" value={tOrigin} onChange={setTOrigin} focusColor="indigo" />
+            <div>
+              <form onSubmit={handleTrainSearch}>
+                <div className="bg-white rounded-2xl shadow-2xl p-4">
+                  <div className="flex flex-wrap gap-0 divide-x divide-gray-200">
+                    <div className="flex-1 min-w-[160px] px-4 py-2">
+                      <CitySearch label="From" placeholder="e.g. Delhi" value={tOrigin} onChange={setTOrigin} focusColor="indigo" />
+                    </div>
+                    <div className="flex items-center px-2">
+                      <button type="button" onClick={swapTransport} className="h-8 w-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-indigo-300 transition-colors">
+                        <ArrowLeftRight className="h-4 w-4 text-gray-400" />
+                      </button>
+                    </div>
+                    <div className="flex-1 min-w-[160px] px-4 py-2">
+                      <CitySearch label="To" placeholder="e.g. Mumbai" value={tDest} onChange={setTDest} focusColor="indigo" />
+                    </div>
+                    <HeroDatePicker label="Date" value={tDate}    min={TODAY}    onChange={setTDate}  />
+                    <HeroInput label="Passengers" type="number" placeholder="1" value={tPassengers} onChange={setTPass} />
+                    <div className="flex-1 min-w-[130px] px-4 py-2">
+                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Class</label>
+                      <select value={trainClass} onChange={e => setTrainClass(e.target.value)} className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none border-b-2 border-gray-300 focus:border-indigo-600 pb-1">
+                        {['Sleeper', 'AC 3 Tier', 'AC 2 Tier', 'AC 1 Tier', 'Chair Car'].map(c => <option key={c}>{c}</option>)}
+                      </select>
+                    </div>
                   </div>
-                  <div className="flex items-center px-2">
-                    <button type="button" onClick={swapTransport} className="h-8 w-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-indigo-300 transition-colors">
-                      <ArrowLeftRight className="h-4 w-4 text-gray-400" />
+                  <div className="mt-4 flex justify-center">
+                    <button type="submit" className="flex items-center gap-2 rounded-full px-10 py-3 font-bold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-100" style={{ background: `linear-gradient(90deg, #1e40af, ${theme.accent})` }}>
+                      <Search className="h-5 w-5" /> Search
                     </button>
                   </div>
-                  <div className="flex-1 min-w-[160px] px-4 py-2">
-                    <CitySearch label="To" placeholder="e.g. Mumbai" value={tDest} onChange={setTDest} focusColor="indigo" />
-                  </div>
-                  <HeroDatePicker label="Date" value={tDate}    min={TODAY}    onChange={setTDate}  />
-                  <HeroInput label="Passengers" type="number" placeholder="1" value={tPassengers} onChange={setTPass} />
-                  <div className="flex-1 min-w-[130px] px-4 py-2">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Class</label>
-                    <select value={trainClass} onChange={e => setTrainClass(e.target.value)} className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none border-b-2 border-gray-300 focus:border-indigo-600 pb-1">
-                      {['Sleeper', 'AC 3 Tier', 'AC 2 Tier', 'AC 1 Tier', 'Chair Car'].map(c => <option key={c}>{c}</option>)}
-                    </select>
-                  </div>
                 </div>
-                <div className="mt-4 flex justify-center">
-                  <button type="submit" className="flex items-center gap-2 rounded-full px-10 py-3 font-bold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-100" style={{ background: `linear-gradient(90deg, #1e40af, ${theme.accent})` }}>
-                    <Search className="h-5 w-5" /> Search
-                  </button>
-                </div>
+              </form>
+              <div className="mt-3">
+                <NaturalLanguageSearch />
               </div>
-            </form>
+            </div>
           )}
 
           {/* ── CAB SEARCH ── */}
           {mode === 'cab' && (
-            <form onSubmit={handleCabSearch}>
-              <div className="bg-white rounded-2xl shadow-2xl p-4">
-                <div className="flex flex-wrap gap-0 divide-x divide-gray-200">
-                  <div className="flex-1 min-w-[160px] px-4 py-2">
-                    <CitySearch label="Pickup City" placeholder="e.g. Delhi" value={tOrigin} onChange={setTOrigin} focusColor="yellow" />
+            <div>
+              <form onSubmit={handleCabSearch}>
+                <div className="bg-white rounded-2xl shadow-2xl p-4">
+                  <div className="flex flex-wrap gap-0 divide-x divide-gray-200">
+                    <div className="flex-1 min-w-[160px] px-4 py-2">
+                      <CitySearch label="Pickup City" placeholder="e.g. Delhi" value={tOrigin} onChange={setTOrigin} focusColor="yellow" />
+                    </div>
+                    <div className="flex items-center px-2">
+                      <button type="button" onClick={swapTransport} className="h-8 w-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-yellow-300 transition-colors">
+                        <ArrowLeftRight className="h-4 w-4 text-gray-400" />
+                      </button>
+                    </div>
+                    <div className="flex-1 min-w-[160px] px-4 py-2">
+                      <CitySearch label="Drop City" placeholder="e.g. Agra" value={tDest} onChange={setTDest} focusColor="yellow" />
+                    </div>
+                    <HeroDatePicker label="Pickup Date & Time" type="datetime-local" value={cabDateTime} min={localDatetimeValue(new Date())} onChange={setCabDateTime} />
+                    <div className="flex-1 min-w-[130px] px-4 py-2">
+                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Trip Type</label>
+                      <select
+                        value={cabTripType}
+                        onChange={e => setCabTripType(e.target.value as 'OneWay' | 'RoundTrip')}
+                        className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none border-b-2 border-gray-300 focus:border-yellow-500 pb-1"
+                      >
+                        <option value="OneWay">One Way</option>
+                        <option value="RoundTrip">Round Trip</option>
+                      </select>
+                    </div>
                   </div>
-                  <div className="flex items-center px-2">
-                    <button type="button" onClick={swapTransport} className="h-8 w-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-yellow-300 transition-colors">
-                      <ArrowLeftRight className="h-4 w-4 text-gray-400" />
+                  <div className="mt-4 flex justify-center">
+                    <button type="submit" className="flex items-center gap-2 rounded-full px-10 py-3 font-bold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-100" style={{ background: `linear-gradient(90deg, #b45309, ${theme.accent})` }}>
+                      <Search className="h-5 w-5" /> Search
                     </button>
                   </div>
-                  <div className="flex-1 min-w-[160px] px-4 py-2">
-                    <CitySearch label="Drop City" placeholder="e.g. Agra" value={tDest} onChange={setTDest} focusColor="yellow" />
-                  </div>
-                  <HeroDatePicker label="Pickup Date & Time" type="datetime-local" value={cabDateTime} min={localDatetimeValue(new Date())} onChange={setCabDateTime} />
-                  <div className="flex-1 min-w-[130px] px-4 py-2">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Trip Type</label>
-                    <select
-                      value={cabTripType}
-                      onChange={e => setCabTripType(e.target.value as 'OneWay' | 'RoundTrip')}
-                      className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none border-b-2 border-gray-300 focus:border-yellow-500 pb-1"
-                    >
-                      <option value="OneWay">One Way</option>
-                      <option value="RoundTrip">Round Trip</option>
-                    </select>
-                  </div>
                 </div>
-                <div className="mt-4 flex justify-center">
-                  <button type="submit" className="flex items-center gap-2 rounded-full px-10 py-3 font-bold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-100" style={{ background: `linear-gradient(90deg, #b45309, ${theme.accent})` }}>
-                    <Search className="h-5 w-5" /> Search
-                  </button>
-                </div>
+              </form>
+              <div className="mt-3">
+                <NaturalLanguageSearch />
               </div>
-            </form>
+            </div>
           )}
 
         </div>

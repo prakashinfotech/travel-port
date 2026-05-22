@@ -480,12 +480,16 @@ function AddChargeModal({ bookingId, onClose, onSuccess }: {
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-500 mb-1.5">Unit Price (₹) *</label>
-            <input type="number" min={0} step={0.01} value={form.price} onChange={e => set('price', +e.target.value)}
+            <input type="number" min={0} step={0.01} value={form.price}
+              onChange={e => set('price', +e.target.value)}
+              onFocus={e => e.target.select()}
               className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-500 mb-1.5">Tax per unit (₹)</label>
-            <input type="number" min={0} step={0.01} value={form.tax} onChange={e => set('tax', +e.target.value)}
+            <input type="number" min={0} step={0.01} value={form.tax}
+              onChange={e => set('tax', +e.target.value)}
+              onFocus={e => e.target.select()}
               className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
           </div>
           <div className="col-span-2">
@@ -680,11 +684,30 @@ function CheckOutModal({ booking, onClose, onSuccess }: {
           <>
             {/* Invoice summary */}
             <div className="space-y-2 bg-sky-50 rounded-xl p-4">
-              <div className="flex justify-between text-sm"><span className="text-gray-600">Room Charges</span><span className="font-semibold">{formatCurrency(inv.roomTotal)}</span></div>
-              {inv.charges.length > 0 && <div className="flex justify-between text-sm"><span className="text-gray-600">Additional Charges</span><span className="font-semibold">{formatCurrency(inv.chargesSubTotal + inv.chargesTax)}</span></div>}
-              <div className="border-t border-sky-200 pt-2 flex justify-between font-bold"><span>Grand Total</span><span>{formatCurrency(inv.grandTotal)}</span></div>
-              {inv.isRoomPrepaid && <div className="flex justify-between text-sm text-green-600"><span>Already Paid (Online)</span><span>− {formatCurrency(inv.alreadyPaid)}</span></div>}
-              <div className="flex justify-between text-base font-bold text-sky-700"><span>Amount Due Now</span><span>{formatCurrency(inv.amountDue)}</span></div>
+              {/* Room Charges row */}
+              <div className="flex justify-between text-sm items-center">
+                <span className="text-gray-600">Room Charges</span>
+                {inv.isRoomPrepaid ? (
+                  <span className="flex items-center gap-1.5 text-green-600 font-semibold">
+                    <CheckCircle className="h-3.5 w-3.5" /> Paid Online
+                  </span>
+                ) : (
+                  <span className="font-semibold">{formatCurrency(inv.roomTotal)}</span>
+                )}
+              </div>
+
+              {/* Additional charges */}
+              {inv.charges.length > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Additional Charges</span>
+                  <span className="font-semibold">{formatCurrency(inv.chargesSubTotal + inv.chargesTax)}</span>
+                </div>
+              )}
+
+              <div className="border-t border-sky-200 pt-2 flex justify-between text-base font-bold text-sky-700">
+                <span>Amount Due Now</span>
+                <span>{formatCurrency(inv.amountDue)}</span>
+              </div>
             </div>
 
             {/* Payment method */}

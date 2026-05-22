@@ -931,6 +931,7 @@ export interface SeatLayoutDto {
   seatRows: number
   ladiesSeats: string[]
   seats: SeatDto[]
+  unassignedPassengers: number
 }
 
 export interface FlightDateRouteDto {

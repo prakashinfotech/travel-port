@@ -1,5 +1,7 @@
+using Microsoft.Extensions.Options;
 using TravelPort.Application.Common.Exceptions;
 using TravelPort.Application.Common.Interfaces;
+using TravelPort.Application.Common.Models;
 using TravelPort.Application.DTOs.HotelManager;
 using TravelPort.Application.Services.Interfaces;
 using TravelPort.Domain.Entities;
@@ -15,6 +17,7 @@ public class HotelManagerService : IHotelManagerService
     private readonly IRepository<HotelBookingCharge> _charges;
     private readonly IEmailService _email;
     private readonly IUnitOfWork _uow;
+    private readonly string _frontendUrl;
 
     public HotelManagerService(
         IHotelRepository hotels,
@@ -22,14 +25,16 @@ public class HotelManagerService : IHotelManagerService
         IBookingRepository bookings,
         IRepository<HotelBookingCharge> charges,
         IEmailService email,
-        IUnitOfWork uow)
+        IUnitOfWork uow,
+        IOptions<AppSettings> appSettings)
     {
-        _hotels   = hotels;
-        _rooms    = rooms;
-        _bookings = bookings;
-        _charges  = charges;
-        _email    = email;
-        _uow      = uow;
+        _hotels      = hotels;
+        _rooms       = rooms;
+        _bookings    = bookings;
+        _charges     = charges;
+        _email       = email;
+        _uow         = uow;
+        _frontendUrl = appSettings.Value.FrontendUrl;
     }
 
     public async Task<HotelManagerDashboardDto> GetDashboardAsync(Guid hotelId, CancellationToken ct = default)
@@ -174,7 +179,7 @@ public class HotelManagerService : IHotelManagerService
                  </tr>
                  """).ToList();
 
-            var ratingLink = $"https://travelport.com/hotels/{hotelId}/review?booking={bookingId}";
+            var ratingLink = $"{_frontendUrl}/hotels/{hotelId}/review?booking={bookingId}";
 
             await _email.SendHotelCheckoutEmailAsync(
                 booking.GuestEmail,

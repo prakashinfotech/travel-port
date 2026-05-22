@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { X, Search, Plane, Users, Mail, Phone, XCircle, CheckCircle2 } from 'lucide-react'
+import { X, Search, Plane, Users, Mail, Phone, XCircle, CheckCircle2, Info } from 'lucide-react'
 import { flightOperatorService } from '@/services/operatorService'
 import type { SeatLayoutDto, SeatDto, FlightDateRouteDto } from '@/types'
 
@@ -275,6 +275,10 @@ export function FlightSeatMapModal({ onClose }: Props) {
                 <Search className="w-4 h-4" />
                 {loadingRoutes ? 'Searching...' : 'Find Flights'}
               </button>
+              <div className="mt-4 flex items-start gap-2 text-xs text-gray-500 bg-blue-50 rounded-lg p-3">
+                <Info className="w-3.5 h-3.5 text-blue-500 mt-0.5 shrink-0" />
+                <span>Each flight is a <strong>one-time schedule</strong> — it only appears on its specific departure date. To operate the same route on multiple days, add a separate flight for each date.</span>
+              </div>
             </div>
           )}
 
@@ -323,7 +327,7 @@ export function FlightSeatMapModal({ onClose }: Props) {
               {/* Left: seat map */}
               <div className="flex-1 min-w-0">
                 {/* Legend */}
-                <div className="flex flex-wrap gap-3 mb-4">
+                <div className="flex flex-wrap gap-3 mb-3">
                   {[
                     { color: 'bg-gray-100 border border-gray-200', label: 'Available' },
                     { color: 'bg-purple-100 border border-purple-300', label: 'Ladies Only' },
@@ -336,6 +340,16 @@ export function FlightSeatMapModal({ onClose }: Props) {
                     </div>
                   ))}
                 </div>
+
+                {/* Unassigned online bookings notice */}
+                {layout && layout.unassignedPassengers > 0 && (
+                  <div className="flex items-start gap-2 text-xs bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
+                    <Info className="w-3.5 h-3.5 text-amber-600 mt-0.5 shrink-0" />
+                    <span className="text-amber-700">
+                      <strong>{layout.unassignedPassengers} passenger{layout.unassignedPassengers !== 1 ? 's' : ''}</strong> booked online without seat selection — shown auto-assigned from row 1 on the map.
+                    </span>
+                  </div>
+                )}
 
                 {/* Plane nose */}
                 <div className="flex justify-center mb-3">

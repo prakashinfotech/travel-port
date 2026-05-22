@@ -196,9 +196,11 @@ public class FlightOperatorService : IFlightOperatorService
         var layoutConfig = flight.SeatLayoutConfig ?? "3-3";
         var rows         = flight.SeatRows > 0 ? flight.SeatRows : 30;
 
-        // Build booked seat map
+        var active = bookings.Where(b => b.Status != BookingStatus.Cancelled).ToList();
+
+        // Build booked seat map from bookings that have specific seat assignments
         var bookedMap = new Dictionary<string, (string Name, string Email, string Phone, string Ref, Guid Id)>();
-        foreach (var b in bookings.Where(b => b.Status != BookingStatus.Cancelled && !string.IsNullOrEmpty(b.SeatNumbers)))
+        foreach (var b in active.Where(b => !string.IsNullOrEmpty(b.SeatNumbers)))
         {
             var seats = JsonSerializer.Deserialize<List<string>>(b.SeatNumbers!) ?? new();
             var name  = b.GuestName  ?? b.User?.Name  ?? "Guest";
@@ -208,8 +210,32 @@ public class FlightOperatorService : IFlightOperatorService
                 bookedMap[seat] = (name, email, phone, b.BookingRef, b.Id);
         }
 
+        // Count online-booked passengers with no specific seat (normal booking flow)
+        var unassignedPassengers = active
+            .Where(b => string.IsNullOrEmpty(b.SeatNumbers))
+            .Sum(b => b.Passengers ?? 1);
+
+        // Auto-assign unassigned passengers to seats sequentially (for display only)
         var sections  = layoutConfig.Split('-').Select(int.Parse).ToArray();
         var totalCols = sections.Sum();
+
+        if (unassignedPassengers > 0)
+        {
+            var assigned = 0;
+            for (int row = 1; row <= rows && assigned < unassignedPassengers; row++)
+            {
+                for (int col = 0; col < totalCols && assigned < unassignedPassengers; col++)
+                {
+                    var seatId = $"{row}{(char)('A' + col)}";
+                    if (!bookedMap.ContainsKey(seatId))
+                    {
+                        bookedMap[seatId] = ("Online Booking", "", "", "Online", Guid.Empty);
+                        assigned++;
+                    }
+                }
+            }
+        }
+
         var allSeats  = new List<SeatDto>();
 
         for (int row = 1; row <= rows; row++)
@@ -224,7 +250,7 @@ public class FlightOperatorService : IFlightOperatorService
                     seatId, isLadies, isBooked,
                     isBooked ? info.Name  : null,
                     isBooked ? info.Ref   : null,
-                    isBooked ? info.Id    : null,
+                    isBooked ? (info.Id == Guid.Empty ? null : info.Id) : null,
                     isBooked ? info.Email : null,
                     isBooked ? info.Phone : null));
             }
@@ -232,7 +258,7 @@ public class FlightOperatorService : IFlightOperatorService
 
         return new SeatLayoutDto(
             flightId, flight.FlightNumber, flight.Source, flight.Destination,
-            flight.DepartureTime, layoutConfig, rows, ladiesSeats, allSeats);
+            flight.DepartureTime, layoutConfig, rows, ladiesSeats, allSeats, unassignedPassengers);
     }
 
     public async Task<OperatorFlightDto> UpdateSeatLayoutAsync(Guid companyId, Guid flightId, SeatLayoutConfigRequest req, CancellationToken ct = default)

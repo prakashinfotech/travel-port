@@ -15,6 +15,7 @@ using TravelPort.Infrastructure.Auth;
 using TravelPort.Infrastructure.Services;
 using TravelPort.Persistence.Context;
 using TravelPort.Persistence.Seeds;
+using TravelPort.Application.Common.Models;
 
 // PdfSharpCore has no GDI font discovery on Linux — register Liberation Sans as Arial substitute
 if (!OperatingSystem.IsWindows())
@@ -66,6 +67,9 @@ try
         });
 
     builder.Services.AddAuthorization();
+
+    // App Settings
+    builder.Services.Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"));
 
     // CORS
     var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>()

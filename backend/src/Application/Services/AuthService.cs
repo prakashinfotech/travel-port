@@ -150,7 +150,8 @@ public class AuthService : IAuthService
         await _uow.SaveChangesAsync(ct);
 
         return new AuthResponse(accessToken, rawRefresh, 900,
-            new UserTokenDto(user.Id, user.Name, user.Email, user.Role.ToString()));
+            new UserTokenDto(user.Id, user.Name, user.Email, user.Role.ToString(),
+                user.HotelId, user.OperatorCompanyId));
     }
 
     private static string GenerateSecureToken()

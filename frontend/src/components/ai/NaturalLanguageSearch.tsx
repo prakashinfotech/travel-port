@@ -109,7 +109,7 @@ export function NaturalLanguageSearch() {
   }
 
   return (
-    <div className="w-full max-w-2xl mx-auto mb-6">
+    <div className="w-full">
       <div className="flex items-center gap-2 mb-2">
         <Sparkles className="h-4 w-4 text-yellow-300" />
         <span className="text-sm font-semibold text-white/90">AI Smart Search</span>

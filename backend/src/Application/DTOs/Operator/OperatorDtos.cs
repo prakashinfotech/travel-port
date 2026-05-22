@@ -206,7 +206,8 @@ public record SeatLayoutDto(
     string LayoutConfig,
     int SeatRows,
     List<string> LadiesSeats,
-    List<SeatDto> Seats
+    List<SeatDto> Seats,
+    int UnassignedPassengers = 0  // passengers booked online without specific seat selection
 );
 
 public record FlightDateRouteDto(
