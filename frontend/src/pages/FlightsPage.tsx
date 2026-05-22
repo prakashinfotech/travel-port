@@ -10,6 +10,7 @@ import { TravellerSelector, type TravellerConfig } from '@/components/search/Tra
 import { DatePickerInput } from '@/components/ui/DatePickerInput'
 import { formatCurrency, formatDuration } from '@/utils/formatters'
 import { AIRPORTS } from '@/data/airports'
+import { PriceTrendInsight } from '@/components/ai/PriceTrendInsight'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -1744,6 +1745,14 @@ export default function FlightsPage() {
               onOpenCalendar={() => setCalendarOpen(true)}
             />
             <SortTabs sortKey={sortKey} onSort={setSortKey} flights={flights} />
+
+            {/* AI price trend insight */}
+            {!loading && origin && destination && (
+              <div className="mb-3">
+                <PriceTrendInsight origin={origin} destination={destination} />
+              </div>
+            )}
+
             <div className="flex items-center justify-between mb-3">
               <div>
                 <p className="text-sm text-gray-500">

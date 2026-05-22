@@ -1136,4 +1136,117 @@ Response 200:
 ```
 Set `isActive: false` to pause without deleting; `isActive: true` to resume.
 
-**Response:** `{ code, discount, minOrder?, maxSaving?, expiresAt? }[]`
+### DELETE /announcements/:id
+```json
+Response 200:
+{ "success": true, "message": "Announcement deleted." }
+```
+
+---
+
+## AI Endpoints
+
+All AI endpoints proxy to Claude API server-side. The `Claude:ApiKey` must be set in `appsettings.Development.json`. All endpoints return graceful fallbacks when the key is missing.
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/ai/chat` | ❌ | Streaming SSE chat with travel assistant |
+| POST | `/ai/nl-search` | ❌ | Parse natural language query → structured search params |
+| POST | `/ai/recommendations` | ❌ | Get 4 AI destination recommendations |
+| POST | `/ai/trip-plan` | ❌ | Streaming SSE trip itinerary generator |
+| GET | `/ai/price-insight` | ❌ | One-line price trend tip for a flight route (cached 30 min) |
+
+### POST /ai/chat
+Streams Claude's response as `text/event-stream`. Each event is `data: "text chunk"\n\n`. Stream ends with `data: [DONE]\n\n`.
+
+```json
+Request:
+{
+  "messages": [
+    { "role": "user", "content": "Find me cheap flights to Goa" },
+    { "role": "assistant", "content": "I can help! Head to /flights and search..." },
+    { "role": "user", "content": "What's the best time to visit?" }
+  ]
+}
+
+Response: text/event-stream
+data: "Goa is best visited between November and February"
+data: " when the weather is dry and cool."
+data: [DONE]
+```
+
+### POST /ai/nl-search
+Parses a free-text travel query into structured search parameters.
+
+```json
+Request:
+{ "query": "Flights from Mumbai to Delhi tomorrow for 2 passengers" }
+
+Response 200:
+{
+  "type": "flight",
+  "origin": "BOM",
+  "originCity": "Mumbai",
+  "destination": "DEL",
+  "destinationCity": "Delhi",
+  "date": "2026-05-23",
+  "returnDate": null,
+  "passengers": 2,
+  "hotelCity": null,
+  "checkIn": null,
+  "checkOut": null,
+  "guests": null
+}
+```
+
+**Supported types:** `flight` · `hotel` · `bus` · `train` · `cab`
+
+### POST /ai/recommendations
+Returns 4 AI-curated destination recommendations. Optionally pass booking history to personalise suggestions.
+
+```json
+Request:
+{ "bookingHistory": ["Mumbai", "Delhi"] }
+
+Response 200:
+[
+  {
+    "city": "Goa",
+    "tagline": "Sun, sand & vibes",
+    "reason": "A perfect beach escape complementing your city trips.",
+    "bestFor": "Beaches",
+    "flightCode": "GOI"
+  },
+  ...
+]
+```
+
+### POST /ai/trip-plan
+Streams a Claude-generated day-by-day itinerary as `text/event-stream`. Response is markdown text with embedded `[BOOK_FLIGHT:params]` and `[BOOK_HOTEL:params]` deep-link markers.
+
+```json
+Request:
+{ "brief": "5-day Goa beach trip for a couple, budget ₹30,000" }
+
+Response: text/event-stream
+data: "## Trip Overview\n"
+data: "A romantic 5-day Goa escape..."
+data: "\n## Day 1: Arrival\n"
+...
+data: "- **Flight**: Mumbai to Goa → [BOOK_FLIGHT:origin=BOM&destination=GOI&date=2026-06-01]\n"
+data: [DONE]
+```
+
+### GET /ai/price-insight
+Returns a one-sentence price trend tip for a specific flight route. Cached server-side for 30 minutes.
+
+```
+GET /ai/price-insight?origin=BOM&destination=DEL
+```
+
+```json
+Response 200:
+{ "insight": "Prices are lowest on Tuesday and Wednesday on this route." }
+```
+
+Returns `{ "insight": null }` when the AI key is not configured.

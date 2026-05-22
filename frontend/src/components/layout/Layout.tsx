@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom'
 import { X, Info, AlertTriangle, CheckCircle } from 'lucide-react'
 import { Navbar } from './Navbar'
 import { Footer } from './Footer'
+import { AiChatWidget } from '@/components/ai/AiChatWidget'
 import { announcementService } from '@/services/announcementService'
 import type { AnnouncementDto } from '@/types'
 
@@ -67,6 +68,7 @@ export function Layout() {
         <Outlet />
       </main>
       <Footer />
+      <AiChatWidget />
     </div>
   )
 }

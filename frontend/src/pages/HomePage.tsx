@@ -10,6 +10,8 @@ import { AirportSearch } from '@/components/search/AirportSearch'
 import { CitySearch } from '@/components/search/CitySearch'
 import { TravellerSelector, type TravellerConfig } from '@/components/search/TravellerSelector'
 import { AuthModal } from '@/components/home/AuthModal'
+import { NaturalLanguageSearch } from '@/components/ai/NaturalLanguageSearch'
+import { AiRecommendations } from '@/components/ai/AiRecommendations'
 import { api } from '@/api/axios'
 import { endpoints } from '@/api/endpoints'
 import type { FeaturedCouponDto } from '@/types'
@@ -615,6 +617,9 @@ export default function HomePage() {
       <section className="relative text-white transition-all duration-500" style={{ background: theme.bg }}>
         <div className="mx-auto max-w-7xl px-4 pt-8 pb-20 sm:px-6 lg:px-8">
 
+          {/* AI Natural Language Search */}
+          <NaturalLanguageSearch />
+
           {/* Mode tab bar */}
           <div className="flex gap-1 mb-6 bg-white/10 rounded-2xl p-1 w-fit">
             {MODES.map(({ id, label, icon: Icon }) => (
@@ -1060,6 +1065,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ── AI RECOMMENDATIONS ── */}
+      <AiRecommendations />
 
       {/* ── FAQs ── */}
       <section className="mx-auto max-w-3xl px-4 py-12 sm:px-6">

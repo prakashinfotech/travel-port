@@ -91,6 +91,16 @@
   - `CreateRoomRequestValidatorTests` — price/guest/room boundaries, optional field max-length
 - **AI Updated:** All documentation — ARCHITECTURE.md, DATABASE_DESIGN.md, SECURITY_GUIDE.md, AI_USAGE_REPORT.md, DEPLOYMENT.md, API_DOCUMENTATION.md, TESTING_GUIDE.md, README.md, TASK-TRACKER.md, TODO.md
 
+### Phase 11 — AI-Powered Features (Claude Integration)
+- **AI Generated:** `AiController.cs` — 5 endpoints proxying Claude API via `HttpClient` (SSE streaming + JSON); API key stays server-side
+- **AI Generated:** `AiChatWidget.tsx` — floating chat bubble on every page; `fetch` + `ReadableStream` consumer; streaming text with typing cursor; suggested prompts; Escape/Stop support
+- **AI Generated:** `NaturalLanguageSearch.tsx` — plain-English search bar on homepage; parses intent via Claude → navigates to correct search page with URL params; 5 travel modes supported
+- **AI Generated:** `AiRecommendations.tsx` — 4-card personalised destination grid using Claude; city images, tagline, reason, "best for" tag; refresh button
+- **AI Generated:** `AiPlannerPage.tsx` — `/ai-planner` route; streaming itinerary with markdown rendering; `[BOOK_FLIGHT:...]`/`[BOOK_HOTEL:...]` markers parsed into clickable booking buttons
+- **AI Generated:** `PriceTrendInsight.tsx` — one-line Claude tip above flight results; `GET /ai/price-insight` with 30-min server-side response cache
+- **AI Decided:** Backend proxy architecture (vs frontend direct) — API key stays in `appsettings.Development.json`, never exposed to browser
+- **AI Generated:** Graceful degradation — all 5 features show fallback messages / hide themselves when `Claude:ApiKey` is absent
+
 ---
 
 ## AI Decisions Log
@@ -111,6 +121,11 @@
 | Saved cards — last 4 digits only | PCI-safe; Razorpay handles full PAN | ✅ |
 | SMTP credentials out of appsettings.json | Security fix — empty defaults, real values in gitignored file | ✅ |
 | Validator coverage expansion | Every new DTO gets a FluentValidation validator + positive/negative tests | ✅ |
+| Backend proxy for Claude API | API key never exposed to browser; SSE forwarded from Claude → backend → frontend | ✅ |
+| Graceful AI degradation | All 5 AI features degrade silently (hide / show fallback) when `Claude:ApiKey` is absent | ✅ |
+| claude-haiku-4-5-20251001 for chatbot | Fastest/cheapest Claude model; ideal for real-time chat and price insights | ✅ |
+| SSE streaming for chat + trip planner | Token-by-token streaming avoids request timeouts and improves perceived latency | ✅ |
+| Response caching on price-insight | 30-min `[ResponseCache]` prevents redundant Claude calls for the same route pair | ✅ |
 
 ---
 

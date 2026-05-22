@@ -5,6 +5,23 @@
 
 ---
 
+## Phase 1 — AI-Powered Features (Claude Integration)
+**Branch:** `feat/phase1-ai-features`
+**Scope:** 5 AI-powered features using Claude API (claude-haiku-4-5-20251001) via a secure backend proxy.
+
+| # | Feature | Status | Notes |
+|---|---|---|---|
+| 1.1 | AI Travel Assistant Chatbot — floating chat widget on every page | ✅ | `AiChatWidget.tsx` in Layout; streaming SSE via `/api/v1/ai/chat`; welcome message + 4 suggested prompts |
+| 1.2 | Natural Language Search — AI search bar on Homepage | ✅ | `NaturalLanguageSearch.tsx` above mode tabs; Claude parses intent → redirects to correct search page with params |
+| 1.3 | Smart Destination Recommendations — AI section on HomePage | ✅ | `AiRecommendations.tsx`; 4 personalised destinations from Claude; refresh button |
+| 1.4 | AI Trip Planner — `/ai-planner` page | ✅ | `AiPlannerPage.tsx`; streaming itinerary with `[BOOK_FLIGHT:...]` and `[BOOK_HOTEL:...]` deep-link buttons |
+| 1.5 | Price Trend Insights — one-line AI tip on FlightsPage | ✅ | `PriceTrendInsight.tsx`; shown above results after search; cached 30 min server-side |
+| 1.6 | Backend proxy — `AiController.cs` | ✅ | `/ai/chat`, `/ai/nl-search`, `/ai/recommendations`, `/ai/trip-plan`, `/ai/price-insight`; API key stays server-side |
+| 1.7 | AI Planner nav link | ✅ | "AI Trip Planner" with ✨ icon + "New" badge in user dropdown |
+| 1.8 | Configuration | ✅ | `Claude:ApiKey` + `Claude:Model` in appsettings.json; real key goes in appsettings.Development.json |
+
+---
+
 ## Bug Fix — HotelDetailPage React Hooks Violation
 **Branch:** `fix/hotel-detail-hooks`
 **Scope:** React Rules of Hooks violation in `HotelDetailPage.tsx` caused crash when hotel data loaded successfully.

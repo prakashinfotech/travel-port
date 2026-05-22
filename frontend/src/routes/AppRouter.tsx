@@ -41,6 +41,7 @@ const BookCabPage          = lazy(() => import('@/pages/BookCabPage'))
 const ProfilePage          = lazy(() => import('@/pages/ProfilePage'))
 const AdminPage            = lazy(() => import('@/pages/AdminPage'))
 const PaymentPage          = lazy(() => import('@/pages/PaymentPage'))
+const AiPlannerPage        = lazy(() => import('@/pages/AiPlannerPage'))
 
 const HotelDashboardPage      = lazy(() => import('@/pages/hotel/HotelDashboardPage'))
 const HotelBookingsPage       = lazy(() => import('@/pages/hotel/HotelBookingsPage'))
@@ -98,6 +99,7 @@ export function AppRouter() {
               <Route path="profile"      element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
               <Route path="payment"      element={<PrivateRoute><PaymentPage /></PrivateRoute>} />
               <Route path="admin"        element={<PrivateRoute><AdminPage /></PrivateRoute>} />
+              <Route path="ai-planner"   element={<AiPlannerPage />} />
 
               {/* 404 */}
               <Route path="*" element={<NotFoundPage />} />

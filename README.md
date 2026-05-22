@@ -20,7 +20,7 @@ Full-stack travel booking platform built with .NET 8 Clean Architecture + React 
 
 ## Overview
 
-TravelPort covers:
+TravelPort covers — including full Claude AI integration (Phase 1):
 - Flight Search & Booking (900+ DB seed flights — IndiGo, SpiceJet, Vistara, Akasa Air, Air India, Air India Express, Go First across 42 routes)
 - Goibibo-style Flight Fare Popup + Fare-family Booking Flow
 - Paginated flight search results with filters and sorting preserved between pages
@@ -49,6 +49,11 @@ TravelPort covers:
 - App-wide toast notifications, route-level error boundary, and shared skeleton loaders across search surfaces
 - Richer Profile page with account overview, wallet feedback, safer traveller/card deletion, and saved payment management
 - Bookings Page with numbered pagination, status/type filters (Confirmed/Cancelled · Flight/Hotel)
+- **AI Travel Assistant Chatbot** — floating chat widget on every page, powered by Claude (streaming SSE)
+- **Natural Language Search** — plain-English search bar on homepage ("Flights from Mumbai to Goa this weekend")
+- **AI Destination Recommendations** — 4 personalised destinations per user using Claude, with refresh
+- **AI Trip Planner** (`/ai-planner`) — streaming itinerary generator with inline "Book This" deep-links
+- **Price Trend Insights** — one-line AI tip on FlightsPage per route (cached 30 min)
 
 ---
 
@@ -193,6 +198,11 @@ See [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md) for the full workflow.
 | POST | /api/v1/announcements | Yes (Admin) |
 | PUT | /api/v1/announcements/{id} | Yes (Admin) |
 | DELETE | /api/v1/announcements/{id} | Yes (Admin) |
+| POST | /api/v1/ai/chat | No |
+| POST | /api/v1/ai/nl-search | No |
+| POST | /api/v1/ai/recommendations | No |
+| POST | /api/v1/ai/trip-plan | No |
+| GET | /api/v1/ai/price-insight | No |
 
 Full reference: [API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md)
 
@@ -220,6 +230,14 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for full setup guide including Dock
 ## External API Configuration
 
 Credentials go in `backend/src/API/appsettings.Development.json` (gitignored — never commit secrets to `appsettings.json`).
+
+### Claude AI (AI Features) — **Required for Phase 1 AI features**
+1. Sign up at [console.anthropic.com](https://console.anthropic.com) → Create API Key
+2. Set in `appsettings.Development.json`:
+```json
+"Claude": { "ApiKey": "sk-ant-YOUR_KEY", "Model": "claude-haiku-4-5-20251001" }
+```
+> All 5 AI features (chatbot, NL search, recommendations, trip planner, price insights) gracefully degrade when the key is missing.
 
 ### Duffel (Real Flights) — **Disabled by default; DB seed data used instead**
 > Set `Enabled: true` in `appsettings.Development.json` only — never in `appsettings.json`.

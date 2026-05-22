@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { Plane, Hotel, Car, Train, Bus, LogOut, Menu, X, ShieldCheck, Wallet, BookOpen, UserCircle, ChevronDown, Bell, Check, Moon, Sun } from 'lucide-react'
+import { Plane, Hotel, Car, Train, Bus, LogOut, Menu, X, ShieldCheck, Wallet, BookOpen, UserCircle, ChevronDown, Bell, Check, Moon, Sun, Sparkles } from 'lucide-react'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/Button'
@@ -263,6 +263,15 @@ export function Navbar() {
                           className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                         >
                           <BookOpen className="h-4 w-4 text-gray-400" /> My Bookings
+                        </Link>
+                        <Link
+                          to="/ai-planner"
+                          onClick={() => setProfileOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          <Sparkles className="h-4 w-4 text-purple-400" />
+                          <span>AI Trip Planner</span>
+                          <span className="ml-auto rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-bold text-purple-700">New</span>
                         </Link>
                         <Link
                           to="/profile"

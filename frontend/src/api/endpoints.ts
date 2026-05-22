@@ -110,4 +110,11 @@ export const endpoints = {
     validate: '/coupons/validate',
     featured: '/coupons/featured',
   },
+  ai: {
+    chat:            '/ai/chat',
+    nlSearch:        '/ai/nl-search',
+    recommendations: '/ai/recommendations',
+    tripPlan:        '/ai/trip-plan',
+    priceInsight:    '/ai/price-insight',
+  },
 }

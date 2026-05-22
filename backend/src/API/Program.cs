@@ -100,6 +100,10 @@ try
         options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     });
 
+    // HTTP client (used by AiController to proxy Claude API calls)
+    builder.Services.AddHttpClient();
+    builder.Services.AddResponseCaching();
+
     // FluentValidation — validators registered via AddApplication(); auto-validation wires them into MVC pipeline
     builder.Services.AddFluentValidationAutoValidation();
 
@@ -160,6 +164,7 @@ try
     if (!app.Environment.IsDevelopment())
         app.UseHttpsRedirection();
     app.UseSerilogRequestLogging();
+    app.UseResponseCaching();
     app.UseCors("TravelPortCors");
     app.UseRateLimiter();
     app.UseAuthentication();

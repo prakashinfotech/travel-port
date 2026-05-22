@@ -16,6 +16,7 @@ Skills are invokable as **slash commands** inside Claude Code using the files in
 | [Code Review](review-code.md) | `/review-code` | Security, correctness, SOLID, conventions |
 | [Generate Migration](generate-migration.md) | `/generate-migration` | EF Core entity + config + migration command |
 | [Database Schema](database-schema.md) | *(use prompt template)* | SQL tables, SPs, functions, views |
+| [AI Features](ai-features.md) | *(reference guide)* | Add Claude-powered features using the backend proxy pattern |
 
 ---
 
