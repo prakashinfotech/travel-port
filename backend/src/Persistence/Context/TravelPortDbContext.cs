@@ -26,7 +26,8 @@ public class TravelPortDbContext : DbContext
     public DbSet<CabCompany> CabCompanies => Set<CabCompany>();
     public DbSet<Notification>   Notifications   => Set<Notification>();
     public DbSet<PriceAlert>     PriceAlerts     => Set<PriceAlert>();
-    public DbSet<Announcement>   Announcements   => Set<Announcement>();
+    public DbSet<Announcement>        Announcements        => Set<Announcement>();
+    public DbSet<HotelBookingCharge>  HotelBookingCharges  => Set<HotelBookingCharge>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -52,6 +53,12 @@ public class TravelPortDbContext : DbContext
         modelBuilder.Entity<Notification>().HasQueryFilter(e => e.DeletedAt == null);
         modelBuilder.Entity<PriceAlert>().HasQueryFilter(e => e.DeletedAt == null);
         modelBuilder.Entity<Announcement>().HasQueryFilter(e => e.DeletedAt == null);
+        modelBuilder.Entity<HotelBookingCharge>().HasQueryFilter(e => e.DeletedAt == null);
+        modelBuilder.Entity<HotelBookingCharge>()
+            .HasOne(c => c.Booking)
+            .WithMany(b => b.HotelCharges)
+            .HasForeignKey(c => c.BookingId)
+            .OnDelete(DeleteBehavior.Cascade);
         modelBuilder.Entity<PriceAlert>()
             .HasOne(p => p.User)
             .WithMany()

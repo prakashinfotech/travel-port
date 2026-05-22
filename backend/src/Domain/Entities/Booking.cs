@@ -28,6 +28,14 @@ public class Booking : BaseEntity
     // JSON snapshot of transport details for Bus/Train/Cab bookings
     public string? TransportSnapshot { get; set; }
 
+    // Hotel operations (check-in / check-out management)
+    public string? RoomNumber { get; set; }
+    public DateTime? CheckInTime { get; set; }
+    public DateTime? ActualCheckOutTime { get; set; }
+    public string? CheckInNotes { get; set; }
+    public string? PaymentMethod { get; set; }
+
     public User User { get; set; } = null!;
     public Payment? Payment { get; set; }
+    public ICollection<HotelBookingCharge> HotelCharges { get; set; } = new List<HotelBookingCharge>();
 }

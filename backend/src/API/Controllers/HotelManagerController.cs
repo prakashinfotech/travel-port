@@ -34,10 +34,71 @@ public class HotelManagerController : BaseApiController
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         [FromQuery] string? status = null,
+        [FromQuery] string? query = null,
         CancellationToken ct = default)
     {
-        var (items, total) = await _service.GetBookingsAsync(CurrentHotelId, page, pageSize, status, ct);
+        var (items, total) = await _service.GetBookingsAsync(CurrentHotelId, page, pageSize, status, query, ct);
         return Ok(ApiResponse<List<HotelManagerBookingDto>>.Paged(items, page, pageSize, total));
+    }
+
+    [HttpGet("bookings/{bookingId:guid}")]
+    public async Task<ActionResult<ApiResponse<HotelBookingDetailDto>>> GetBookingDetail(
+        Guid bookingId, CancellationToken ct)
+    {
+        var result = await _service.GetBookingDetailAsync(CurrentHotelId, bookingId, ct);
+        return Ok(ApiResponse<HotelBookingDetailDto>.Ok(result));
+    }
+
+    [HttpPost("bookings/{bookingId:guid}/checkin")]
+    public async Task<ActionResult<ApiResponse<HotelBookingDetailDto>>> CheckIn(
+        Guid bookingId, [FromBody] CheckInRequest req, CancellationToken ct)
+    {
+        var result = await _service.CheckInGuestAsync(CurrentHotelId, bookingId, req, ct);
+        return Ok(ApiResponse<HotelBookingDetailDto>.Ok(result, "Guest checked in successfully."));
+    }
+
+    [HttpPost("bookings/{bookingId:guid}/charges")]
+    public async Task<ActionResult<ApiResponse<HotelBookingDetailDto>>> AddCharge(
+        Guid bookingId, [FromBody] AddHotelChargeRequest req, CancellationToken ct)
+    {
+        var result = await _service.AddChargeAsync(CurrentHotelId, bookingId, req, ct);
+        return Ok(ApiResponse<HotelBookingDetailDto>.Ok(result, "Charge added successfully."));
+    }
+
+    [HttpDelete("bookings/{bookingId:guid}/charges/{chargeId:guid}")]
+    public async Task<ActionResult<ApiResponse<object>>> DeleteCharge(
+        Guid bookingId, Guid chargeId, CancellationToken ct)
+    {
+        await _service.DeleteChargeAsync(CurrentHotelId, bookingId, chargeId, ct);
+        return Ok(ApiResponse<object>.Ok(null!, "Charge removed."));
+    }
+
+    [HttpGet("bookings/{bookingId:guid}/invoice")]
+    public async Task<ActionResult<ApiResponse<HotelInvoiceDto>>> GetInvoice(
+        Guid bookingId, CancellationToken ct)
+    {
+        var result = await _service.GetInvoiceAsync(CurrentHotelId, bookingId, ct);
+        return Ok(ApiResponse<HotelInvoiceDto>.Ok(result));
+    }
+
+    [HttpPost("bookings/{bookingId:guid}/checkout")]
+    public async Task<ActionResult<ApiResponse<HotelInvoiceDto>>> CheckOut(
+        Guid bookingId, [FromBody] CheckOutRequest req, CancellationToken ct)
+    {
+        var result = await _service.CheckOutGuestAsync(CurrentHotelId, bookingId, req, ct);
+        return Ok(ApiResponse<HotelInvoiceDto>.Ok(result, "Guest checked out. Invoice generated and email sent."));
+    }
+
+    // ── Room Availability ─────────────────────────────────────────────────────
+
+    [HttpGet("availability")]
+    public async Task<ActionResult<ApiResponse<List<RoomAvailabilityDto>>>> GetAvailability(
+        [FromQuery] DateTime checkIn,
+        [FromQuery] DateTime checkOut,
+        CancellationToken ct)
+    {
+        var result = await _service.GetAvailabilityAsync(CurrentHotelId, checkIn, checkOut, ct);
+        return Ok(ApiResponse<List<RoomAvailabilityDto>>.Ok(result));
     }
 
     // ── Hotel Profile ────────────────────────────────────────────────────────
@@ -80,5 +141,12 @@ public class HotelManagerController : BaseApiController
     {
         await _service.DeleteRoomAsync(CurrentHotelId, roomId, ct);
         return Ok(ApiResponse<object>.Ok(null!, "Room removed."));
+    }
+
+    [HttpGet("rooms")]
+    public async Task<ActionResult<ApiResponse<List<HotelRoomManagerDto>>>> GetRooms(CancellationToken ct)
+    {
+        var profile = await _service.GetHotelProfileAsync(CurrentHotelId, ct);
+        return Ok(ApiResponse<List<HotelRoomManagerDto>>.Ok(profile.Rooms));
     }
 }

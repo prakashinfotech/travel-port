@@ -38,6 +38,16 @@ public interface IEmailService
         string loginEmail, string password,
         CancellationToken ct = default);
 
+    Task SendHotelCheckoutEmailAsync(
+        string toEmail, string toName, string bookingRef,
+        string hotelName, string hotelCity, string? hotelAddress, decimal starRating,
+        string roomType, string? roomNumber,
+        string checkIn, string checkOut, int nights, int guests,
+        decimal roomTotal, decimal chargesTotal, decimal grandTotal,
+        decimal alreadyPaid, decimal amountDue, string paymentMethod,
+        string ratingLink, string invoiceSummaryHtml,
+        CancellationToken ct = default);
+
     Task SendTransportBookingConfirmationAsync(
         string toEmail, string toName, string bookingRef, string transportType,
         string operatorName, string vehicleType,

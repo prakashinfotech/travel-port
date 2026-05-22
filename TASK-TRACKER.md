@@ -5,6 +5,30 @@
 
 ---
 
+## Phase 6 — Hotel Booking Management & Profile UX
+
+**Branch:** `feat/hotel-booking-management-and-profile-ux`
+**Scope:** Full hotel operations flow (check-in → charges → check-out → invoice/email) + hotel profile UX improvements.
+
+| # | Feature | Status | Notes |
+|---|---|---|---|
+| 6.1 | `HotelBookingCharge` entity + EF migration | ✅ | New table for additional guest charges (food, laundry, room service, etc.) |
+| 6.2 | `BookingStatus` enum extended | ✅ | Added `CheckedIn`, `CheckedOut` |
+| 6.3 | `Booking` entity hotel ops fields | ✅ | `RoomNumber`, `CheckInTime`, `ActualCheckOutTime`, `CheckInNotes`, `PaymentMethod` |
+| 6.4 | `CheckIn` / `AddCharge` / `CheckOut` / `GetInvoice` service methods | ✅ | Full hotel ops implemented in `HotelManagerService` |
+| 6.5 | `IBookingRepository` search + charges include | ✅ | `GetHotelBookingWithChargesAsync`, updated `GetHotelBookingsPagedAsync` with text search |
+| 6.6 | `HotelManagerController` — 8 new endpoints | ✅ | checkin, charges, charges/{id}, invoice, checkout, availability, booking/{id}, rooms |
+| 6.7 | Checkout email with invoice summary + rating link | ✅ | `SendHotelCheckoutEmailAsync` — TravelPort-branded HTML with full invoice + ⭐ rate CTA |
+| 6.8 | `HotelBookingsPage.tsx` — complete rewrite | ✅ | Search bar (name/email/phone/ref), status tabs, checkout-today indicators, 5 action icons, 6 modals |
+| 6.9 | CheckIn modal | ✅ | Room number assignment, notes, booking summary display |
+| 6.10 | AddCharge modal | ✅ | Category picker, qty, unit price, tax, live total preview |
+| 6.11 | Invoice modal | ✅ | Full breakdown table, prepaid/additional amounts, Download PDF (browser print) |
+| 6.12 | CheckOut modal | ✅ | Invoice summary, payment method selector (Cash/Card/UPI/Bank), confirmation |
+| 6.13 | CheckoutSuccess modal | ✅ | Invoice download, done action refreshes list |
+| 6.14 | Hotel profile UX improvements | ✅ | City field disabled, amenities multi-select pills (20 options), gallery via upload+URL, main image via upload+URL |
+
+---
+
 ## Phase 5 — Comprehensive Test Coverage Expansion
 
 **Branch:** `feat/test-coverage-expansion`

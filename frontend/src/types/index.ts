@@ -711,6 +711,88 @@ export interface RegisterHotelRequest {
   managerName: string
 }
 
+// ── Hotel Operations ──────────────────────────────────────────────────────────
+export interface HotelBookingChargeDto {
+  id: string
+  itemName: string
+  category: string
+  quantity: number
+  price: number
+  tax: number
+  notes?: string
+  addedAt: string
+}
+
+export interface HotelBookingDetailDto extends HotelManagerBookingDto {
+  roomNumber?: string
+  checkInTime?: string
+  actualCheckOutTime?: string
+  checkInNotes?: string
+  paymentMethod?: string
+  isPaymentPaid: boolean
+  paymentStatus: string
+  charges: HotelBookingChargeDto[]
+}
+
+export interface HotelInvoiceDto {
+  bookingId: string
+  bookingRef: string
+  invoiceNumber: string
+  hotelName: string
+  hotelCity: string
+  hotelAddress?: string
+  starRating: number
+  guestName: string
+  guestEmail: string
+  guestPhone?: string
+  roomType: string
+  roomNumber?: string
+  checkIn: string
+  checkOut: string
+  nights: number
+  guests: number
+  pricePerNight: number
+  roomTotal: number
+  isRoomPrepaid: boolean
+  charges: HotelBookingChargeDto[]
+  chargesSubTotal: number
+  chargesTax: number
+  grandTotal: number
+  alreadyPaid: number
+  amountDue: number
+  paymentMethod?: string
+  generatedAt: string
+}
+
+export interface RoomAvailabilityDto {
+  roomId: string
+  roomType: string
+  totalRooms: number
+  bookedRooms: number
+  availableRooms: number
+  pricePerNight: number
+  maxGuests: number
+}
+
+export interface CheckInRequest {
+  roomNumber: string
+  notes?: string
+}
+
+export interface AddHotelChargeRequest {
+  itemName: string
+  category: string
+  quantity: number
+  price: number
+  tax: number
+  notes?: string
+}
+
+export interface CheckOutRequest {
+  paymentMethod: string
+  notes?: string
+}
+
 // ── API wrapper ───────────────────────────────────────────────────────────────
 export interface ApiResponse<T> {
   success: boolean

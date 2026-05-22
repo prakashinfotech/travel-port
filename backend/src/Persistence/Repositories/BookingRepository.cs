@@ -61,22 +61,46 @@ public class BookingRepository : BaseRepository<Booking>, IBookingRepository
             .ToListAsync(cancellationToken);
 
     public async Task<(IReadOnlyList<Booking> Items, int Total)> GetHotelBookingsPagedAsync(
-        Guid hotelId, int page, int pageSize, string? status,
+        Guid hotelId, int page, int pageSize, string? status, string? query,
         CancellationToken cancellationToken = default)
     {
-        var query = _dbSet.Where(b => b.BookingType == BookingType.Hotel && b.ReferenceId == hotelId);
+        var q = _dbSet
+            .Include(b => b.Payment)
+            .Include(b => b.HotelCharges)
+            .Where(b => b.BookingType == BookingType.Hotel && b.ReferenceId == hotelId);
 
         if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<BookingStatus>(status, true, out var s))
-            query = query.Where(b => b.Status == s);
+            q = q.Where(b => b.Status == s);
 
-        var total = await query.CountAsync(cancellationToken);
-        var items = await query
-            .OrderByDescending(b => b.CreatedAt)
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            var q2 = query.ToLower();
+            q = q.Where(b =>
+                (b.GuestName != null && b.GuestName.ToLower().Contains(q2)) ||
+                (b.GuestEmail != null && b.GuestEmail.ToLower().Contains(q2)) ||
+                (b.GuestPhone != null && b.GuestPhone.Contains(q2)) ||
+                b.BookingRef.ToLower().Contains(q2));
+        }
+
+        var total = await q.CountAsync(cancellationToken);
+        var items = await q
+            .OrderByDescending(b => b.CheckIn)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
         return (items, total);
     }
+
+    public async Task<Booking?> GetHotelBookingWithChargesAsync(
+        Guid bookingId, Guid hotelId, CancellationToken cancellationToken = default)
+        => await _dbSet
+            .Include(b => b.Payment)
+            .Include(b => b.HotelCharges)
+            .FirstOrDefaultAsync(b =>
+                b.Id == bookingId &&
+                b.BookingType == BookingType.Hotel &&
+                b.ReferenceId == hotelId,
+                cancellationToken);
 
     public async Task<IReadOnlyList<Booking>> GetTrainBookingsForDateAsync(
         DateTime travelDate, CancellationToken cancellationToken = default)

@@ -926,4 +926,93 @@ public class SmtpEmailService : IEmailService
 
         await SendAsync(toEmail, toName, subject, body, ct);
     }
+
+    public async Task SendHotelCheckoutEmailAsync(
+        string toEmail, string toName, string bookingRef,
+        string hotelName, string hotelCity, string? hotelAddress, decimal starRating,
+        string roomType, string? roomNumber,
+        string checkIn, string checkOut, int nights, int guests,
+        decimal roomTotal, decimal chargesTotal, decimal grandTotal,
+        decimal alreadyPaid, decimal amountDue, string paymentMethod,
+        string ratingLink, string invoiceSummaryHtml,
+        CancellationToken ct = default)
+    {
+        if (!IsConfigured) return;
+        var stars = string.Concat(Enumerable.Repeat("★", (int)Math.Round(starRating)));
+        var subject = $"Thank You for Staying at {hotelName} — Invoice #{bookingRef}";
+
+        var body = $"""
+            {EmailHead()}
+            <body style="margin:0;padding:0;background-color:#f3f4f6;font-family:Arial,Helvetica,sans-serif">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="padding:32px 16px">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                           style="max-width:600px;margin:0 auto;background-color:#ffffff;
+                                  border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+
+                      {TopBar("#0ea5e9", $"Thank You for Staying With Us!", $"{hotelName} — {hotelCity}")}
+
+                      <tr>
+                        <td style="padding:32px 32px 0">
+                          <p style="font-size:15px;color:#374151;margin:0 0 8px 0">
+                            Dear <strong>{WebUtility.HtmlEncode(toName)}</strong>,
+                          </p>
+                          <p style="font-size:14px;color:#6b7280;margin:0 0 20px 0">
+                            We hope you had a wonderful stay at <strong>{WebUtility.HtmlEncode(hotelName)}</strong>.
+                            Please find your checkout invoice below.
+                          </p>
+
+                          {RefBadge(bookingRef)}
+
+                          {SectionTitle("Stay Details")}
+                          <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                                 style="border:1px solid #f3f4f6;border-radius:8px;overflow:hidden">
+                            {InfoRow("Hotel", $"{hotelName} {stars}", false)}
+                            {InfoRow("Room Type", roomType, true)}
+                            {InfoRow("Room Number", roomNumber ?? "—", false)}
+                            {InfoRow("Check-in", checkIn, true)}
+                            {InfoRow("Check-out", checkOut, false)}
+                            {InfoRow("Duration", $"{nights} night{(nights != 1 ? "s" : "")}", true)}
+                            {InfoRow("Guests", guests.ToString(), false)}
+                          </table>
+
+                          {SectionTitle("Invoice Summary")}
+                          <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                                 style="border:1px solid #f3f4f6;border-radius:8px;overflow:hidden">
+                            {invoiceSummaryHtml}
+                          </table>
+
+                          {SectionTitle("Payment")}
+                          <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                                 style="border:1px solid #f3f4f6;border-radius:8px;overflow:hidden">
+                            {PriceRow("Room Charges", $"₹{roomTotal:N0}", false)}
+                            {PriceRow("Additional Charges", $"₹{chargesTotal:N0}", true)}
+                            {PriceRow("Total", $"₹{grandTotal:N0}", false, true)}
+                            {(alreadyPaid > 0 ? PriceRow("Already Paid (Online)", $"₹{alreadyPaid:N0}", true) : "")}
+                            {PriceRow($"Paid at Checkout ({WebUtility.HtmlEncode(paymentMethod)})", $"₹{amountDue:N0}", false, amountDue > 0)}
+                          </table>
+
+                          <p style="font-size:13px;color:#6b7280;margin:24px 0 0 0">
+                            We'd love to hear about your experience! Click below to rate your stay:
+                          </p>
+                          {CtaButton(ratingLink, "Rate Your Stay ⭐", "#f59e0b")}
+
+                          <p style="font-size:13px;color:#9ca3af;text-align:center;margin:16px 0 0 0">
+                            We look forward to welcoming you again at TravelPort hotels.
+                          </p>
+                        </td>
+                      </tr>
+
+                      <tr><td style="padding:0 32px 32px">{Footer()}</td></tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </body>
+            </html>
+            """;
+
+        await SendAsync(toEmail, toName, subject, body, ct);
+    }
 }
