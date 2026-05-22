@@ -56,7 +56,7 @@ export default function FlightOperatorBookingsPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
-                {['Booking Ref', 'Passenger', 'Passengers', 'Cabin', 'Amount', 'Status', 'Booked'].map(h => (
+                {['Booking Ref', 'Passenger', 'Pax', 'Cabin', 'Seats', 'Payment', 'Amount', 'Status', 'Booked'].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{h}</th>
                 ))}
               </tr>
@@ -71,6 +71,20 @@ export default function FlightOperatorBookingsPage() {
                   </td>
                   <td className="px-4 py-3 text-gray-700">{b.passengers}</td>
                   <td className="px-4 py-3 text-gray-700">{b.cabinClass}</td>
+                  <td className="px-4 py-3">
+                    {b.seatNumbers && b.seatNumbers.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {b.seatNumbers.map(s => (
+                          <span key={s} className="bg-blue-50 text-blue-700 text-xs px-1.5 py-0.5 rounded font-mono">{s}</span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-xs">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-gray-600 text-xs">
+                    {b.paymentMode ?? <span className="text-gray-300">—</span>}
+                  </td>
                   <td className="px-4 py-3 font-semibold text-gray-800">₹{b.amount.toLocaleString('en-IN')}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusColor(b.status)}`}>{b.status}</span>

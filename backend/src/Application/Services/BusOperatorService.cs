@@ -53,7 +53,9 @@ public class BusOperatorService : IBusOperatorService
             "Bus",
             b.FinalAmount,
             b.Status.ToString(),
-            b.CreatedAt
+            b.CreatedAt,
+            null,
+            b.PaymentMethod
         )).ToList();
     }
 }

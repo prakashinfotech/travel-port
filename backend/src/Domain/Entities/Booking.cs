@@ -28,6 +28,9 @@ public class Booking : BaseEntity
     // JSON snapshot of transport details for Bus/Train/Cab bookings
     public string? TransportSnapshot { get; set; }
 
+    // Flight seat assignments (JSON array of seat IDs e.g. ["12A","12B"])
+    public string? SeatNumbers { get; set; }
+
     // Hotel operations (check-in / check-out management)
     public string? RoomNumber { get; set; }
     public DateTime? CheckInTime { get; set; }

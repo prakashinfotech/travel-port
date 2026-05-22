@@ -9,6 +9,10 @@ import type {
   OperatorBookingDto,
   CreateFlightRequest,
   UpdateFlightRequest,
+  SeatLayoutDto,
+  SeatLayoutConfigRequest,
+  BulkSeatBookingRequest,
+  FlightDateRouteDto,
 } from '@/types'
 
 // ── Flight Operator ───────────────────────────────────────────────────────────
@@ -36,6 +40,29 @@ export const flightOperatorService = {
   getBookings: async (): Promise<OperatorBookingDto[]> => {
     const { data } = await api.get<ApiResponse<OperatorBookingDto[]>>(endpoints.flightOperator.bookings)
     return data.data ?? []
+  },
+
+  // Seat layout
+  getFlightsByDate: async (date: string): Promise<FlightDateRouteDto[]> => {
+    const { data } = await api.get<ApiResponse<FlightDateRouteDto[]>>(endpoints.flightOperator.flightsByDate, {
+      params: { date },
+    })
+    return data.data ?? []
+  },
+  getSeatLayout: async (flightId: string): Promise<SeatLayoutDto> => {
+    const { data } = await api.get<ApiResponse<SeatLayoutDto>>(endpoints.flightOperator.seatLayout(flightId))
+    return data.data
+  },
+  updateSeatLayout: async (flightId: string, req: SeatLayoutConfigRequest): Promise<OperatorFlightDto> => {
+    const { data } = await api.put<ApiResponse<OperatorFlightDto>>(endpoints.flightOperator.seatLayout(flightId), req)
+    return data.data
+  },
+  bulkBookSeats: async (flightId: string, req: BulkSeatBookingRequest): Promise<OperatorBookingDto> => {
+    const { data } = await api.post<ApiResponse<OperatorBookingDto>>(endpoints.flightOperator.bulkBook(flightId), req)
+    return data.data
+  },
+  cancelBooking: async (bookingId: string): Promise<void> => {
+    await api.delete(endpoints.flightOperator.cancelBooking(bookingId))
   },
 }
 

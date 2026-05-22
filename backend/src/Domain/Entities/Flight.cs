@@ -21,4 +21,9 @@ public class Flight : BaseEntity
     public bool IsActive { get; set; } = true;
     public Guid? FlightCompanyId { get; set; }
     public FlightCompany? FlightCompany { get; set; }
+
+    // Seat layout (visual map config)
+    public string? SeatLayoutConfig { get; set; }   // e.g. "3-3", "2-2", "2-3-2"
+    public int SeatRows { get; set; } = 30;
+    public string? LadiesSeats { get; set; }         // JSON array of seat IDs e.g. ["1A","1B"]
 }

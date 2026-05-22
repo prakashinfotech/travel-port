@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Plus, Pencil, Trash2, Plane } from 'lucide-react'
+import { Plus, Pencil, Trash2, Plane, Map } from 'lucide-react'
 import { flightOperatorService } from '@/services/operatorService'
 import { AirportSearch } from '@/components/search/AirportSearch'
 import { AIRPORTS } from '@/data/airports'
+import { FlightSeatMapModal } from './FlightSeatMapModal'
 import type { OperatorFlightDto, CreateFlightRequest } from '@/types'
 
 type FlightFormState = Partial<CreateFlightRequest> & {
@@ -10,7 +11,10 @@ type FlightFormState = Partial<CreateFlightRequest> & {
   travelDate?: string
   departureClock?: string
   arrivalClock?: string
+  ladiesSeatsRaw?: string  // comma-separated seat IDs entered by user
 }
+
+const LAYOUT_PRESETS = ['3-3', '2-2', '2-3-2', '3-4-3', '2-4-2', '2-2-2']
 
 function formatDuration(mins: number) {
   return `${Math.floor(mins / 60)}h ${mins % 60}m`
@@ -42,9 +46,10 @@ export default function FlightOperatorFlightsPage() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editFlight, setEditFlight] = useState<OperatorFlightDto | null>(null)
-  const [form, setForm] = useState<FlightFormState>({ isActive: true, stops: 0 })
+  const [form, setForm] = useState<FlightFormState>({ isActive: true, stops: 0, seatLayoutConfig: '3-3', seatRows: 30 })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [showSeatMap, setShowSeatMap] = useState(false)
 
   useEffect(() => {
     flightOperatorService.getFlights()
@@ -55,7 +60,7 @@ export default function FlightOperatorFlightsPage() {
 
   const openAdd = () => {
     setEditFlight(null)
-    setForm({ isActive: true, stops: 0 })
+    setForm({ isActive: true, stops: 0, seatLayoutConfig: '3-3', seatRows: 30 })
     setShowForm(true)
     setError('')
   }
@@ -80,6 +85,9 @@ export default function FlightOperatorFlightsPage() {
       layoverAirport: f.layoverAirport,
       layoverDurationMinutes: f.layoverDurationMinutes,
       isActive: f.isActive,
+      seatLayoutConfig: f.seatLayoutConfig ?? '3-3',
+      seatRows: f.seatRows ?? 30,
+      ladiesSeatsRaw: (f.ladiesSeats ?? []).join(', '),
     })
     setShowForm(true)
     setError('')
@@ -111,6 +119,10 @@ export default function FlightOperatorFlightsPage() {
       return
     }
 
+    const ladiesSeats = form.ladiesSeatsRaw
+      ? form.ladiesSeatsRaw.split(',').map(s => s.trim().toUpperCase()).filter(Boolean)
+      : []
+
     const payload: CreateFlightRequest = {
       flightNumber: form.flightNumber.trim().toUpperCase(),
       source: form.source,
@@ -123,6 +135,9 @@ export default function FlightOperatorFlightsPage() {
       stops: Number(form.stops ?? 0),
       layoverAirport: (form.stops ?? 0) === 1 ? form.layoverAirport : undefined,
       layoverDurationMinutes: (form.stops ?? 0) === 1 ? Number(form.layoverDurationMinutes) : undefined,
+      seatLayoutConfig: form.seatLayoutConfig || '3-3',
+      seatRows: Number(form.seatRows ?? 30),
+      ladiesSeats: ladiesSeats.length > 0 ? ladiesSeats : undefined,
     }
 
     setSaving(true)
@@ -163,12 +178,20 @@ export default function FlightOperatorFlightsPage() {
           <h1 className="text-2xl font-bold text-gray-900">My Flights</h1>
           <p className="text-sm text-gray-500 mt-1">{flights.length} flights managed</p>
         </div>
-        <button
-          onClick={openAdd}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition"
-        >
-          <Plus className="w-4 h-4" /> Add Flight
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowSeatMap(true)}
+            className="flex items-center gap-2 border border-blue-200 text-blue-700 bg-blue-50 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-100 transition"
+          >
+            <Map className="w-4 h-4" /> View Seat Map
+          </button>
+          <button
+            onClick={openAdd}
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition"
+          >
+            <Plus className="w-4 h-4" /> Add Flight
+          </button>
+        </div>
       </div>
 
       {error && <div className="mb-4 bg-red-50 text-red-600 rounded-xl p-3 text-sm">{error}</div>}
@@ -300,6 +323,55 @@ export default function FlightOperatorFlightsPage() {
               </>
             )}
 
+            {/* Seat Layout Config */}
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Seat Layout Configuration</label>
+              <select
+                value={form.seatLayoutConfig ?? '3-3'}
+                onChange={e => setField('seatLayoutConfig', e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {LAYOUT_PRESETS.map(p => (
+                  <option key={p} value={p}>{p} ({p.split('-').map((n, i, a) => `${n} seats${i < a.length - 1 ? ' | aisle |' : ''}`).join(' ')})</option>
+                ))}
+                <option value="custom">Custom</option>
+              </select>
+              {form.seatLayoutConfig === 'custom' && (
+                <input
+                  type="text"
+                  placeholder="e.g. 3-3 or 2-3-2"
+                  className="mt-2 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={e => setField('seatLayoutConfig', e.target.value)}
+                />
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Seat Rows</label>
+              <input
+                type="number"
+                placeholder="30"
+                min={1}
+                max={60}
+                value={form.seatRows ?? 30}
+                onChange={e => setField('seatRows', Number(e.target.value))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-xs text-gray-500 mb-1">
+                Ladies-Only Seats <span className="text-gray-400">(comma-separated, e.g. 1A, 1B, 2A, 2B)</span>
+              </label>
+              <input
+                type="text"
+                placeholder="1A, 1B, 2A, 2B"
+                value={form.ladiesSeatsRaw ?? ''}
+                onChange={e => setField('ladiesSeatsRaw', e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
             {editFlight && (
               <div className="flex items-center gap-2">
                 <label className="text-sm text-gray-600">Active</label>
@@ -349,14 +421,19 @@ export default function FlightOperatorFlightsPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-gray-800">{f.flightNumber}</span>
-                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{`${f.source} -> ${f.destination}`}</span>
+                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{`${f.source} → ${f.destination}`}</span>
                   <span className={`text-xs px-2 py-0.5 rounded-full ${f.isActive ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
                     {f.isActive ? 'Active' : 'Inactive'}
                   </span>
+                  {f.seatLayoutConfig && (
+                    <span className="text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">
+                      Layout: {f.seatLayoutConfig} · {f.seatRows}R
+                    </span>
+                  )}
                 </div>
                 <div className="text-sm text-gray-500 mt-0.5">
                   {new Date(f.departureTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
-                  {' -> '}
+                  {' → '}
                   {new Date(f.arrivalTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
                   &nbsp;·&nbsp;{formatDuration(f.duration)}
                   &nbsp;·&nbsp;{f.stops === 0 ? 'Non-stop' : '1 stop'}
@@ -376,12 +453,14 @@ export default function FlightOperatorFlightsPage() {
                 <button
                   onClick={() => openEdit(f)}
                   className="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition"
+                  title="Edit flight"
                 >
                   <Pencil className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => handleDelete(f.id)}
                   className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition"
+                  title="Delete flight"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -390,6 +469,8 @@ export default function FlightOperatorFlightsPage() {
           ))}
         </div>
       )}
+
+      {showSeatMap && <FlightSeatMapModal onClose={() => setShowSeatMap(false)} />}
     </div>
   )
 }

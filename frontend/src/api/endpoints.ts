@@ -81,10 +81,14 @@ export const endpoints = {
     item:   (id: string) => `/announcements/${id}`,
   },
   flightOperator: {
-    dashboard: '/flight-operator/dashboard',
-    flights:   '/flight-operator/flights',
-    flight:    (id: string) => `/flight-operator/flights/${id}`,
-    bookings:  '/flight-operator/bookings',
+    dashboard:      '/flight-operator/dashboard',
+    flights:        '/flight-operator/flights',
+    flight:         (id: string) => `/flight-operator/flights/${id}`,
+    flightsByDate:  '/flight-operator/flights/by-date',
+    seatLayout:     (id: string) => `/flight-operator/flights/${id}/seat-layout`,
+    bulkBook:       (id: string) => `/flight-operator/flights/${id}/bulk-book`,
+    bookings:       '/flight-operator/bookings',
+    cancelBooking:  (id: string) => `/flight-operator/bookings/${id}`,
   },
   busOperator: {
     dashboard: '/bus-operator/dashboard',

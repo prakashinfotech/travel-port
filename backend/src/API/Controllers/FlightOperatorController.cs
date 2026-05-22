@@ -61,4 +61,44 @@ public class FlightOperatorController : BaseApiController
         var result = await _service.GetBookingsAsync(CurrentCompanyId, ct);
         return Ok(ApiResponse<List<OperatorBookingDto>>.Ok(result));
     }
+
+    // ── Seat Layout ────────────────────────────────────────────────────────────
+
+    [HttpGet("flights/by-date")]
+    public async Task<ActionResult<ApiResponse<List<FlightDateRouteDto>>>> GetFlightsByDate(
+        [FromQuery] DateTime date, CancellationToken ct)
+    {
+        var result = await _service.GetFlightsByDateAsync(CurrentCompanyId, date, ct);
+        return Ok(ApiResponse<List<FlightDateRouteDto>>.Ok(result));
+    }
+
+    [HttpGet("flights/{flightId:guid}/seat-layout")]
+    public async Task<ActionResult<ApiResponse<SeatLayoutDto>>> GetSeatLayout(Guid flightId, CancellationToken ct)
+    {
+        var result = await _service.GetSeatLayoutAsync(CurrentCompanyId, flightId, ct);
+        return Ok(ApiResponse<SeatLayoutDto>.Ok(result));
+    }
+
+    [HttpPut("flights/{flightId:guid}/seat-layout")]
+    public async Task<ActionResult<ApiResponse<OperatorFlightDto>>> UpdateSeatLayout(
+        Guid flightId, [FromBody] SeatLayoutConfigRequest req, CancellationToken ct)
+    {
+        var result = await _service.UpdateSeatLayoutAsync(CurrentCompanyId, flightId, req, ct);
+        return Ok(ApiResponse<OperatorFlightDto>.Ok(result, "Seat layout updated."));
+    }
+
+    [HttpPost("flights/{flightId:guid}/bulk-book")]
+    public async Task<ActionResult<ApiResponse<OperatorBookingDto>>> BulkBookSeats(
+        Guid flightId, [FromBody] BulkSeatBookingRequest req, CancellationToken ct)
+    {
+        var result = await _service.BulkBookSeatsAsync(CurrentCompanyId, flightId, CurrentUserId, req, ct);
+        return StatusCode(201, ApiResponse<OperatorBookingDto>.Ok(result, "Seats booked successfully."));
+    }
+
+    [HttpDelete("bookings/{bookingId:guid}")]
+    public async Task<ActionResult<ApiResponse<object>>> CancelBooking(Guid bookingId, CancellationToken ct)
+    {
+        await _service.CancelSeatBookingAsync(CurrentCompanyId, bookingId, ct);
+        return Ok(ApiResponse<object>.Ok(null!, "Booking cancelled and refund issued."));
+    }
 }

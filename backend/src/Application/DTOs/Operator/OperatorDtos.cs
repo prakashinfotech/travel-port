@@ -117,7 +117,10 @@ public record CreateFlightRequest(
     decimal? BusinessPrice,
     int Stops,
     string? LayoverAirport,
-    int? LayoverDurationMinutes
+    int? LayoverDurationMinutes,
+    string? SeatLayoutConfig,
+    int? SeatRows,
+    List<string>? LadiesSeats
 );
 
 public record UpdateFlightRequest(
@@ -132,7 +135,10 @@ public record UpdateFlightRequest(
     int? Stops,
     string? LayoverAirport,
     int? LayoverDurationMinutes,
-    bool? IsActive
+    bool? IsActive,
+    string? SeatLayoutConfig,
+    int? SeatRows,
+    List<string>? LadiesSeats
 );
 
 public record OperatorFlightDto(
@@ -151,7 +157,10 @@ public record OperatorFlightDto(
     string? LayoverAirport,
     int? LayoverDurationMinutes,
     bool IsActive,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    string? SeatLayoutConfig,
+    int SeatRows,
+    List<string> LadiesSeats
 );
 
 public record OperatorBookingDto(
@@ -164,5 +173,57 @@ public record OperatorBookingDto(
     string CabinClass,
     decimal Amount,
     string Status,
-    DateTime BookedAt
+    DateTime BookedAt,
+    List<string>? SeatNumbers,
+    string? PaymentMode
+);
+
+// ── Seat layout DTOs ───────────────────────────────────────────────────────────
+
+public record SeatLayoutConfigRequest(
+    string LayoutConfig,
+    int SeatRows,
+    List<string>? LadiesSeats
+);
+
+public record SeatDto(
+    string SeatNumber,
+    bool IsLadiesOnly,
+    bool IsBooked,
+    string? PassengerName,
+    string? BookingRef,
+    Guid? BookingId,
+    string? PassengerEmail,
+    string? PassengerPhone
+);
+
+public record SeatLayoutDto(
+    Guid FlightId,
+    string FlightNumber,
+    string Source,
+    string Destination,
+    DateTime DepartureTime,
+    string LayoutConfig,
+    int SeatRows,
+    List<string> LadiesSeats,
+    List<SeatDto> Seats
+);
+
+public record FlightDateRouteDto(
+    Guid FlightId,
+    string FlightNumber,
+    string Source,
+    string Destination,
+    DateTime DepartureTime,
+    DateTime ArrivalTime,
+    int AvailableSeats,
+    int TotalSeats
+);
+
+public record BulkSeatBookingRequest(
+    string PassengerName,
+    string PassengerEmail,
+    string? PassengerPhone,
+    List<string> SeatNumbers,
+    string CabinClass
 );

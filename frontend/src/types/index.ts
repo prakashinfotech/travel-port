@@ -909,6 +909,54 @@ export interface CabOperatorDashboardDto {
   totalPassengers: number
 }
 
+export interface SeatDto {
+  seatNumber: string
+  isLadiesOnly: boolean
+  isBooked: boolean
+  passengerName?: string
+  bookingRef?: string
+  bookingId?: string
+  passengerEmail?: string
+  passengerPhone?: string
+}
+
+export interface SeatLayoutDto {
+  flightId: string
+  flightNumber: string
+  source: string
+  destination: string
+  departureTime: string
+  layoutConfig: string
+  seatRows: number
+  ladiesSeats: string[]
+  seats: SeatDto[]
+}
+
+export interface FlightDateRouteDto {
+  flightId: string
+  flightNumber: string
+  source: string
+  destination: string
+  departureTime: string
+  arrivalTime: string
+  availableSeats: number
+  totalSeats: number
+}
+
+export interface BulkSeatBookingRequest {
+  passengerName: string
+  passengerEmail: string
+  passengerPhone?: string
+  seatNumbers: string[]
+  cabinClass: string
+}
+
+export interface SeatLayoutConfigRequest {
+  layoutConfig: string
+  seatRows: number
+  ladiesSeats?: string[]
+}
+
 export interface OperatorFlightDto {
   id: string
   flightNumber: string
@@ -926,6 +974,9 @@ export interface OperatorFlightDto {
   layoverDurationMinutes?: number
   isActive: boolean
   createdAt: string
+  seatLayoutConfig?: string
+  seatRows: number
+  ladiesSeats: string[]
 }
 
 export interface OperatorBookingDto {
@@ -939,6 +990,8 @@ export interface OperatorBookingDto {
   amount: number
   status: string
   bookedAt: string
+  seatNumbers?: string[]
+  paymentMode?: string
 }
 
 export interface CreateFlightRequest {
@@ -953,6 +1006,9 @@ export interface CreateFlightRequest {
   stops: number
   layoverAirport?: string
   layoverDurationMinutes?: number
+  seatLayoutConfig?: string
+  seatRows?: number
+  ladiesSeats?: string[]
 }
 
 export interface UpdateFlightRequest {
@@ -968,4 +1024,7 @@ export interface UpdateFlightRequest {
   layoverAirport?: string
   layoverDurationMinutes?: number
   isActive?: boolean
+  seatLayoutConfig?: string
+  seatRows?: number
+  ladiesSeats?: string[]
 }

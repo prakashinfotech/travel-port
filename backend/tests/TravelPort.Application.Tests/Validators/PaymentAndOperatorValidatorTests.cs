@@ -90,7 +90,10 @@ public class CreateFlightRequestValidatorTests
         BusinessPrice:            null,
         Stops:                    0,
         LayoverAirport:           null,
-        LayoverDurationMinutes:   null
+        LayoverDurationMinutes:   null,
+        SeatLayoutConfig:         "3-3",
+        SeatRows:                 30,
+        LadiesSeats:              null
     );
 
     [Fact]
