@@ -76,4 +76,49 @@ public class BookFlightRequestValidatorTests
         var result = _validator.Validate(request);
         Assert.Contains(result.Errors, e => e.PropertyName == nameof(BookFlightRequest.FlightId));
     }
+
+    // ── Positive tests — optional guest fields ────────────────────────────────
+
+    [Theory]
+    [InlineData("user@example.com")]
+    [InlineData("guest+flight@travel.in")]
+    public void Validator_AcceptsValidGuestEmails(string email)
+    {
+        var req = new BookFlightRequest(Guid.NewGuid(), 1, "Economy", GuestEmail: email);
+        Assert.True(_validator.Validate(req).IsValid);
+    }
+
+    [Theory]
+    [InlineData("9876543210")]
+    [InlineData("7000000001")]
+    public void Validator_AcceptsValidGuestPhones(string phone)
+    {
+        var req = new BookFlightRequest(Guid.NewGuid(), 1, "Economy", GuestPhone: phone);
+        Assert.True(_validator.Validate(req).IsValid);
+    }
+
+    // ── Negative tests — optional guest fields ────────────────────────────────
+
+    [Theory]
+    [InlineData("notanemail")]
+    [InlineData("missing@")]
+    [InlineData("@nodomain.com")]
+    public void Validator_RejectsInvalidGuestEmail(string email)
+    {
+        var req = new BookFlightRequest(Guid.NewGuid(), 1, "Economy", GuestEmail: email);
+        var result = _validator.Validate(req);
+        Assert.Contains(result.Errors, e => e.PropertyName == nameof(BookFlightRequest.GuestEmail));
+    }
+
+    [Theory]
+    [InlineData("123")]          // too short
+    [InlineData("12345678901")]  // too long
+    [InlineData("abcdefghij")]   // letters
+    [InlineData("98765-43210")]  // hyphen
+    public void Validator_RejectsInvalidGuestPhone(string phone)
+    {
+        var req = new BookFlightRequest(Guid.NewGuid(), 1, "Economy", GuestPhone: phone);
+        var result = _validator.Validate(req);
+        Assert.Contains(result.Errors, e => e.PropertyName == nameof(BookFlightRequest.GuestPhone));
+    }
 }

@@ -5,6 +5,26 @@
 
 ---
 
+## Phase 5 — Comprehensive Test Coverage Expansion
+
+**Branch:** `feat/test-coverage-expansion`
+**Scope:** Added 201 new tests (108 → 309) covering all booking validators, transport validators, admin announcement validator, and AI request validators.
+
+| # | Addition | Status | Notes |
+|---|---|---|---|
+| 5.1 | `CreateHotelReviewRequestValidator` + 10 tests | ✅ | Rating 1–5 boundary, comment required/max 1000 chars, dual-failure |
+| 5.2 | `BookHotelRequestValidator` + 26 tests | ✅ | HotelId/RoomId, date ordering, guests 1–20, optional email/phone, meal plan ≥ 0 |
+| 5.3 | `BookBusRequestValidator` + 22 tests | ✅ | All required fields, arrival > departure, price > 0, seats 1–10, optional email/phone |
+| 5.4 | `BookTrainRequestValidator` + 25 tests | ✅ | All required fields incl. Class, arrival > departure, price > 0, passengers 1–9 |
+| 5.5 | `BookCabRequestValidator` + 26 tests | ✅ | All required fields, distance > 0, price > 0, driver rating 0–5 (nullable), optional email/phone |
+| 5.6 | `CreateAnnouncementRequestValidator` + 12 tests | ✅ | Message required/max 500, type enum info/warning/success (case-insensitive), dual-failure |
+| 5.7 | AI DTOs moved to `Application/DTOs/Ai/AiDtos.cs` | ✅ | Removed local classes from `AiController.cs`; added `using TravelPort.Application.DTOs.Ai` |
+| 5.8 | `AiRequestValidators.cs` + 24 tests | ✅ | AiChatRequest (messages list, role, content); NlSearchRequest (query required/max 500); TripPlanRequest (brief required/max 1000) |
+| 5.9 | `TESTING_GUIDE.md` updated | ✅ | Test count updated to 309; all new suites documented |
+| 5.10 | Comprehensive field validation audit & expansion | ✅ | 309 → 562 tests; added validators for all missing request DTOs — search requests (Flight/Hotel/Bus/Cab/Train), BookFlightRequest (GuestEmail/GuestPhone), CreateCouponRequest/UpdateCouponRequest, AdminUpdateFlightRequest, UpdateAnnouncementRequest, 3 operator registrations, UpdateHotelDetailsRequest, UpdateRoomRequest, UpdateProfileRequest, AddTravellerRequest, WalletTopUpRequest, AddSavedCardRequest, InitiatePaymentRequest, VerifyPaymentRequest, SeatLockRequest, CreateFlightRequest/UpdateFlightRequest |
+
+---
+
 ## Phase 1 — AI-Powered Features (Claude Integration)
 **Branch:** `feat/phase1-ai-features`
 **Scope:** 5 AI-powered features using Claude API (claude-haiku-4-5-20251001) via a secure backend proxy.
@@ -718,7 +738,7 @@ dotnet run --project src/API --launch-profile https
 
 | Metric | Value |
 |---|---|
-| Total phases completed | 13 (Phase 4 Admin Enhancements added) |
+| Total phases completed | 14 (Phase 5 — full validation audit + 562 tests) |
 | Total features delivered | 250+ |
 | Flights in seed DB | 900+ (dynamic demand-based pricing) |
 | Hotels in seed DB | 60+ (12 cities) |

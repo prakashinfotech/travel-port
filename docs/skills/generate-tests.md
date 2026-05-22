@@ -69,6 +69,31 @@ Every generated test suite covers:
 | 7 | Error state rendered | — | ✅ |
 | 8 | Form submission calls service | — | ✅ |
 
+### Validator Test Pattern (xUnit + FluentValidation)
+
+All validator tests follow the factory-method pattern with C# `with` expressions:
+
+```csharp
+private static BookHotelRequest ValidRequest() => new(...); // all-valid baseline
+
+// Positive: accept valid values
+[Fact] void Validator_AcceptsFullyValidRequest() => Assert.True(_validator.Validate(ValidRequest()).IsValid);
+
+// Negative: override one field at a time
+[Fact] void Validator_RejectsEmptyHotelId() {
+    var result = _validator.Validate(ValidRequest() with { HotelId = Guid.Empty });
+    Assert.Contains(result.Errors, e => e.PropertyName == nameof(BookHotelRequest.HotelId));
+}
+```
+
+**Conventions:**
+- Optional fields (`When(x => !IsNullOrWhiteSpace(x.Email))`) — test both null (accept) and invalid string (reject)
+- Case-insensitive enums — test lowercase, uppercase, and invalid values
+- Boundary numbers — test exact min-1, min, max, max+1
+- Remove FluentValidation AspNetCore-incompatible edge cases (e.g. `"spaces in@email.com"` passes `.EmailAddress()`)
+
+**Current coverage:** 562 tests across 28 validator test classes — 0 failures.
+
 ---
 
 ## Example Output (Backend)
