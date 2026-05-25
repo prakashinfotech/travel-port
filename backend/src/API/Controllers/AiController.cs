@@ -228,7 +228,7 @@ public class AiController : BaseApiController
             }
 
             using var resultDoc = JsonDocument.Parse(text);
-            return Ok(resultDoc.RootElement);
+            return Ok(resultDoc.RootElement.Clone());
         }
         catch (Exception ex)
         {
@@ -389,7 +389,7 @@ public class AiController : BaseApiController
             }
 
             using var resultDoc = JsonDocument.Parse(text);
-            return Ok(resultDoc.RootElement);
+            return Ok(resultDoc.RootElement.Clone());
         }
         catch (Exception ex)
         {
@@ -461,7 +461,7 @@ public class AiController : BaseApiController
             }
 
             using var resultDoc = JsonDocument.Parse(text);
-            return Ok(resultDoc.RootElement);
+            return Ok(resultDoc.RootElement.Clone());
         }
         catch (Exception ex)
         {
