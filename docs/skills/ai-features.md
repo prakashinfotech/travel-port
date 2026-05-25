@@ -1,13 +1,13 @@
 # Skill: AI Feature Development
 
 **Category:** AI Integration
-**Stack:** Claude API (claude-haiku-4-5-20251001) · .NET 8 HttpClient proxy · React 18 SSE streaming
+**Stack:** Gemini API (gemini-1.5-flash-latest) · .NET 8 HttpClient proxy · React 18 SSE streaming
 
 ---
 
 ## Purpose
 
-Guides adding new Claude-powered features to TravelPort, following the established backend-proxy pattern.
+Guides adding new Gemini-powered features to TravelPort, following the established backend-proxy pattern.
 
 ---
 
@@ -19,8 +19,8 @@ All AI calls go through the backend proxy (`AiController.cs`) — the API key ne
 Frontend (fetch/SSE)
     ↓ POST /api/v1/ai/<endpoint>
 AiController.cs (HttpClient)
-    ↓ POST https://api.anthropic.com/v1/messages
-Claude API (claude-haiku-4-5-20251001)
+    ↓ POST https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent
+Gemini API (gemini-1.5-flash-latest)
 ```
 
 ---
@@ -29,13 +29,13 @@ Claude API (claude-haiku-4-5-20251001)
 
 API key goes in `appsettings.Development.json` only (gitignored):
 ```json
-"Claude": {
-  "ApiKey": "sk-ant-YOUR_KEY",
-  "Model": "claude-haiku-4-5-20251001"
+"Gemini": {
+  "ApiKey": "YOUR_GEMINI_KEY",
+  "Model": "gemini-1.5-flash-latest"
 }
 ```
 
-All endpoints read `_config["Claude:ApiKey"]` and return a graceful fallback when it's empty.
+All endpoints read `_config["Gemini:ApiKey"]` and return a graceful fallback when it's empty.
 
 ---
 
@@ -60,30 +60,23 @@ All endpoints read `_config["Claude:ApiKey"]` and return a graceful fallback whe
 [AllowAnonymous]
 public async Task<ActionResult> MyFeature([FromBody] MyRequest request, CancellationToken ct)
 {
-    var apiKey = _config["Claude:ApiKey"] ?? "";
-    if (string.IsNullOrEmpty(apiKey)) return BadRequest(new { error = "AI not configured." });
+    if (string.IsNullOrEmpty(ApiKey)) return BadRequest(new { error = "AI not configured." });
 
-    var body = JsonSerializer.Serialize(new
+    var body = JsonSerializer.Serialize(BuildContents("Your system prompt here.", new[]
     {
-        model = _config["Claude:Model"] ?? "claude-haiku-4-5-20251001",
-        max_tokens = 512,
-        stream = false,
-        system = "Your system prompt here.",
-        messages = new[] { new { role = "user", content = request.Input } }
-    });
+        new { role = "user", parts = new[] { new { text = request.Input } } }
+    }));
 
     using var httpClient = _httpClientFactory.CreateClient();
-    using var httpRequest = new HttpRequestMessage(HttpMethod.Post, AnthropicApiUrl)
+    using var httpRequest = new HttpRequestMessage(HttpMethod.Post, GenerateUrl)
     {
         Content = new StringContent(body, Encoding.UTF8, "application/json")
     };
-    httpRequest.Headers.Add("x-api-key", apiKey);
-    httpRequest.Headers.Add("anthropic-version", AnthropicVersion);
 
     using var response = await httpClient.SendAsync(httpRequest, ct);
     var rawJson = await response.Content.ReadAsStringAsync(ct);
     using var doc = JsonDocument.Parse(rawJson);
-    var text = doc.RootElement.GetProperty("content")[0].GetProperty("text").GetString() ?? "";
+    var text = ExtractGeminiText(doc).Trim();
     return Ok(new { result = text });
 }
 ```
@@ -139,7 +132,7 @@ Every endpoint checks the API key first:
 | File | Purpose |
 |------|---------|
 | `backend/src/API/Controllers/AiController.cs` | All 5 AI endpoint actions + DTOs |
-| `backend/src/API/appsettings.json` | Claude config block (empty key) |
+| `backend/src/API/appsettings.json` | Gemini config block (empty key, model set) |
 | `frontend/src/components/ai/AiChatWidget.tsx` | Floating chat bubble |
 | `frontend/src/components/ai/NaturalLanguageSearch.tsx` | NL search bar |
 | `frontend/src/components/ai/AiRecommendations.tsx` | Destination recommendations |

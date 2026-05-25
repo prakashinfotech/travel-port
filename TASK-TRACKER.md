@@ -5,6 +5,20 @@
 
 ---
 
+## Phase 16 — Gemini Model Name Fix
+
+**Branch:** `fix/gemini-model-name`
+**Scope:** Fix invalid Gemini model identifier that caused all AI features to fail.
+
+| # | Feature | Status | Notes |
+|---|---|---|---|
+| 16.1 | Fix `GeminiModel` constant in `AiController.cs` | ✅ | `gemini-flash-latest` → `gemini-1.5-flash-latest` |
+| 16.2 | Fix `Gemini:Model` in `appsettings.json` | ✅ | Same correction in config |
+| 16.3 | Update `docs/skills/ai-features.md` | ✅ | Replaced stale Claude/Anthropic references with Gemini |
+| 16.4 | Update `docs/ARCHITECTURE.md` | ✅ | Controller comment corrected to Gemini |
+
+---
+
 ## Phase 6 — Hotel Booking Management & Profile UX
 
 **Branch:** `feat/hotel-booking-management-and-profile-ux`

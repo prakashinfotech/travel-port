@@ -49,7 +49,7 @@ backend/src/
 │   │   ├── UsersController.cs
 │   │   ├── AdminController.cs
 │   │   ├── HotelManagerController.cs   ← [Authorize(Roles="Hotel")] — scoped to JWT hotelId
-│   │   ├── AiController.cs             ← Claude API proxy (chat/nl-search/recommendations/trip-plan/price-insight)
+│   │   ├── AiController.cs             ← Gemini API proxy (chat/nl-search/recommendations/trip-plan/price-insight)
 │   │   ├── AnnouncementsController.cs
 │   │   ├── BusesController.cs
 │   │   ├── TrainsController.cs

@@ -110,6 +110,10 @@
 - **AI Fixed:** `FlightSeatMapModal.tsx` — tooltip flip logic: opens above seat when near viewport bottom; horizontal clamping prevents off-screen overflow
 - **AI Configured:** Gemini API key set in `appsettings.json` (`gemini-1.5-flash-8b`) so AI search, chat, trip planner and recommendations work out of the box
 
+### Phase 16 — Gemini Model Name Fix
+- **AI Fixed:** `AiController.cs` — corrected hardcoded fallback model constant from invalid `gemini-flash-latest` to `gemini-1.5-flash-latest`
+- **AI Fixed:** `appsettings.json` — corrected `Gemini:Model` value from `gemini-flash-latest` to `gemini-1.5-flash-latest`; `gemini-flash-latest` is not a valid Google Generative Language API model identifier and caused all 5 AI endpoints to return 404 errors
+
 ---
 
 ## AI Decisions Log
