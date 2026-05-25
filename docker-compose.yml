@@ -53,6 +53,7 @@ services:
       Duffel__Enabled: "false"
       Amadeus__Enabled: "false"
       Gemini__ApiKey: "${GEMINI_API_KEY:-}"
+      Gemini__Model: "${GEMINI_MODEL:-gemini-2.0-flash}"
       AppSettings__FrontendUrl: "${FRONTEND_URL:-http://localhost}"
     networks:
       - travelport

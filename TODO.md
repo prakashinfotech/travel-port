@@ -12,7 +12,8 @@
 | 2 | Verify TravellerSelector popup closes correctly on mobile | 🟡 | `overflow-hidden` fix applied; test touch events |
 | 3 | Wire Razorpay live key for Card payment in production | 🟡 | Card/UPI/NetBanking pages currently use mock API; real Razorpay needs live key in appsettings |
 | 4 | Mobile-responsive filter drawer — slide-over panel for filters on screens < 1024px | 🔴 | All listing pages (Flights/Hotels/Buses/Trains/Cabs) hide the left sidebar on mobile |
-| 5 | ✅ Gemini AI fully working — `gemini-1.5-flash-latest` model in `appsettings.json`; thinking-model crash fixed via `TryGetProperty` in `AiController` | ✅ | |
+| 5 | ✅ Gemini AI fully working — `gemini-2.0-flash` model via env var; `Gemini__Model` wired in `docker-compose.yml` | ✅ | |
+| 6 | ✅ Bold UI redesign — Poppins font, dark navbar gradient, dark footer, gradient buttons, vibrant badges | ✅ | |
 
 ---
 

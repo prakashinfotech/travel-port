@@ -5,6 +5,24 @@
 
 ---
 
+## Phase 17 — Bold UI Redesign (Goibibo-style)
+
+**Branch:** `feat/ui-redesign-bold-colorful`
+**Scope:** Full design-system overhaul — bold colorful theme, Poppins font, new Navbar/Footer/Button/Badge.
+
+| # | Feature | Status | Notes |
+|---|---|---|---|
+| 17.1 | Tailwind config — expanded color palette | ✅ | Added `brand.pink`, `brand.teal`, `brand.purple`, `brand.navy`; gradient utilities; glow shadows; new animations |
+| 17.2 | Google Fonts — Poppins | ✅ | Added to `index.html` via preconnect + stylesheet link |
+| 17.3 | Global CSS (`index.css`) | ✅ | Added `.card`, `.card-hover`, `.section-title`, `.input-base` utility classes |
+| 17.4 | Navbar redesign | ✅ | Dark navy-to-indigo gradient, orange/pink gradient logo, active tab underline, glass-style profile/login buttons |
+| 17.5 | Footer redesign | ✅ | Dark `brand-navy` background, orange section headers, contact info, payment method chips |
+| 17.6 | Button component | ✅ | Gradient primary/secondary, `rounded-xl`, glow-on-hover, active scale press, all variants updated |
+| 17.7 | Badge component | ✅ | More saturated colors, added `purple` + `orange` variants, dark mode support |
+| 17.8 | `docker-compose.yml` — `Gemini__Model` env var | ✅ | Added explicit model override; defaults to `gemini-2.0-flash` |
+
+---
+
 ## Phase 16 — Gemini Model Name Fix
 
 **Branch:** `fix/gemini-model-name`
