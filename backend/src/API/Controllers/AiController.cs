@@ -15,8 +15,8 @@ public class AiController : BaseApiController
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<AiController> _logger;
 
-    private const string GeminiBaseUrl = "https://generativelanguage.googleapis.com/v1beta/models";
-    private const string GeminiModel   = "gemini-2.0-flash";
+    private const string GroqBaseUrl = "https://api.groq.com/openai/v1";
+    private const string DefaultModel = "llama-3.3-70b-versatile";
 
     private const string SystemPrompt = """
         You are TravelPort AI, a smart travel assistant built into the TravelPort booking platform — India's leading travel portal.
@@ -48,33 +48,52 @@ public class AiController : BaseApiController
         _logger = logger;
     }
 
-    private string ApiKey => _config["Gemini:ApiKey"] ?? "";
-    private string Model  => _config["Gemini:Model"]  ?? GeminiModel;
+    private string ApiKey => _config["Groq:ApiKey"] ?? "";
+    private string Model  => _config["Groq:Model"]  ?? DefaultModel;
 
-    private string StreamUrl  => $"{GeminiBaseUrl}/{Model}:streamGenerateContent?key={ApiKey}&alt=sse";
-    private string GenerateUrl => $"{GeminiBaseUrl}/{Model}:generateContent?key={ApiKey}";
+    private string ChatUrl => $"{GroqBaseUrl}/chat/completions";
 
-    private static object BuildContents(string systemPrompt, IEnumerable<object> messages) => new
+    private HttpRequestMessage BuildRequest(object body, bool stream = false)
     {
-        system_instruction = new { parts = new[] { new { text = systemPrompt } } },
-        contents = messages
-    };
-
-    private static string ExtractGeminiText(JsonDocument doc)
-    {
-        var parts = doc.RootElement
-            .GetProperty("candidates")[0]
-            .GetProperty("content")
-            .GetProperty("parts");
-        foreach (var part in parts.EnumerateArray())
+        var req = new HttpRequestMessage(HttpMethod.Post, ChatUrl)
         {
-            if (part.TryGetProperty("text", out var textProp))
-            {
-                var text = textProp.GetString();
-                if (!string.IsNullOrEmpty(text)) return text;
-            }
+            Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json")
+        };
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ApiKey);
+        if (stream)
+            req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
+        return req;
+    }
+
+    private static object BuildMessages(string systemPrompt, IEnumerable<object> userMessages, string model, bool stream = false)
+    {
+        var messages = new List<object> { new { role = "system", content = systemPrompt } };
+        messages.AddRange(userMessages);
+        return stream
+            ? new { model, messages, stream = true }
+            : (object)new { model, messages };
+    }
+
+    private static string? ExtractGroqText(JsonDocument doc)
+    {
+        return doc.RootElement
+            .GetProperty("choices")[0]
+            .GetProperty("message")
+            .GetProperty("content")
+            .GetString();
+    }
+
+    private static string? ExtractGroqChunk(string json)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            var delta = doc.RootElement.GetProperty("choices")[0].GetProperty("delta");
+            if (delta.TryGetProperty("content", out var content))
+                return content.GetString();
         }
-        return "";
+        catch (JsonException) { }
+        return null;
     }
 
     // ── Chat (SSE streaming) ─────────────────────────────────────────────────
@@ -88,26 +107,16 @@ public class AiController : BaseApiController
 
         if (string.IsNullOrEmpty(ApiKey))
         {
-            await Response.WriteAsync("data: \"I'm not configured yet. Please add a Gemini API key to enable the AI assistant.\"\n\n", ct);
+            await Response.WriteAsync("data: \"I'm not configured yet. Please add a Groq API key to enable the AI assistant.\"\n\n", ct);
             await Response.WriteAsync("data: [DONE]\n\n", ct);
             return;
         }
 
-        // Convert messages: Anthropic uses "assistant", Gemini uses "model"
-        var contents = request.Messages.Select(m => new
-        {
-            role    = m.Role == "assistant" ? "model" : "user",
-            parts   = new[] { new { text = m.Content } }
-        });
-
-        var body = JsonSerializer.Serialize(BuildContents(SystemPrompt, contents));
+        var userMessages = request.Messages.Select(m => (object)new { role = m.Role, content = m.Content });
+        var body = BuildMessages(SystemPrompt, userMessages, Model, stream: true);
 
         using var httpClient = _httpClientFactory.CreateClient();
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, StreamUrl)
-        {
-            Content = new StringContent(body, Encoding.UTF8, "application/json")
-        };
-        httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
+        using var httpRequest = BuildRequest(body, stream: true);
 
         await Response.Body.FlushAsync(ct);
 
@@ -119,7 +128,7 @@ public class AiController : BaseApiController
             if (!response.IsSuccessStatusCode)
             {
                 var err = await response.Content.ReadAsStringAsync(ct);
-                _logger.LogError("Gemini API error {Status}: {Error}", response.StatusCode, err);
+                _logger.LogError("Groq API error {Status}: {Error}", response.StatusCode, err);
                 await Response.WriteAsync("data: \"Sorry, I couldn't connect to the AI service right now. Please try again later.\"\n\n", ct);
                 await Response.WriteAsync("data: [DONE]\n\n", ct);
                 return;
@@ -136,30 +145,18 @@ public class AiController : BaseApiController
                 var json = line[6..].Trim();
                 if (json is "[DONE]" or "") continue;
 
-                try
-                {
-                    using var doc = JsonDocument.Parse(json);
-                    var parts = doc.RootElement
-                        .GetProperty("candidates")[0]
-                        .GetProperty("content")
-                        .GetProperty("parts");
-                    foreach (var part in parts.EnumerateArray())
-                    {
-                        if (!part.TryGetProperty("text", out var textProp)) continue;
-                        var text = textProp.GetString();
-                        if (string.IsNullOrEmpty(text)) continue;
-                        var encoded = JsonSerializer.Serialize(text);
-                        await Response.WriteAsync($"data: {encoded}\n\n", ct);
-                        await Response.Body.FlushAsync(ct);
-                    }
-                }
-                catch (JsonException) { }
+                var text = ExtractGroqChunk(json);
+                if (string.IsNullOrEmpty(text)) continue;
+
+                var encoded = JsonSerializer.Serialize(text);
+                await Response.WriteAsync($"data: {encoded}\n\n", ct);
+                await Response.Body.FlushAsync(ct);
             }
         }
         catch (OperationCanceledException) { }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error streaming from Gemini API");
+            _logger.LogError(ex, "Error streaming from Groq API");
             await Response.WriteAsync("data: \"An error occurred. Please try again.\"\n\n", ct);
         }
 
@@ -195,16 +192,10 @@ public class AiController : BaseApiController
             "Pick diverse destinations from: Goa, Mumbai, Delhi, Bangalore, Jaipur, Hyderabad, Chennai, Kolkata, Kochi, Lucknow, Pune, Ahmedabad. " +
             "If the user has booking history, avoid repeating those cities and suggest complementary destinations.";
 
-        var body = JsonSerializer.Serialize(BuildContents(systemPrompt, new[]
-        {
-            new { role = "user", parts = new[] { new { text = context } } }
-        }));
+        var body = BuildMessages(systemPrompt, new[] { new { role = "user", content = context } }, Model);
 
         using var httpClient = _httpClientFactory.CreateClient();
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, GenerateUrl)
-        {
-            Content = new StringContent(body, Encoding.UTF8, "application/json")
-        };
+        using var httpRequest = BuildRequest(body);
 
         try
         {
@@ -213,12 +204,12 @@ public class AiController : BaseApiController
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogError("Gemini recommendations error {Status}: {Body}", response.StatusCode, rawJson);
+                _logger.LogError("Groq recommendations error {Status}: {Body}", response.StatusCode, rawJson);
                 return StatusCode(502, new { error = "AI service unavailable." });
             }
 
             using var doc = JsonDocument.Parse(rawJson);
-            var text = ExtractGeminiText(doc).Trim();
+            var text = ExtractGroqText(doc)?.Trim() ?? "";
 
             if (text.StartsWith("```"))
             {
@@ -248,7 +239,7 @@ public class AiController : BaseApiController
 
         if (string.IsNullOrEmpty(ApiKey))
         {
-            await Response.WriteAsync("data: \"AI trip planner is not configured. Please add a Gemini API key.\"\n\n", ct);
+            await Response.WriteAsync("data: \"AI trip planner is not configured. Please add a Groq API key.\"\n\n", ct);
             await Response.WriteAsync("data: [DONE]\n\n", ct);
             return;
         }
@@ -273,17 +264,10 @@ public class AiController : BaseApiController
             "Use IATA codes: Mumbai=BOM, Delhi=DEL, Bangalore=BLR, Chennai=MAA, Kolkata=CCU, Hyderabad=HYD, Pune=PNQ, Goa=GOI, Jaipur=JAI, Kochi=COK. " +
             "Keep each day section focused and actionable.";
 
-        var body = JsonSerializer.Serialize(BuildContents(tripSystemPrompt, new[]
-        {
-            new { role = "user", parts = new[] { new { text = request.Brief } } }
-        }));
+        var body = BuildMessages(tripSystemPrompt, new[] { new { role = "user", content = request.Brief } }, Model, stream: true);
 
         using var httpClient = _httpClientFactory.CreateClient();
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, StreamUrl)
-        {
-            Content = new StringContent(body, Encoding.UTF8, "application/json")
-        };
-        httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
+        using var httpRequest = BuildRequest(body, stream: true);
 
         await Response.Body.FlushAsync(ct);
 
@@ -294,7 +278,7 @@ public class AiController : BaseApiController
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogError("Gemini trip plan error {Status}", response.StatusCode);
+                _logger.LogError("Groq trip plan error {Status}", response.StatusCode);
                 await Response.WriteAsync("data: \"Sorry, could not generate the trip plan. Please try again.\"\n\n", ct);
                 await Response.WriteAsync("data: [DONE]\n\n", ct);
                 return;
@@ -311,30 +295,18 @@ public class AiController : BaseApiController
                 var json = line[6..].Trim();
                 if (json is "[DONE]" or "") continue;
 
-                try
-                {
-                    using var doc = JsonDocument.Parse(json);
-                    var parts = doc.RootElement
-                        .GetProperty("candidates")[0]
-                        .GetProperty("content")
-                        .GetProperty("parts");
-                    foreach (var part in parts.EnumerateArray())
-                    {
-                        if (!part.TryGetProperty("text", out var textProp)) continue;
-                        var text = textProp.GetString();
-                        if (string.IsNullOrEmpty(text)) continue;
-                        var encoded = JsonSerializer.Serialize(text);
-                        await Response.WriteAsync($"data: {encoded}\n\n", ct);
-                        await Response.Body.FlushAsync(ct);
-                    }
-                }
-                catch (JsonException) { }
+                var text = ExtractGroqChunk(json);
+                if (string.IsNullOrEmpty(text)) continue;
+
+                var encoded = JsonSerializer.Serialize(text);
+                await Response.WriteAsync($"data: {encoded}\n\n", ct);
+                await Response.Body.FlushAsync(ct);
             }
         }
         catch (OperationCanceledException) { }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error streaming trip plan from Gemini");
+            _logger.LogError(ex, "Error streaming trip plan from Groq");
             await Response.WriteAsync("data: \"An error occurred. Please try again.\"\n\n", ct);
         }
 
@@ -361,16 +333,10 @@ public class AiController : BaseApiController
 
         var userMessage = $"Provide a price trend insight for the {origin} to {destination} domestic flight route in India.";
 
-        var body = JsonSerializer.Serialize(BuildContents(systemPrompt, new[]
-        {
-            new { role = "user", parts = new[] { new { text = userMessage } } }
-        }));
+        var body = BuildMessages(systemPrompt, new[] { new { role = "user", content = userMessage } }, Model);
 
         using var httpClient = _httpClientFactory.CreateClient();
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, GenerateUrl)
-        {
-            Content = new StringContent(body, Encoding.UTF8, "application/json")
-        };
+        using var httpRequest = BuildRequest(body);
 
         try
         {
@@ -379,7 +345,7 @@ public class AiController : BaseApiController
 
             var rawJson = await response.Content.ReadAsStringAsync(ct);
             using var doc = JsonDocument.Parse(rawJson);
-            var text = ExtractGeminiText(doc).Trim();
+            var text = ExtractGroqText(doc)?.Trim() ?? "";
 
             if (text.StartsWith("```"))
             {
@@ -428,16 +394,10 @@ public class AiController : BaseApiController
             "IATA map: Mumbai=BOM, Delhi=DEL, Bangalore=BLR, Chennai=MAA, Kolkata=CCU, Hyderabad=HYD, Pune=PNQ, Goa=GOI, Jaipur=JAI, Kochi=COK, Ahmedabad=AMD, Lucknow=LKO, Amritsar=ATQ, Chandigarh=IXC.\n" +
             "If query type is unclear, default to \"flight\". If a city is ambiguous, pick the most common match.";
 
-        var body = JsonSerializer.Serialize(BuildContents(systemPrompt, new[]
-        {
-            new { role = "user", parts = new[] { new { text = request.Query } } }
-        }));
+        var body = BuildMessages(systemPrompt, new[] { new { role = "user", content = request.Query } }, Model);
 
         using var httpClient = _httpClientFactory.CreateClient();
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, GenerateUrl)
-        {
-            Content = new StringContent(body, Encoding.UTF8, "application/json")
-        };
+        using var httpRequest = BuildRequest(body);
 
         try
         {
@@ -446,12 +406,12 @@ public class AiController : BaseApiController
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogError("Gemini NL search error {Status}: {Body}", response.StatusCode, rawJson);
+                _logger.LogError("Groq NL search error {Status}: {Body}", response.StatusCode, rawJson);
                 return StatusCode(502, new { error = "AI service unavailable." });
             }
 
             using var doc = JsonDocument.Parse(rawJson);
-            var text = ExtractGeminiText(doc).Trim();
+            var text = ExtractGroqText(doc)?.Trim() ?? "";
 
             if (text.StartsWith("```"))
             {

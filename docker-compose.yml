@@ -52,8 +52,8 @@ services:
       AllowedOrigins__1: "${ALLOWED_ORIGIN_1:-https://localhost}"
       Duffel__Enabled: "false"
       Amadeus__Enabled: "false"
-      Gemini__ApiKey: "${GEMINI_API_KEY:-}"
-      Gemini__Model: "${GEMINI_MODEL:-gemini-2.0-flash}"
+      Groq__ApiKey: "${GROQ_API_KEY:-}"
+      Groq__Model: "${GROQ_MODEL:-llama-3.3-70b-versatile}"
       AppSettings__FrontendUrl: "${FRONTEND_URL:-http://localhost}"
     networks:
       - travelport
