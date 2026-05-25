@@ -16,7 +16,7 @@ public class AiController : BaseApiController
     private readonly ILogger<AiController> _logger;
 
     private const string GeminiBaseUrl = "https://generativelanguage.googleapis.com/v1beta/models";
-    private const string GeminiModel   = "gemini-1.5-flash-8b";
+    private const string GeminiModel   = "gemini-flash-latest";
 
     private const string SystemPrompt = """
         You are TravelPort AI, a smart travel assistant built into the TravelPort booking platform — India's leading travel portal.
@@ -62,12 +62,19 @@ public class AiController : BaseApiController
 
     private static string ExtractGeminiText(JsonDocument doc)
     {
-        return doc.RootElement
+        var parts = doc.RootElement
             .GetProperty("candidates")[0]
             .GetProperty("content")
-            .GetProperty("parts")[0]
-            .GetProperty("text")
-            .GetString() ?? "";
+            .GetProperty("parts");
+        foreach (var part in parts.EnumerateArray())
+        {
+            if (part.TryGetProperty("text", out var textProp))
+            {
+                var text = textProp.GetString();
+                if (!string.IsNullOrEmpty(text)) return text;
+            }
+        }
+        return "";
     }
 
     // ── Chat (SSE streaming) ─────────────────────────────────────────────────
@@ -132,15 +139,15 @@ public class AiController : BaseApiController
                 try
                 {
                     using var doc = JsonDocument.Parse(json);
-                    var text = doc.RootElement
+                    var parts = doc.RootElement
                         .GetProperty("candidates")[0]
                         .GetProperty("content")
-                        .GetProperty("parts")[0]
-                        .GetProperty("text")
-                        .GetString() ?? "";
-
-                    if (!string.IsNullOrEmpty(text))
+                        .GetProperty("parts");
+                    foreach (var part in parts.EnumerateArray())
                     {
+                        if (!part.TryGetProperty("text", out var textProp)) continue;
+                        var text = textProp.GetString();
+                        if (string.IsNullOrEmpty(text)) continue;
                         var encoded = JsonSerializer.Serialize(text);
                         await Response.WriteAsync($"data: {encoded}\n\n", ct);
                         await Response.Body.FlushAsync(ct);
@@ -307,15 +314,15 @@ public class AiController : BaseApiController
                 try
                 {
                     using var doc = JsonDocument.Parse(json);
-                    var text = doc.RootElement
+                    var parts = doc.RootElement
                         .GetProperty("candidates")[0]
                         .GetProperty("content")
-                        .GetProperty("parts")[0]
-                        .GetProperty("text")
-                        .GetString() ?? "";
-
-                    if (!string.IsNullOrEmpty(text))
+                        .GetProperty("parts");
+                    foreach (var part in parts.EnumerateArray())
                     {
+                        if (!part.TryGetProperty("text", out var textProp)) continue;
+                        var text = textProp.GetString();
+                        if (string.IsNullOrEmpty(text)) continue;
                         var encoded = JsonSerializer.Serialize(text);
                         await Response.WriteAsync($"data: {encoded}\n\n", ct);
                         await Response.Body.FlushAsync(ct);
