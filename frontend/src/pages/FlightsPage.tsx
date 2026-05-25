@@ -1539,97 +1539,88 @@ export default function FlightsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Search bar */}
-      <div className="py-5 px-4 shadow-md" style={{ background: 'linear-gradient(135deg, #0c1445 0%, #1e3a8a 40%, #0369a1 100%)' }}>
-        {/* Trip type */}
-        <div className="mx-auto max-w-6xl mb-3 flex gap-4">
-          {(['oneway', 'roundtrip'] as TripType[]).map(t => (
-            <label key={t} className="flex items-center gap-1.5 text-xs font-semibold text-white cursor-pointer capitalize">
-              <input type="radio" name="tripType" value={t} checked={tripType === t} onChange={() => setTripType(t)} className="accent-white" />
-              {t === 'oneway' ? 'One Way' : 'Round Trip'}
-            </label>
-          ))}
-        </div>
+      {/* Hero — flight search */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1600&q=80)', filter: 'saturate(1.8) brightness(0.8) contrast(1.15)' }} />
+        <div className="absolute inset-0 bg-blue-950/72" />
+        <div className="relative z-10 py-10 px-4">
+          <div className="mx-auto max-w-6xl">
+            <div className="mb-5 text-white">
+              <h1 className="text-3xl font-bold flex items-center gap-2 mb-1"><Plane className="w-7 h-7" /> Search Flights</h1>
+              <p className="text-blue-200 text-sm">900+ routes · 7 airlines · best fares guaranteed</p>
+            </div>
 
-        <form onSubmit={handleSearch} className="mx-auto max-w-6xl">
-          <div className="bg-white rounded-2xl shadow-2xl p-4">
-            <div className="flex flex-wrap gap-0 divide-x divide-gray-200">
-              {/* From */}
-              <div className="flex-1 min-w-[160px] px-4 py-2">
-                <AirportSearch
-                  label="From"
-                  placeholder="City or Airport"
-                  value={origin ? `${originCity || origin} (${origin})` : ''}
-                  onChange={(code, city) => { setOrigin(code); setOriginCity(city) }}
-                />
-              </div>
+            {/* Trip type */}
+            <div className="mb-3 flex gap-4">
+              {(['oneway', 'roundtrip'] as TripType[]).map(t => (
+                <label key={t} className="flex items-center gap-1.5 text-xs font-semibold text-white cursor-pointer">
+                  <input type="radio" name="tripType" value={t} checked={tripType === t} onChange={() => setTripType(t)} className="accent-orange-400" />
+                  {t === 'oneway' ? 'One Way' : 'Round Trip'}
+                </label>
+              ))}
+            </div>
 
-              {/* Swap */}
-              <div className="flex items-center px-2">
-                <button
-                  type="button"
-                  onClick={swap}
-                  className="h-8 w-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-blue-300 transition-colors"
-                >
-                  <ArrowLeftRight className="h-4 w-4 text-gray-400" />
-                </button>
-              </div>
+            <form onSubmit={handleSearch}>
+              <div className="rounded-2xl bg-white shadow-xl">
+                <div className="flex flex-col divide-y divide-gray-100 lg:flex-row lg:items-stretch lg:divide-x lg:divide-y-0">
+                  {/* From */}
+                  <div className="flex-1 min-w-[160px] px-4 py-4">
+                    <AirportSearch
+                      label="From"
+                      placeholder="City or Airport"
+                      value={origin ? `${originCity || origin} (${origin})` : ''}
+                      onChange={(code, city) => { setOrigin(code); setOriginCity(city) }}
+                    />
+                  </div>
 
-              {/* To */}
-              <div className="flex-1 min-w-[160px] px-4 py-2">
-                <AirportSearch
-                  label="To"
-                  placeholder="City or Airport"
-                  value={destination ? `${destinationCity || destination} (${destination})` : ''}
-                  onChange={(code, city) => { setDestination(code); setDestinationCity(city) }}
-                />
-              </div>
+                  {/* Swap */}
+                  <div className="hidden lg:flex items-center px-2">
+                    <button type="button" onClick={swap}
+                      className="h-8 w-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-blue-300 transition-colors">
+                      <ArrowLeftRight className="h-4 w-4 text-gray-400" />
+                    </button>
+                  </div>
 
-              {/* Departure */}
-              <div className="flex-1 min-w-[130px] px-4 py-2">
-                <DatePickerInput
-                  label="Departure"
-                  value={departureDate}
-                  min={TODAY}
-                  onChange={setDepartureDate}
-                  accentColor="blue"
-                  variant="underline"
-                />
-              </div>
+                  {/* To */}
+                  <div className="flex-1 min-w-[160px] px-4 py-4">
+                    <AirportSearch
+                      label="To"
+                      placeholder="City or Airport"
+                      value={destination ? `${destinationCity || destination} (${destination})` : ''}
+                      onChange={(code, city) => { setDestination(code); setDestinationCity(city) }}
+                    />
+                  </div>
 
-              {/* Return */}
-              {tripType === 'roundtrip' && (
-                <div className="flex-1 min-w-[130px] px-4 py-2">
-                  <DatePickerInput
-                    label="Return"
-                    value={returnDate}
-                    min={departureDate || TODAY}
-                    onChange={setReturnDate}
-                    accentColor="blue"
-                    variant="underline"
-                  />
+                  {/* Departure */}
+                  <div className="px-4 py-4 lg:w-[170px]">
+                    <DatePickerInput label="Departure" value={departureDate} min={TODAY} onChange={setDepartureDate} accentColor="blue" variant="underline" />
+                  </div>
+
+                  {/* Return */}
+                  {tripType === 'roundtrip' && (
+                    <div className="px-4 py-4 lg:w-[160px]">
+                      <DatePickerInput label="Return" value={returnDate} min={departureDate || TODAY} onChange={setReturnDate} accentColor="blue" variant="underline" />
+                    </div>
+                  )}
+
+                  {/* Travellers */}
+                  <div className="flex-1 min-w-[200px] px-4 py-4">
+                    <TravellerSelector value={travellers} onChange={setTravellers} />
+                  </div>
+
+                  {/* Search button */}
+                  <div className="px-4 py-4 lg:flex lg:items-center lg:justify-center">
+                    <button type="submit" disabled={loading}
+                      className="flex w-full items-center justify-center gap-2 rounded-full px-10 py-3 font-bold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-100 disabled:opacity-70 disabled:cursor-not-allowed lg:w-auto"
+                      style={{ background: 'linear-gradient(90deg, #1e3a8a, #f97316)' }}>
+                      <Search className="h-5 w-5" /> {loading ? 'Searching…' : 'Search'}
+                    </button>
+                  </div>
                 </div>
-              )}
-
-              {/* Travellers & Class */}
-              <div className="flex-1 min-w-[200px] px-4 py-2">
-                <TravellerSelector value={travellers} onChange={setTravellers} />
               </div>
-            </div>
-
-            {/* Search button */}
-            <div className="mt-4 flex justify-center">
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex items-center gap-2 rounded-full px-10 py-3 font-bold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-100 disabled:opacity-70 disabled:cursor-not-allowed"
-                style={{ background: 'linear-gradient(90deg, #1a56db, #f97316)' }}
-              >
-                <Search className="h-5 w-5" /> {loading ? 'Searching...' : 'Search'}
-              </button>
-            </div>
+            </form>
           </div>
-        </form>
+        </div>
       </div>
 
       <div className="mx-auto max-w-6xl px-4 py-4">

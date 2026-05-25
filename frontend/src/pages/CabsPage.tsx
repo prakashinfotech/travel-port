@@ -88,39 +88,43 @@ export default function CabsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Search bar */}
-      <div className="py-6 px-4" style={{ background: 'linear-gradient(135deg, #78350f 0%, #b45309 50%, #d97706 100%)' }}>
-        <div className="max-w-6xl mx-auto">
-          <h1 className="text-white text-2xl font-bold mb-4 flex items-center gap-2">
-            <Car className="w-6 h-6" /> Cab Booking
-          </h1>
-          <div className="bg-white rounded-xl p-4 flex flex-wrap gap-3 items-end">
-            <div className="flex-1 min-w-40">
-              <CitySearch label="PICKUP FROM" placeholder="City, area or landmark" value={origin} onChange={setOrigin} focusColor="yellow" />
+      {/* Hero — cab search */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=1600&q=80)', filter: 'saturate(1.8) brightness(0.8) contrast(1.15)' }} />
+        <div className="absolute inset-0 bg-amber-950/72" />
+        <div className="relative z-10 py-10 px-4">
+          <div className="max-w-6xl mx-auto">
+            <div className="mb-6 text-white">
+              <h1 className="text-3xl font-bold flex items-center gap-2 mb-1"><Car className="w-7 h-7" /> Cab Booking</h1>
+              <p className="text-amber-200 text-sm">Safe, reliable cab rides across Indian cities</p>
             </div>
-            <div className="flex-1 min-w-40">
-              <CitySearch label="DROP TO" placeholder="City, area or landmark" value={destination} onChange={setDest} focusColor="yellow" />
-            </div>
-            <DatePickerInput
-              label="PICKUP DATE & TIME"
-              type="datetime-local"
-              value={pickup}
-              min={localDatetimeValue(new Date())}
-              onChange={setPickup}
-              accentColor="yellow"
-              className="flex-1 min-w-44"
-            />
-            <div className="flex-1 min-w-36">
-              <label className="block text-xs text-gray-500 mb-1">TRIP TYPE</label>
-              <select value={tripType} onChange={e => setTripType(e.target.value as 'OneWay' | 'RoundTrip')}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500">
-                {TRIP_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
-            </div>
-            <button onClick={search}
-              className="flex items-center gap-2 bg-yellow-500 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-yellow-600 transition">
-              <Search className="w-4 h-4" /> Search
-            </button>
+            <form onSubmit={e => { e.preventDefault(); search(); }}>
+              <div className="rounded-2xl bg-white shadow-xl">
+                <div className="flex flex-col divide-y divide-gray-100 lg:flex-row lg:items-stretch lg:divide-x lg:divide-y-0">
+                  <div className="flex-1 px-4 py-4">
+                    <CitySearch label="PICKUP FROM" placeholder="City, area or landmark" value={origin} onChange={setOrigin} focusColor="yellow" />
+                  </div>
+                  <div className="flex-1 px-4 py-4">
+                    <CitySearch label="DROP TO" placeholder="City, area or landmark" value={destination} onChange={setDest} focusColor="yellow" />
+                  </div>
+                  <div className="px-4 py-4 lg:w-[230px]">
+                    <DatePickerInput label="PICKUP DATE & TIME" type="datetime-local" value={pickup} min={localDatetimeValue(new Date())} onChange={setPickup} accentColor="yellow" />
+                  </div>
+                  <div className="px-4 py-4 lg:w-[160px]">
+                    <label className="block text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2">TRIP TYPE</label>
+                    <select value={tripType} onChange={e => setTripType(e.target.value as 'OneWay' | 'RoundTrip')}
+                      className="w-full border-b border-gray-200 py-1 text-sm font-medium text-gray-800 focus:outline-none focus:border-yellow-500 bg-transparent">
+                      {TRIP_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    </select>
+                  </div>
+                  <div className="px-4 py-4 lg:flex lg:items-center lg:justify-center">
+                    <button type="submit" className="flex w-full items-center justify-center gap-2 rounded-full px-10 py-3 font-bold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-100 lg:w-auto" style={{ background: 'linear-gradient(90deg, #b45309, #fbbf24)' }}>
+                      <Search className="h-5 w-5" /> Search
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       </div>

@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import {
   Search, Home, ChevronRight, MapPin, ChevronDown, ChevronUp,
-  X, Star, SlidersHorizontal,
+  X, Star, SlidersHorizontal, Hotel,
 } from 'lucide-react'
 import type { HotelDto } from '@/types'
 import { hotelService } from '@/services/hotelService'
@@ -492,58 +492,43 @@ export default function HotelsPage() {
     <div className="min-h-screen bg-gray-50">
 
       {/* ── Search Header ── */}
-      <div className="relative z-30 py-8 px-4" style={{ background: 'linear-gradient(135deg, #7c2d12 0%, #c2410c 50%, #ea580c 100%)' }}>
-        {/* Search form */}
-        <form onSubmit={handleSearch} className="relative mx-auto max-w-6xl">
-          <div className="rounded-2xl bg-white shadow-xl">
-            <div className="flex flex-col divide-y divide-gray-200 lg:flex-row lg:items-stretch lg:divide-x lg:divide-y-0">
-
-              {/* City with autocomplete */}
-              <div className="relative z-20 flex-[2] px-4 py-4 lg:min-w-0">
-                <CitySearch value={city} onChange={setCity} />
-              </div>
-
-              {/* Check-in */}
-              <div className="px-4 py-4 lg:w-[220px]">
-                <DateField
-                  label="Check-in"
-                  value={checkIn}
-                  min={TODAY}
-                  onChange={setCheckIn}
-                  required
-                />
-              </div>
-
-              {/* Check-out */}
-              <div className="px-4 py-4 lg:w-[220px]">
-                <DateField
-                  label="Check-out"
-                  value={checkOut}
-                  min={checkIn || TODAY}
-                  onChange={setCheckOut}
-                  nights={nights}
-                  required
-                />
-              </div>
-
-              {/* Guests & Rooms */}
-              <div className="relative z-10 px-4 py-4 lg:w-[280px]">
-                <GuestsDropdown value={guests} onChange={setGuests} />
-              </div>
-
-              <div className="px-4 py-4 lg:flex lg:items-center lg:justify-center">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-70 lg:w-auto"
-                >
-                  <Search className="h-5 w-5" />
-                  {loading ? 'Searching…' : 'Search'}
-                </button>
-              </div>
+      <div className="relative z-30 overflow-hidden">
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1600&q=80)', filter: 'saturate(1.8) brightness(0.8) contrast(1.15)' }} />
+        <div className="absolute inset-0 bg-orange-950/70" />
+        <div className="relative z-10 py-10 px-4">
+          <div className="mx-auto max-w-6xl">
+            <div className="mb-6 text-white">
+              <h1 className="text-3xl font-bold flex items-center gap-2 mb-1"><Hotel className="w-7 h-7" /> Hotels</h1>
+              <p className="text-orange-200 text-sm">60+ properties · Mumbai, Goa, Delhi and more</p>
             </div>
+            <form onSubmit={handleSearch} className="relative">
+              <div className="rounded-2xl bg-white shadow-xl">
+                <div className="flex flex-col divide-y divide-gray-200 lg:flex-row lg:items-stretch lg:divide-x lg:divide-y-0">
+                  <div className="relative z-20 flex-[2] px-4 py-4 lg:min-w-0">
+                    <CitySearch value={city} onChange={setCity} />
+                  </div>
+                  <div className="px-4 py-4 lg:w-[220px]">
+                    <DateField label="Check-in" value={checkIn} min={TODAY} onChange={setCheckIn} required />
+                  </div>
+                  <div className="px-4 py-4 lg:w-[220px]">
+                    <DateField label="Check-out" value={checkOut} min={checkIn || TODAY} onChange={setCheckOut} nights={nights} required />
+                  </div>
+                  <div className="relative z-10 px-4 py-4 lg:w-[280px]">
+                    <GuestsDropdown value={guests} onChange={setGuests} />
+                  </div>
+                  <div className="px-4 py-4 lg:flex lg:items-center lg:justify-center">
+                    <button type="submit" disabled={loading}
+                      className="flex w-full items-center justify-center gap-2 rounded-full px-10 py-3 font-bold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-100 disabled:opacity-70 disabled:cursor-not-allowed lg:w-auto"
+                      style={{ background: 'linear-gradient(90deg, #c2410c, #f97316)' }}>
+                      <Search className="h-5 w-5" />
+                      {loading ? 'Searching…' : 'Search'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </form>
           </div>
-        </form>
+        </div>
       </div>
 
       {/* ── Results ── */}

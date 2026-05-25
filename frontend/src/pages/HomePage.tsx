@@ -43,12 +43,12 @@ const MODES: { id: TravelMode; label: string; icon: React.ElementType }[] = [
   { id: 'bus',    label: 'Bus',     icon: Bus    },
 ]
 
-const MODE_THEME: Record<TravelMode, { bg: string; accent: string; ring: string }> = {
-  flight: { bg: 'linear-gradient(135deg, #0c1445 0%, #1e3a8a 40%, #0369a1 100%)', accent: '#f97316', ring: 'focus:ring-blue-500'  },
-  hotel:  { bg: 'linear-gradient(135deg, #7c2d12 0%, #c2410c 50%, #ea580c 100%)', accent: '#f97316', ring: 'focus:ring-orange-500' },
-  bus:    { bg: 'linear-gradient(135deg, #14532d 0%, #15803d 50%, #16a34a 100%)', accent: '#22c55e', ring: 'focus:ring-green-500'  },
-  train:  { bg: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 55%, #312e81 100%)', accent: '#818cf8', ring: 'focus:ring-indigo-500' },
-  cab:    { bg: 'linear-gradient(135deg, #78350f 0%, #b45309 50%, #d97706 100%)', accent: '#fbbf24', ring: 'focus:ring-yellow-500' },
+const MODE_THEME: Record<TravelMode, { bgImage: string; overlay: string; accent: string; ring: string }> = {
+  flight: { bgImage: 'url(https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1600&q=80)', overlay: 'rgba(12,20,69,0.72)',   accent: '#f97316', ring: 'focus:ring-blue-500'  },
+  hotel:  { bgImage: 'url(https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1600&q=80)', overlay: 'rgba(124,45,18,0.70)', accent: '#f97316', ring: 'focus:ring-orange-500' },
+  bus:    { bgImage: 'url(https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1600&q=80)', overlay: 'rgba(20,83,45,0.72)',   accent: '#22c55e', ring: 'focus:ring-green-500'  },
+  train:  { bgImage: 'url(https://images.unsplash.com/photo-1474487548417-781cb71495f3?auto=format&fit=crop&w=1600&q=80)', overlay: 'rgba(30,58,138,0.72)', accent: '#818cf8', ring: 'focus:ring-indigo-500' },
+  cab:    { bgImage: 'url(https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=1600&q=80)', overlay: 'rgba(120,53,15,0.72)', accent: '#fbbf24', ring: 'focus:ring-yellow-500' },
 }
 
 // ── Offers ───────────────────────────────────────────────────────────────────
@@ -623,8 +623,10 @@ export default function HomePage() {
       <AuthModal />
 
       {/* ── HERO ─────────────────────────────────────────────────────────────── */}
-      <section className="relative text-white transition-all duration-500" style={{ background: theme.bg }}>
-        <div className="mx-auto max-w-7xl px-4 pt-8 pb-20 sm:px-6 lg:px-8">
+      <section className="relative overflow-hidden text-white">
+        <div key={mode} className="absolute inset-0 bg-cover bg-center animate-fade-in" style={{ backgroundImage: theme.bgImage, filter: 'saturate(1.8) brightness(0.8) contrast(1.15)' }} />
+        <div className="absolute inset-0 transition-colors duration-500" style={{ background: theme.overlay }} />
+        <div className="relative z-10 mx-auto max-w-7xl px-4 pt-8 pb-20 sm:px-6 lg:px-8">
 
           {/* Mode tab bar */}
           <div className="flex gap-1 mb-6 bg-white/10 rounded-2xl p-1 w-fit">
@@ -701,38 +703,25 @@ export default function HomePage() {
           {mode === 'hotel' && (
             <div>
               <form onSubmit={handleHotelSearch}>
-                <div className="rounded-2xl bg-white shadow-xl">
-                  <div className="flex flex-col divide-y divide-gray-200 lg:flex-row lg:items-stretch lg:divide-x lg:divide-y-0">
-
-                    {/* City */}
-                    <div className="relative z-20 flex-[2] px-4 py-4 lg:min-w-0">
+                <div className="rounded-2xl bg-white shadow-xl p-4">
+                  <div className="flex flex-wrap gap-0 divide-x divide-gray-200">
+                    <div className="relative z-20 flex-[2] min-w-[160px] px-4 py-2">
                       <HotelCitySearch value={hotelCity} onChange={setHotelCity} />
                     </div>
-
-                    {/* Check-in */}
-                    <div className="px-4 py-4 lg:w-[220px]">
+                    <div className="px-4 py-2 lg:w-[220px]">
                       <HotelDateField label="Check-in" value={checkIn} min={TODAY} onChange={setCheckIn} />
                     </div>
-
-                    {/* Check-out */}
-                    <div className="px-4 py-4 lg:w-[220px]">
+                    <div className="px-4 py-2 lg:w-[220px]">
                       <HotelDateField label="Check-out" value={checkOut} min={checkIn || TODAY} onChange={setCheckOut} nights={hotelNights} />
                     </div>
-
-                    {/* Guests & Rooms */}
-                    <div className="relative z-10 px-4 py-4 lg:w-[280px]">
+                    <div className="relative z-10 flex-1 min-w-[200px] px-4 py-2">
                       <HotelGuestsDropdown value={hotelGuests} onChange={setHotelGuests} />
                     </div>
-
-                    {/* Search button */}
-                    <div className="px-4 py-4 lg:flex lg:items-center lg:justify-center">
-                      <button
-                        type="submit"
-                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-orange-600 lg:w-auto"
-                      >
-                        <Search className="h-5 w-5" /> Search
-                      </button>
-                    </div>
+                  </div>
+                  <div className="mt-4 flex justify-center">
+                    <button type="submit" className="flex items-center gap-2 rounded-full px-10 py-3 font-bold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-100" style={{ background: `linear-gradient(90deg, #c2410c, ${theme.accent})` }}>
+                      <Search className="h-5 w-5" /> Search
+                    </button>
                   </div>
                 </div>
               </form>

@@ -313,37 +313,42 @@ export default function BusesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Search bar — lush travel-themed gradient */}
-      <div className="py-6 px-4" style={{ background: 'linear-gradient(135deg, #14532d 0%, #15803d 50%, #16a34a 100%)' }}>
-        <div className="max-w-6xl mx-auto">
-          <h1 className="text-white text-2xl font-bold mb-4 flex items-center gap-2">
-            <Bus className="w-6 h-6" /> Bus Tickets
-          </h1>
-          <div className="bg-white rounded-xl p-4 flex flex-wrap gap-3 items-end">
-            <div className="flex-1 min-w-40">
-              <CitySearch label="FROM" value={origin} onChange={setOrigin} focusColor="green" />
+      {/* Hero — bus search */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1600&q=80)', filter: 'saturate(1.8) brightness(0.8) contrast(1.15)' }} />
+        <div className="absolute inset-0 bg-emerald-950/70" />
+        <div className="relative z-10 py-10 px-4">
+          <div className="max-w-6xl mx-auto">
+            <div className="mb-6 text-white">
+              <h1 className="text-3xl font-bold flex items-center gap-2 mb-1"><Bus className="w-7 h-7" /> Bus Tickets</h1>
+              <p className="text-emerald-200 text-sm">Comfortable, affordable bus travel across India</p>
             </div>
-            <div className="flex-1 min-w-40">
-              <CitySearch label="TO" value={destination} onChange={setDestination} focusColor="green" />
-            </div>
-            <DatePickerInput
-              label="DATE"
-              value={date}
-              min={today}
-              onChange={setDate}
-              accentColor="green"
-              className="flex-1 min-w-40"
-            />
-            <div className="w-24">
-              <label className="block text-xs text-gray-500 mb-1">SEATS</label>
-              <input type="number" value={seats} min={1} max={10}
-                onChange={e => setSeats(Number(e.target.value))}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
-            </div>
-            <button onClick={search}
-              className="flex items-center gap-2 bg-green-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-green-700 transition">
-              <Search className="w-4 h-4" /> Search
-            </button>
+            <form onSubmit={e => { e.preventDefault(); search(); }}>
+              <div className="rounded-2xl bg-white shadow-xl">
+                <div className="flex flex-col divide-y divide-gray-100 lg:flex-row lg:items-stretch lg:divide-x lg:divide-y-0">
+                  <div className="flex-1 px-4 py-4">
+                    <CitySearch label="FROM" value={origin} onChange={setOrigin} focusColor="green" />
+                  </div>
+                  <div className="flex-1 px-4 py-4">
+                    <CitySearch label="TO" value={destination} onChange={setDestination} focusColor="green" />
+                  </div>
+                  <div className="px-4 py-4 lg:w-[200px]">
+                    <DatePickerInput label="DATE" value={date} min={today} onChange={setDate} accentColor="green" />
+                  </div>
+                  <div className="px-4 py-4 lg:w-[110px]">
+                    <label className="block text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2">SEATS</label>
+                    <input type="number" value={seats} min={1} max={10}
+                      onChange={e => setSeats(Number(e.target.value))}
+                      className="w-full border-b border-gray-200 py-1 text-sm font-medium text-gray-800 focus:outline-none focus:border-green-500" />
+                  </div>
+                  <div className="px-4 py-4 lg:flex lg:items-center lg:justify-center">
+                    <button type="submit" className="flex w-full items-center justify-center gap-2 rounded-full px-10 py-3 font-bold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-100 lg:w-auto" style={{ background: 'linear-gradient(90deg, #15803d, #22c55e)' }}>
+                      <Search className="h-5 w-5" /> Search
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       </div>
