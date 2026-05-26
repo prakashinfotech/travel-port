@@ -893,11 +893,125 @@ export interface FlightOperatorDashboardDto {
 
 export interface BusOperatorDashboardDto {
   companyName: string
+  totalBuses: number
+  activeBuses: number
   totalBookings: number
   confirmedBookings: number
   cancelledBookings: number
   totalRevenue: number
   totalPassengers: number
+}
+
+export interface OperatorBusDto {
+  id: string
+  busNumber: string
+  origin: string
+  destination: string
+  departureTime: string
+  arrivalTime: string
+  durationMinutes: number
+  totalSeats: number
+  availableSeats: number
+  price: number
+  busType: string
+  seatLayoutConfig: string
+  seatRows: number
+  ladiesSeats: string[]
+  amenities: string[]
+  driverName?: string
+  driverPhone?: string
+  driverLicense?: string
+  photoUrl?: string
+  scheduleType: string
+  daysOfWeek: string[]
+  boardingPoints?: string
+  droppingPoints?: string
+  isActive: boolean
+  createdAt: string
+}
+
+export interface CreateBusRequest {
+  busNumber: string
+  origin: string
+  destination: string
+  departureTime: string
+  arrivalTime: string
+  totalSeats: number
+  price: number
+  busType: string
+  seatLayoutConfig: string
+  seatRows: number
+  ladiesSeats?: string[]
+  amenities?: string[]
+  driverName?: string
+  driverPhone?: string
+  driverLicense?: string
+  photoUrl?: string
+  scheduleType: string
+  daysOfWeek?: string[]
+  boardingPoints?: string
+  droppingPoints?: string
+}
+
+export interface UpdateBusRequest {
+  busNumber?: string
+  origin?: string
+  destination?: string
+  departureTime?: string
+  arrivalTime?: string
+  totalSeats?: number
+  price?: number
+  busType?: string
+  seatLayoutConfig?: string
+  seatRows?: number
+  ladiesSeats?: string[]
+  amenities?: string[]
+  driverName?: string
+  driverPhone?: string
+  driverLicense?: string
+  photoUrl?: string
+  scheduleType?: string
+  daysOfWeek?: string[]
+  boardingPoints?: string
+  droppingPoints?: string
+  isActive?: boolean
+}
+
+export interface BusDateRouteDto {
+  busId: string
+  busNumber: string
+  origin: string
+  destination: string
+  departureTime: string
+  arrivalTime: string
+  availableSeats: number
+  totalSeats: number
+}
+
+export interface BusSeatLayoutDto {
+  busId: string
+  busNumber: string
+  origin: string
+  destination: string
+  departureTime: string
+  layoutConfig: string
+  seatRows: number
+  ladiesSeats: string[]
+  seats: SeatDto[]
+  unassignedPassengers: number
+}
+
+export interface BusSeatLayoutConfigRequest {
+  layoutConfig: string
+  seatRows: number
+  ladiesSeats?: string[]
+}
+
+export interface BusBulkSeatBookingRequest {
+  passengerName: string
+  passengerEmail: string
+  passengerPhone?: string
+  seatNumbers: string[]
 }
 
 export interface CabOperatorDashboardDto {

@@ -91,8 +91,14 @@ export const endpoints = {
     cancelBooking:  (id: string) => `/flight-operator/bookings/${id}`,
   },
   busOperator: {
-    dashboard: '/bus-operator/dashboard',
-    bookings:  '/bus-operator/bookings',
+    dashboard:      '/bus-operator/dashboard',
+    buses:          '/bus-operator/buses',
+    bus:            (id: string) => `/bus-operator/buses/${id}`,
+    busesByDate:    '/bus-operator/buses/by-date',
+    seatLayout:     (id: string) => `/bus-operator/buses/${id}/seat-layout`,
+    bulkBook:       (id: string) => `/bus-operator/buses/${id}/bulk-book`,
+    bookings:       '/bus-operator/bookings',
+    cancelBooking:  (id: string) => `/bus-operator/bookings/${id}`,
   },
   cabOperator: {
     dashboard: '/cab-operator/dashboard',

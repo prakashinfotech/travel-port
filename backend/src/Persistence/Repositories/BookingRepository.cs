@@ -119,6 +119,14 @@ public class BookingRepository : BaseRepository<Booking>, IBookingRepository
             .OrderByDescending(b => b.CreatedAt)
             .ToListAsync(ct);
 
+    public async Task<IReadOnlyList<Booking>> GetBookingsByBusIdsAsync(
+        IEnumerable<Guid> busIds, CancellationToken ct = default)
+        => await _dbSet
+            .Include(b => b.User)
+            .Where(b => b.BookingType == BookingType.Bus && busIds.Contains(b.ReferenceId))
+            .OrderByDescending(b => b.CreatedAt)
+            .ToListAsync(ct);
+
     public async Task<IReadOnlyList<Booking>> GetBookingsByOperatorNameAsync(
         string operatorName, BookingType type, CancellationToken ct = default)
         => await _dbSet

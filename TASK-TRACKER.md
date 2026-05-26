@@ -5,6 +5,44 @@
 
 ---
 
+## Phase 19 — Bus Operator Full Portal
+
+**Branch:** `feat/bus-operator-portal`
+**Scope:** Complete bus operator management portal — buses CRUD, recurring schedules, amenities, driver/staff, seat layout, live seat map, bulk booking, cancellation.
+
+| # | Feature | Status | Notes |
+|---|---|---|---|
+| 19.1 | `Bus` domain entity | ✅ | Fields: BusNumber, Origin/Destination, DepartureTime/ArrivalTime, Price, BusType, SeatLayoutConfig, SeatRows, LadiesSeats (JSON), Amenities (JSON), DriverName/Phone/License, PhotoUrl, ScheduleType (OneTime/Daily/Weekly), DaysOfWeek (JSON), BoardingPoints, DroppingPoints |
+| 19.2 | `IBusRepository` + `BusRepository` | ✅ | GetByCompanyAsync, GetByIdWithCompanyAsync |
+| 19.3 | `GetBookingsByBusIdsAsync` on IBookingRepository | ✅ | Analogous to `GetBookingsByFlightIdsAsync`; queries by Bus `ReferenceId` |
+| 19.4 | Bus operator DTOs in OperatorDtos.cs | ✅ | CreateBusRequest, UpdateBusRequest, OperatorBusDto, BusDateRouteDto, BusSeatLayoutDto, BusSeatLayoutConfigRequest, BusBulkSeatBookingRequest; updated BusOperatorDashboardDto with TotalBuses/ActiveBuses |
+| 19.5 | `IBusOperatorService` — full interface | ✅ | GetDashboard, GetBuses, AddBus, UpdateBus, DeleteBus, GetBookings, GetBusesByDate, GetSeatLayout, UpdateSeatLayout, BulkBookSeats, CancelSeatBooking |
+| 19.6 | `BusOperatorService` — full implementation | ✅ | MatchesSchedule handles OneTime/Daily/Weekly; seat map with auto-assignment for unassigned passengers; 90% wallet refund on cancel; confirmation email on bulk booking |
+| 19.7 | `BusOperatorController` — 11 endpoints | ✅ | Full REST API at `/api/v1/bus-operator/*`; all protected with `[Authorize(Roles="BusOperator")]` |
+| 19.8 | EF Core migration `AddBusEntity` | ✅ | Buses table with FK to BusCompanies; soft-delete query filter applied |
+| 19.9 | Frontend endpoints + types + operatorService | ✅ | 7 new endpoints, OperatorBusDto/CreateBusRequest/etc. types, full busOperatorService CRUD + seat layout |
+| 19.10 | `BusOperatorBusesPage.tsx` | ✅ | Add/edit/delete form with amenity pills, day-of-week schedule picker, seat layout dropdown, driver details, photo URL; bus list with photo/info/amenity chips |
+| 19.11 | `BusSeatMapModal.tsx` | ✅ | 3-step flow: date → bus selection → interactive seat grid; bulk booking panel; cancel with refund; green theme matching bus operator portal |
+| 19.12 | `BusOperatorLayout.tsx` + `AppRouter.tsx` | ✅ | "My Buses" nav item added; `/bus-operator/buses` route registered |
+| 19.13 | `BusOperatorDashboardPage.tsx` | ✅ | Added Total Buses + Active Buses stat cards |
+
+---
+
+## Phase 18 — Search Hero Redesign + AI Provider Migration
+
+**Branch:** `feat/search-hero-redesign-bg-images` + `feat/groq-ai-provider`
+**Scope:** Background image heroes for all travel pages, Groq AI integration, admin hero redesign.
+
+| # | Feature | Status | Notes |
+|---|---|---|---|
+| 18.1 | Migrate AI from Gemini to Groq | ✅ | AiController rewritten for OpenAI-compatible Groq API; llama-3.3-70b-versatile; SSE streaming |
+| 18.2 | Flight/Hotel/Bus/Train/Cab search hero redesign | ✅ | Unsplash background images with cartoonish CSS filter; themed gradient pill buttons per page |
+| 18.3 | Home page tab background crossfade | ✅ | key={mode} on image div triggers animate-fade-in on tab switch |
+| 18.4 | Admin dashboard hero | ✅ | Office background image + ShieldCheck icon |
+| 18.5 | Fix unused Button import in Navbar (CI break) | ✅ | Removed `import { Button }` that was never used |
+
+---
+
 ## Phase 17 — Bold UI Redesign (Goibibo-style)
 
 **Branch:** `feat/ui-redesign-bold-colorful`

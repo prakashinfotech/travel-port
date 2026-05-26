@@ -972,10 +972,90 @@ Request:
 
 ## Bus Operator Portal (`[Authorize(Roles="BusOperator")]`)
 
-| Method | Endpoint                      | Auth        | Description              |
-|--------|-------------------------------|-------------|--------------------------|
-| GET    | `/bus-operator/dashboard`     | BusOperator | Stats + company overview |
-| GET    | `/bus-operator/bookings`      | BusOperator | View passenger bookings  |
+| Method | Endpoint                                    | Auth        | Description                          |
+|--------|---------------------------------------------|-------------|--------------------------------------|
+| GET    | `/bus-operator/dashboard`                   | BusOperator | Stats + company overview (buses, revenue, passengers) |
+| GET    | `/bus-operator/buses`                       | BusOperator | List all operator's buses            |
+| POST   | `/bus-operator/buses`                       | BusOperator | Add a new bus                        |
+| PUT    | `/bus-operator/buses/{busId}`               | BusOperator | Edit bus details                     |
+| DELETE | `/bus-operator/buses/{busId}`               | BusOperator | Soft-delete (deactivate) a bus       |
+| GET    | `/bus-operator/bookings`                    | BusOperator | View passenger bookings              |
+| GET    | `/bus-operator/buses/by-date?date=`         | BusOperator | Buses scheduled on a date (respects OneTime/Daily/Weekly) |
+| GET    | `/bus-operator/buses/{busId}/seat-layout`   | BusOperator | Full seat map with booked passengers |
+| PUT    | `/bus-operator/buses/{busId}/seat-layout`   | BusOperator | Update layout config / ladies seats  |
+| POST   | `/bus-operator/buses/{busId}/bulk-book`     | BusOperator | Bulk-book specific seats for a passenger |
+| DELETE | `/bus-operator/bookings/{bookingId}`        | BusOperator | Cancel booking + issue 90% wallet refund |
+
+### POST /bus-operator/buses
+```json
+Request:
+{
+  "busNumber": "KA01AB1234",
+  "origin": "Bangalore",
+  "destination": "Mumbai",
+  "departureTime": "2026-06-01T21:00:00",
+  "arrivalTime": "2026-06-02T09:00:00",
+  "totalSeats": 40,
+  "price": 800,
+  "busType": "AC Seater",
+  "seatLayoutConfig": "2-2",
+  "seatRows": 10,
+  "ladiesSeats": ["1A", "1B"],
+  "amenities": ["WiFi", "Charging Point", "Water Bottle"],
+  "driverName": "Ravi Kumar",
+  "driverPhone": "+91 9876543210",
+  "driverLicense": "KA01 20190001234",
+  "photoUrl": "https://example.com/bus.jpg",
+  "scheduleType": "Weekly",
+  "daysOfWeek": ["Monday", "Wednesday", "Friday"],
+  "boardingPoints": "Majestic, Electronic City",
+  "droppingPoints": "Dadar, Thane"
+}
+
+Response 201:
+{ "success": true, "message": "Bus added.", "data": { ...OperatorBusDto } }
+```
+
+**Schedule types:** `OneTime` (single departure date), `Daily` (runs every day), `Weekly` (runs on specified days of week).  
+**Seat layouts:** `2-2` (standard seater), `2-1` (sleeper/luxury), `1-1` (VIP), `3-2` (economy), `2-2-2` (wide-body).
+
+### GET /bus-operator/buses/{busId}/seat-layout
+Returns the full seat grid showing which seats are booked (with passenger name, email, phone, booking ref) and which are available, ladies-only, or unassigned.
+```json
+Response 200:
+{
+  "success": true,
+  "data": {
+    "busId": "uuid",
+    "busNumber": "KA01AB1234",
+    "origin": "Bangalore",
+    "destination": "Mumbai",
+    "departureTime": "2026-06-01T21:00:00Z",
+    "layoutConfig": "2-2",
+    "seatRows": 10,
+    "ladiesSeats": ["1A", "1B"],
+    "seats": [
+      { "seatNumber": "1A", "isLadiesOnly": true, "isBooked": false },
+      { "seatNumber": "3B", "isLadiesOnly": false, "isBooked": true, "passengerName": "Priya", "passengerEmail": "priya@example.com", "bookingRef": "BU2026000001", "bookingId": "uuid" }
+    ],
+    "unassignedPassengers": 2
+  }
+}
+```
+
+### POST /bus-operator/buses/{busId}/bulk-book
+```json
+Request:
+{
+  "passengerName": "Priya Sharma",
+  "passengerEmail": "priya@example.com",
+  "passengerPhone": "+91 9123456789",
+  "seatNumbers": ["3A", "3B"]
+}
+
+Response 201:
+{ "success": true, "message": "Seats booked successfully.", "data": { ...OperatorBookingDto } }
+```
 
 ---
 

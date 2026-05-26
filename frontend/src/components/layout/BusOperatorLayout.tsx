@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth'
 
 const navItems = [
   { to: '/bus-operator/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/bus-operator/buses',     icon: Bus,             label: 'My Buses'  },
   { to: '/bus-operator/bookings',  icon: BookOpen,        label: 'Bookings'  },
 ]
 

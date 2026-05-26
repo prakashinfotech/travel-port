@@ -15,5 +15,6 @@ public interface IBookingRepository : IRepository<Booking>
     Task<Booking?> GetHotelBookingWithChargesAsync(Guid bookingId, Guid hotelId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Booking>> GetTrainBookingsForDateAsync(DateTime travelDate, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Booking>> GetBookingsByFlightIdsAsync(IEnumerable<Guid> flightIds, CancellationToken ct = default);
+    Task<IReadOnlyList<Booking>> GetBookingsByBusIdsAsync(IEnumerable<Guid> busIds, CancellationToken ct = default);
     Task<IReadOnlyList<Booking>> GetBookingsByOperatorNameAsync(string operatorName, BookingType type, CancellationToken ct = default);
 }

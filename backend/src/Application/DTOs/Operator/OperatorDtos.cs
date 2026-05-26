@@ -85,14 +85,6 @@ public record FlightOperatorDashboardDto(
     int TotalPassengers
 );
 
-public record BusOperatorDashboardDto(
-    string CompanyName,
-    int TotalBookings,
-    int ConfirmedBookings,
-    int CancelledBookings,
-    decimal TotalRevenue,
-    int TotalPassengers
-);
 
 public record CabOperatorDashboardDto(
     string CompanyName,
@@ -227,4 +219,129 @@ public record BulkSeatBookingRequest(
     string? PassengerPhone,
     List<string> SeatNumbers,
     string CabinClass
+);
+
+// ── Bus management DTOs ────────────────────────────────────────────────────────
+
+public record CreateBusRequest(
+    string BusNumber,
+    string Origin,
+    string Destination,
+    DateTime DepartureTime,
+    DateTime ArrivalTime,
+    int TotalSeats,
+    decimal Price,
+    string BusType,
+    string SeatLayoutConfig,
+    int SeatRows,
+    List<string>? LadiesSeats,
+    List<string>? Amenities,
+    string? DriverName,
+    string? DriverPhone,
+    string? DriverLicense,
+    string? PhotoUrl,
+    string ScheduleType,
+    List<string>? DaysOfWeek,
+    string? BoardingPoints,
+    string? DroppingPoints
+);
+
+public record UpdateBusRequest(
+    string? BusNumber,
+    string? Origin,
+    string? Destination,
+    DateTime? DepartureTime,
+    DateTime? ArrivalTime,
+    int? TotalSeats,
+    decimal? Price,
+    string? BusType,
+    string? SeatLayoutConfig,
+    int? SeatRows,
+    List<string>? LadiesSeats,
+    List<string>? Amenities,
+    string? DriverName,
+    string? DriverPhone,
+    string? DriverLicense,
+    string? PhotoUrl,
+    string? ScheduleType,
+    List<string>? DaysOfWeek,
+    string? BoardingPoints,
+    string? DroppingPoints,
+    bool? IsActive
+);
+
+public record OperatorBusDto(
+    Guid Id,
+    string BusNumber,
+    string Origin,
+    string Destination,
+    DateTime DepartureTime,
+    DateTime ArrivalTime,
+    int DurationMinutes,
+    int TotalSeats,
+    int AvailableSeats,
+    decimal Price,
+    string BusType,
+    string SeatLayoutConfig,
+    int SeatRows,
+    List<string> LadiesSeats,
+    List<string> Amenities,
+    string? DriverName,
+    string? DriverPhone,
+    string? DriverLicense,
+    string? PhotoUrl,
+    string ScheduleType,
+    List<string> DaysOfWeek,
+    string? BoardingPoints,
+    string? DroppingPoints,
+    bool IsActive,
+    DateTime CreatedAt
+);
+
+public record BusDateRouteDto(
+    Guid BusId,
+    string BusNumber,
+    string Origin,
+    string Destination,
+    DateTime DepartureTime,
+    DateTime ArrivalTime,
+    int AvailableSeats,
+    int TotalSeats
+);
+
+public record BusSeatLayoutDto(
+    Guid BusId,
+    string BusNumber,
+    string Origin,
+    string Destination,
+    DateTime DepartureTime,
+    string LayoutConfig,
+    int SeatRows,
+    List<string> LadiesSeats,
+    List<SeatDto> Seats,
+    int UnassignedPassengers = 0
+);
+
+public record BusSeatLayoutConfigRequest(
+    string LayoutConfig,
+    int SeatRows,
+    List<string>? LadiesSeats
+);
+
+public record BusBulkSeatBookingRequest(
+    string PassengerName,
+    string PassengerEmail,
+    string? PassengerPhone,
+    List<string> SeatNumbers
+);
+
+public record BusOperatorDashboardDto(
+    string CompanyName,
+    int TotalBuses,
+    int ActiveBuses,
+    int TotalBookings,
+    int ConfirmedBookings,
+    int CancelledBookings,
+    decimal TotalRevenue,
+    int TotalPassengers
 );

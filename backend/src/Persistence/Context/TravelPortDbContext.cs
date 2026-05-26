@@ -22,6 +22,7 @@ public class TravelPortDbContext : DbContext
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<SavedCard> SavedCards => Set<SavedCard>();
     public DbSet<FlightCompany> FlightCompanies => Set<FlightCompany>();
+    public DbSet<Bus> Buses => Set<Bus>();
     public DbSet<BusCompany> BusCompanies => Set<BusCompany>();
     public DbSet<CabCompany> CabCompanies => Set<CabCompany>();
     public DbSet<Notification>   Notifications   => Set<Notification>();
@@ -49,6 +50,12 @@ public class TravelPortDbContext : DbContext
         modelBuilder.Entity<SavedCard>().HasQueryFilter(e => e.DeletedAt == null);
         modelBuilder.Entity<FlightCompany>().HasQueryFilter(e => e.DeletedAt == null);
         modelBuilder.Entity<BusCompany>().HasQueryFilter(e => e.DeletedAt == null);
+        modelBuilder.Entity<Bus>().HasQueryFilter(e => e.DeletedAt == null);
+        modelBuilder.Entity<Bus>()
+            .HasOne(b => b.BusCompany)
+            .WithMany()
+            .HasForeignKey(b => b.BusCompanyId)
+            .IsRequired(false);
         modelBuilder.Entity<CabCompany>().HasQueryFilter(e => e.DeletedAt == null);
         modelBuilder.Entity<Notification>().HasQueryFilter(e => e.DeletedAt == null);
         modelBuilder.Entity<PriceAlert>().HasQueryFilter(e => e.DeletedAt == null);

@@ -54,6 +54,7 @@ const FlightOperatorFlightsPage   = lazy(() => import('@/pages/operator/FlightOp
 const FlightOperatorBookingsPage  = lazy(() => import('@/pages/operator/FlightOperatorBookingsPage'))
 
 const BusOperatorDashboardPage    = lazy(() => import('@/pages/operator/BusOperatorDashboardPage'))
+const BusOperatorBusesPage        = lazy(() => import('@/pages/operator/BusOperatorBusesPage'))
 const BusOperatorBookingsPage     = lazy(() => import('@/pages/operator/BusOperatorBookingsPage'))
 
 const CabOperatorDashboardPage    = lazy(() => import('@/pages/operator/CabOperatorDashboardPage'))
@@ -124,6 +125,7 @@ export function AppRouter() {
             {/* Bus Operator Portal */}
             <Route path="bus-operator" element={<OperatorRoute role="BusOperator"><BusOperatorLayout /></OperatorRoute>}>
               <Route path="dashboard" element={<BusOperatorDashboardPage />} />
+              <Route path="buses"     element={<BusOperatorBusesPage />} />
               <Route path="bookings"  element={<BusOperatorBookingsPage />} />
             </Route>
 

@@ -965,13 +965,25 @@ export default function AdminPage() {
       />
 
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-10">
-        <div className="mx-auto max-w-7xl flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Admin Dashboard</h1>
-            <p className="text-xs text-gray-400 mt-0.5">TravelPort Management Console</p>
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1600&q=80)', filter: 'saturate(1.6) brightness(0.75) contrast(1.1)' }} />
+        <div className="absolute inset-0 bg-gray-950/78" />
+        <div className="relative z-10 px-6 py-8">
+          <div className="mx-auto max-w-7xl flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-3 mb-1">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500 shadow-lg">
+                  <ShieldCheck className="h-5 w-5 text-white" />
+                </div>
+                <h1 className="text-2xl font-bold text-white">Admin Dashboard</h1>
+              </div>
+              <p className="text-sm text-gray-400 ml-13">TravelPort Management Console</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-gray-400">Logged in as</p>
+              <p className="text-sm font-semibold text-white">{user?.name}</p>
+            </div>
           </div>
-          <span className="text-sm font-medium text-gray-500">Logged in as <strong>{user?.name}</strong></span>
         </div>
       </div>
 

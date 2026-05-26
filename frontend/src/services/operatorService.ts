@@ -6,13 +6,20 @@ import type {
   BusOperatorDashboardDto,
   CabOperatorDashboardDto,
   OperatorFlightDto,
+  OperatorBusDto,
   OperatorBookingDto,
   CreateFlightRequest,
   UpdateFlightRequest,
+  CreateBusRequest,
+  UpdateBusRequest,
   SeatLayoutDto,
   SeatLayoutConfigRequest,
   BulkSeatBookingRequest,
   FlightDateRouteDto,
+  BusDateRouteDto,
+  BusSeatLayoutDto,
+  BusSeatLayoutConfigRequest,
+  BusBulkSeatBookingRequest,
 } from '@/types'
 
 // ── Flight Operator ───────────────────────────────────────────────────────────
@@ -73,9 +80,47 @@ export const busOperatorService = {
     const { data } = await api.get<ApiResponse<BusOperatorDashboardDto>>(endpoints.busOperator.dashboard)
     return data.data
   },
+  getBuses: async (): Promise<OperatorBusDto[]> => {
+    const { data } = await api.get<ApiResponse<OperatorBusDto[]>>(endpoints.busOperator.buses)
+    return data.data ?? []
+  },
+  addBus: async (req: CreateBusRequest): Promise<OperatorBusDto> => {
+    const { data } = await api.post<ApiResponse<OperatorBusDto>>(endpoints.busOperator.buses, req)
+    return data.data
+  },
+  updateBus: async (id: string, req: UpdateBusRequest): Promise<OperatorBusDto> => {
+    const { data } = await api.put<ApiResponse<OperatorBusDto>>(endpoints.busOperator.bus(id), req)
+    return data.data
+  },
+  deleteBus: async (id: string): Promise<void> => {
+    await api.delete(endpoints.busOperator.bus(id))
+  },
   getBookings: async (): Promise<OperatorBookingDto[]> => {
     const { data } = await api.get<ApiResponse<OperatorBookingDto[]>>(endpoints.busOperator.bookings)
     return data.data ?? []
+  },
+
+  // Seat layout
+  getBusesByDate: async (date: string): Promise<BusDateRouteDto[]> => {
+    const { data } = await api.get<ApiResponse<BusDateRouteDto[]>>(endpoints.busOperator.busesByDate, {
+      params: { date },
+    })
+    return data.data ?? []
+  },
+  getSeatLayout: async (busId: string): Promise<BusSeatLayoutDto> => {
+    const { data } = await api.get<ApiResponse<BusSeatLayoutDto>>(endpoints.busOperator.seatLayout(busId))
+    return data.data
+  },
+  updateSeatLayout: async (busId: string, req: BusSeatLayoutConfigRequest): Promise<OperatorBusDto> => {
+    const { data } = await api.put<ApiResponse<OperatorBusDto>>(endpoints.busOperator.seatLayout(busId), req)
+    return data.data
+  },
+  bulkBookSeats: async (busId: string, req: BusBulkSeatBookingRequest): Promise<OperatorBookingDto> => {
+    const { data } = await api.post<ApiResponse<OperatorBookingDto>>(endpoints.busOperator.bulkBook(busId), req)
+    return data.data
+  },
+  cancelBooking: async (bookingId: string): Promise<void> => {
+    await api.delete(endpoints.busOperator.cancelBooking(bookingId))
   },
 }
 

@@ -4,7 +4,18 @@
       "PowerShell(dotnet new install Microsoft.Build.Sql.Templates 2>&1)",
       "Bash(dotnet build *)",
       "Bash(Get-ChildItem -Path \"C:\\\\Goibibo-AI-Assignment\\\\frontend\" -Recurse -File)",
-      "Bash(Select-Object FullName)"
+      "Bash(Select-Object FullName)",
+      "Bash(git branch *)",
+      "Bash(git pull *)",
+      "Bash(bash scripts/test-all.sh)",
+      "Bash(node generate.js)",
+      "Bash(dotnet test *)",
+      "Bash(git commit -m ' *)",
+      "Bash(.\\\\scripts\\\\test-all.cmd)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Goibibo-AI-Assignment\\\\frontend\\\\src\\\\pages\" -File)",
+      "Bash(Select-Object -ExpandProperty Name)",
+      "Bash(Sort-Object)",
+      "Bash(timeout 8)"
     ]
   }
 }

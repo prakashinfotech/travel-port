@@ -1549,8 +1549,6 @@ export default function FlightsPage() {
               <h1 className="text-3xl font-bold flex items-center gap-2 mb-1"><Plane className="w-7 h-7" /> Search Flights</h1>
               <p className="text-blue-200 text-sm">900+ routes · 7 airlines · best fares guaranteed</p>
             </div>
-
-            {/* Trip type */}
             <div className="mb-3 flex gap-4">
               {(['oneway', 'roundtrip'] as TripType[]).map(t => (
                 <label key={t} className="flex items-center gap-1.5 text-xs font-semibold text-white cursor-pointer">
@@ -1559,56 +1557,35 @@ export default function FlightsPage() {
                 </label>
               ))}
             </div>
-
             <form onSubmit={handleSearch}>
               <div className="rounded-2xl bg-white shadow-xl">
                 <div className="flex flex-col divide-y divide-gray-100 lg:flex-row lg:items-stretch lg:divide-x lg:divide-y-0">
-                  {/* From */}
                   <div className="flex-1 min-w-[160px] px-4 py-4">
-                    <AirportSearch
-                      label="From"
-                      placeholder="City or Airport"
+                    <AirportSearch label="From" placeholder="City or Airport"
                       value={origin ? `${originCity || origin} (${origin})` : ''}
-                      onChange={(code, city) => { setOrigin(code); setOriginCity(city) }}
-                    />
+                      onChange={(code, city) => { setOrigin(code); setOriginCity(city) }} />
                   </div>
-
-                  {/* Swap */}
                   <div className="hidden lg:flex items-center px-2">
-                    <button type="button" onClick={swap}
-                      className="h-8 w-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-blue-300 transition-colors">
+                    <button type="button" onClick={swap} className="h-8 w-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-blue-300 transition-colors">
                       <ArrowLeftRight className="h-4 w-4 text-gray-400" />
                     </button>
                   </div>
-
-                  {/* To */}
                   <div className="flex-1 min-w-[160px] px-4 py-4">
-                    <AirportSearch
-                      label="To"
-                      placeholder="City or Airport"
+                    <AirportSearch label="To" placeholder="City or Airport"
                       value={destination ? `${destinationCity || destination} (${destination})` : ''}
-                      onChange={(code, city) => { setDestination(code); setDestinationCity(city) }}
-                    />
+                      onChange={(code, city) => { setDestination(code); setDestinationCity(city) }} />
                   </div>
-
-                  {/* Departure */}
                   <div className="px-4 py-4 lg:w-[170px]">
                     <DatePickerInput label="Departure" value={departureDate} min={TODAY} onChange={setDepartureDate} accentColor="blue" variant="underline" />
                   </div>
-
-                  {/* Return */}
                   {tripType === 'roundtrip' && (
                     <div className="px-4 py-4 lg:w-[160px]">
                       <DatePickerInput label="Return" value={returnDate} min={departureDate || TODAY} onChange={setReturnDate} accentColor="blue" variant="underline" />
                     </div>
                   )}
-
-                  {/* Travellers */}
                   <div className="flex-1 min-w-[200px] px-4 py-4">
                     <TravellerSelector value={travellers} onChange={setTravellers} />
                   </div>
-
-                  {/* Search button */}
                   <div className="px-4 py-4 lg:flex lg:items-center lg:justify-center">
                     <button type="submit" disabled={loading}
                       className="flex w-full items-center justify-center gap-2 rounded-full px-10 py-3 font-bold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-100 disabled:opacity-70 disabled:cursor-not-allowed lg:w-auto"

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BookOpen, CheckCircle, XCircle, IndianRupee, Users } from 'lucide-react'
+import { BookOpen, CheckCircle, XCircle, IndianRupee, Users, Bus } from 'lucide-react'
 import { busOperatorService } from '@/services/operatorService'
 import type { BusOperatorDashboardDto } from '@/types'
 
@@ -49,8 +49,10 @@ export default function BusOperatorDashboardPage() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        <StatCard label="Total Buses"        value={data.totalBuses}        icon={Bus}          color="bg-green-700" />
+        <StatCard label="Active Buses"       value={data.activeBuses}       icon={Bus}          color="bg-emerald-500" />
         <StatCard label="Total Bookings"     value={data.totalBookings}     icon={BookOpen}     color="bg-green-600" />
-        <StatCard label="Confirmed Bookings" value={data.confirmedBookings} icon={CheckCircle}  color="bg-emerald-500" />
+        <StatCard label="Confirmed Bookings" value={data.confirmedBookings} icon={CheckCircle}  color="bg-teal-500" />
         <StatCard label="Cancelled"          value={data.cancelledBookings} icon={XCircle}      color="bg-red-500" />
         <StatCard label="Total Revenue"      value={`₹${data.totalRevenue.toLocaleString('en-IN')}`} icon={IndianRupee} color="bg-emerald-600" />
         <StatCard label="Total Passengers"   value={data.totalPassengers}   icon={Users}        color="bg-violet-500" />

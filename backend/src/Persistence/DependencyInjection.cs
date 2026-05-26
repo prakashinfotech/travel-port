@@ -31,6 +31,7 @@ public static class DependencyInjection
         services.AddScoped<IHotelRoomRepository, HotelRoomRepository>();
         services.AddScoped<IFlightCompanyRepository, FlightCompanyRepository>();
         services.AddScoped<IBusCompanyRepository, BusCompanyRepository>();
+        services.AddScoped<IBusRepository, BusRepository>();
         services.AddScoped<ICabCompanyRepository, CabCompanyRepository>();
         services.AddScoped(typeof(IRepository<>), typeof(BaseRepository<>));
 
