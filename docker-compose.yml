@@ -24,8 +24,10 @@ services:
 
   # ── .NET 8 API ───────────────────────────────────────────────────────────────
   api:
-    image: ${DOCKERHUB_USERNAME}/travelport-api:${IMAGE_TAG:-latest}
-    pull_policy: always
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: travelport-api:local
     depends_on:
       db:
         condition: service_healthy
@@ -33,6 +35,9 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:5000
       ConnectionStrings__DefaultConnection: "Server=db,1433;Database=TravelPortDb;User Id=sa;Password=${DB_SA_PASSWORD};TrustServerCertificate=True;"
+      # Local-container convenience only; shared environments publish the DACPAC before the API.
+      Database__ApplyEfMigrations: "true"
+      Database__RunSeedData: "true"
       JwtSettings__Secret:    "${JWT_SECRET}"
       JwtSettings__Issuer:    "${JWT_ISSUER}"
       JwtSettings__Audience:  "${JWT_AUDIENCE}"
@@ -61,8 +66,12 @@ services:
 
   # ── React Frontend (Nginx) ───────────────────────────────────────────────────
   web:
-    image: ${DOCKERHUB_USERNAME}/travelport-web:${IMAGE_TAG:-latest}
-    pull_policy: always
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ""
+    image: travelport-web:local
     ports:
       - "${WEB_PORT:-80}:80"
     depends_on:

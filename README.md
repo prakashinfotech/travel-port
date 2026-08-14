@@ -1,321 +1,239 @@
-# TravelPort — Goibibo-Inspired Travel Booking Portal
+# TravelPort
 
-Full-stack travel booking platform built with .NET 8 Clean Architecture + React 18 + TypeScript.
+TravelPort is a Goibibo-inspired travel booking platform for flights, hotels, buses, trains, and cabs. It includes customer booking flows, payments and wallets, role-based operator portals, administration, PDF invoices, notifications, and optional AI-assisted travel planning.
 
-[![Branch: Development](https://img.shields.io/badge/active%20branch-Development-blue)](https://github.com/NayanParmar/Goibibo-AI-Assignment/tree/Development)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.md)
+> This repository is maintained by Prakash Infotech. It contains no production credentials or default user passwords.
 
----
+## Application flow and architecture
 
-## Branch Strategy
+```mermaid
+flowchart LR
+    User[Customer / Admin / Operator] --> Web[React 18 + TypeScript + Vite]
+    Web -->|HTTPS JSON + JWT| API[ASP.NET Core 8 API]
 
-| Branch | Purpose |
-|---|---|
-| `main` | Production-ready code only. **No direct commits.** Merges via PR from `Development`. |
-| `Development` | All active development happens here. Create feature branches off this if needed. |
+    subgraph Backend[Clean Architecture]
+        API --> Application[Application services and validation]
+        Application --> Domain[Domain entities and rules]
+        Application --> Infrastructure[External provider adapters]
+        Application --> Persistence[EF Core repositories]
+    end
 
-> Direct pushes to `main` are blocked by branch protection rules. Always work on `Development` and raise a PR to merge into `main`.
+    Persistence --> Database[(SQL Server)]
+    DACPAC[SSDT / DACPAC release] -->|publish before API| Database
+    API -. local opt-in only .-> Migrations[EF Core migrations]
+    Migrations -.-> Database
+    Persistence --> Seeds[Non-sensitive inventory seed data]
+    Seeds --> Database
 
----
+    Infrastructure -. optional .-> Groq[Groq AI]
+    Infrastructure -. optional .-> TravelAPIs[Amadeus / Duffel]
+    Infrastructure -. optional .-> Razorpay[Razorpay]
+    Infrastructure -. optional .-> SMTP[SMTP email]
+```
 
-## Overview
+Typical request flow:
 
-TravelPort covers — including full Claude AI integration (Phase 1):
-- Flight Search & Booking (900+ DB seed flights — IndiGo, SpiceJet, Vistara, Akasa Air, Air India, Air India Express, Go First across 42 routes)
-- Goibibo-style Flight Fare Popup + Fare-family Booking Flow
-- Paginated flight search results with filters and sorting preserved between pages
-- Lowest-fare date strip and monthly fare calendar on flight search
-- Multi-mode Home Page — Flights / Hotels / Buses / Trains / Cabs tabs with per-mode search forms, dynamic hero gradients, and mode-specific recent searches
-- City autocomplete with 65 Indian cities across all search pages (Hotels, Buses, Trains, Cabs)
-- Themed DatePicker — click anywhere on the field to open, formatted display (no browser date format), color-accented per search mode
-- Hotel Search & Booking with Guest Details (name/email/phone stored per booking)
-- Bus Search (deterministic mock — realistic Indian operators & routes) with extended filter sidebar (sort tabs, departure time slots, bus type, operator, price)
-- Train Search (deterministic mock — real train names, 5 classes, availability statuses) with extended filter sidebar (sort tabs, time slots, class checkboxes, Tatkal, price)
-- Cab Search (deterministic mock — Ola/Uber/Meru/Zoom, distance-based pricing) with extended filter sidebar (sort tabs, visual cab type cards, provider checkboxes, min driver rating, price)
-- Saved Traveller quick-fill on all booking pages (Bus, Train, Cab, Flight) — one click fills passenger form from saved profile
-- User Authentication (JWT + Refresh Tokens)
-- Booking Management, Cancellation & PDF Invoice Download (Flight e-ticket + Hotel invoice, A4)
-- Wallet System — top-up, balance deduction at booking, automatic 90% refund on cancellation
-- Saved Credit Cards — securely store cards (last 4 digits only), set default, delete
-- Payment Method Selection at Booking — pay via Wallet, Saved Card, or proceed to payment page
-- Payment Page — Credit/Debit Card (live preview), UPI (QR + countdown timer), Net Banking (bank picker + timer)
-- 11 Coupons (flight and hotel specific)
-- Razorpay Payment Gateway (toggle via config; falls back to mock in dev)
-- SMTP Email Notifications — booking confirmed (sent to contact email), cancelled, password reset
-- Admin Panel — 6-tab dashboard (stats + analytics, user management, all bookings, coupon CRUD, hotel management, operator management)
-- Hotel Management Portal — Admin registers hotels with manager credentials (emailed on creation); Hotel managers log in to a dedicated portal to manage bookings, rooms, amenities, images, and hotel profile
-- Operator Portal — Admin registers Flight Companies (airlines), Bus Operators, and Cab Companies/Individual Drivers; credentials emailed on creation. Flight operators manage flights (add/edit/delete), seat layouts, and bulk bookings. Bus operators manage buses (add/edit/delete with OneTime/Daily/Weekly schedules, amenities, driver details, seat layout, photo), interactive seat map with live booking and cancellation. Cab operators view dashboard stats. Three role-specific dashboards at `/flight-operator/*`, `/bus-operator/*`, `/cab-operator/*`
-- Dynamic Traveller Details UI; traveller name/email/phone stored per booking and shown in PDF + email
-- App-wide toast notifications, route-level error boundary, and shared skeleton loaders across search surfaces
-- Richer Profile page with account overview, wallet feedback, safer traveller/card deletion, and saved payment management
-- Bookings Page with numbered pagination, status/type filters (Confirmed/Cancelled · Flight/Hotel)
-- **AI Travel Assistant Chatbot** — floating chat widget on every page, powered by Claude (streaming SSE)
-- **Natural Language Search** — plain-English search bar on homepage ("Flights from Mumbai to Goa this weekend")
-- **AI Destination Recommendations** — 4 personalised destinations per user using Claude, with refresh
-- **AI Trip Planner** (`/ai-planner`) — streaming itinerary generator with inline "Book This" deep-links
-- **Price Trend Insights** — one-line AI tip on FlightsPage per route (cached 30 min)
+1. The browser searches or submits a booking through the React application.
+2. The API authenticates the request, validates input, and calls application services.
+3. EF Core repositories read or update SQL Server inside the persistence layer.
+4. Optional integrations are used only when their credentials and `Enabled` flags are configured.
+5. Responses return through the API; invoice endpoints generate PDFs server-side.
 
----
+## Features
 
-## Tech Stack
+- Flight and hotel search, booking, cancellation, coupons, and invoice download
+- Deterministic bus, train, and cab search and booking flows
+- JWT access tokens, refresh tokens, password reset, and role-based authorization
+- Wallet top-up, wallet payments, refunds, and saved payment-card metadata
+- Hotel manager, flight operator, bus operator, cab operator, and admin portals
+- Optional Razorpay payments and SMTP notifications
+- Optional Groq chatbot, natural-language search, recommendations, trip planner, and price insights
+- SQL Server persistence with an SSDT/DACPAC deployment project, stored procedures, views, functions, and non-sensitive inventory seed data
+- Swagger/OpenAPI documentation, rate limiting, CORS, validation, and structured logging
+
+## Technology stack
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 18, TypeScript, Vite 6, Tailwind CSS v3, Redux Toolkit |
-| Backend | .NET 8, Clean Architecture, EF Core 8, FluentValidation |
-| Database | SQL Server Express, EF Core Migrations |
-| Auth | JWT (15 min) + Refresh Tokens (7 days), BCrypt (cost 12) |
-| Logging | Serilog (console + rolling file) |
-| API Docs | Swagger / OpenAPI |
+| Frontend | React 18, TypeScript, Vite 6, Redux Toolkit, React Router, Tailwind CSS |
+| Backend | .NET 8, ASP.NET Core Web API, FluentValidation, Serilog |
+| Database | SQL Server 2019+, Microsoft.Build.Sql SSDT/DACPAC, EF Core 8 |
+| Authentication | JWT bearer tokens and BCrypt password hashing |
+| Documents | PDFsharp 6 |
+| Testing | xUnit and Vitest |
+| Local containers | Docker Compose, SQL Server, ASP.NET Core, Nginx |
 
----
+## Prerequisites
 
-## Quick Start
+Choose either Docker or local development.
 
-### Option A — Docker (recommended, no local installs needed)
+- Git
+- Docker Desktop with Compose (recommended), or:
+  - .NET 8 SDK
+  - Node.js 20+ and npm
+  - SQL Server Express or another SQL Server instance
+- Optional provider accounts only when testing Groq, Amadeus, Duffel, Razorpay, or SMTP
 
-```bash
-cp .env.example .env          # fill in DB_SA_PASSWORD, JWT_SECRET at minimum
-docker compose build
-docker compose up -d
-```
-
-App at `http://localhost` | API Swagger at `http://localhost/api/swagger`
-
-> SQL Server starts first (~45 s), then the API applies migrations + seeds data automatically.
-
-### Option B — Local development
-
-**Prerequisites:** Node.js 20+, .NET 8 SDK, SQL Server Express (`localhost\SQLEXPRESS`)
+## Clone and configure
 
 ```bash
-# Backend
-cd backend
-dotnet restore
-dotnet ef database update --project src/Persistence --startup-project src/API
-dotnet run --project src/API --launch-profile https
+git clone https://github.com/prakashinfotech/travel-port.git
+cd travel-port
 ```
-API at `http://localhost:5000` | Swagger at `http://localhost:5000/swagger`
 
-```bash
-# Frontend (separate terminal)
-cd frontend
-npm install
-npm run dev
-```
-Frontend at `http://localhost:5173` (Vite proxies `/api` → `http://localhost:5000`)
-
----
-
-## Testing
-
-Run the shared test gate before every commit:
-
-```bash
-./scripts/test-all.sh
-```
+Never place real credentials in committed files. Create local files from the supplied templates:
 
 ```powershell
-.\scripts\test-all.cmd
+Copy-Item .env.example .env
+Copy-Item backend/src/API/appsettings.Development.json.example backend/src/API/appsettings.Development.json
+Copy-Item frontend/.env.example frontend/.env
 ```
 
-Enable the versioned hook once per clone so commits automatically run tests:
+Set at minimum:
+
+- Docker: `DB_SA_PASSWORD` and a random `JWT_SECRET` of at least 32 characters in `.env`.
+- Local backend: `ConnectionStrings:DefaultConnection` and `JwtSettings:Secret` in the ignored development settings file or [.NET User Secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets).
+
+All optional integrations are disabled or have empty credentials by default. See [Security Guide](docs/SECURITY_GUIDE.md) for the configuration map.
+
+## Run with Docker
+
+Docker Compose builds both application images locally; no personal container registry is required.
 
 ```bash
-git config core.hooksPath .githooks
+docker compose up --build
 ```
 
-Current automated coverage includes backend validator tests and frontend formatter unit tests.
-See [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md) for the full workflow.
+- Web application: `http://localhost`
+- Swagger: `http://localhost/api/swagger`
+- SQL Server is internal to the Compose network
 
----
+For local Docker only, the API opts into EF migration startup so a fresh container can initialize automatically. Company environments publish the DACPAC before deploying the API. Both paths insert only non-sensitive flight, hotel, room, and coupon data; no users, passwords, wallets, or sample bookings are created.
 
-## Test Credentials
+Stop the environment with:
 
-| Role | Email | Password |
-|---|---|---|
-| Admin | admin@travelport.com | Admin@123 |
-| User | john@example.com | User@123 |
-| User | priya@example.com | User@123 |
-| User | rahul@example.com | User@123 |
-
----
-
-## Seed Data Summary
-
-| Module | Count |
-|---|---|
-| Users | 4 (1 admin, 3 users) |
-| Flights | 900+ programmatically generated across 42 bidirectional routes, 7 airlines (IndiGo, SpiceJet, Air India, Vistara, Akasa Air, Air India Express, Go First), 14 date slots (+7 to +35 days) |
-| Hotels | 60+ across 12 cities (Mumbai, Delhi, Goa, Bangalore, Jaipur, Hyderabad, Chennai, Kolkata, Ahmedabad, Pune, Kochi, Lucknow) |
-| Hotel Rooms | 120+ room types across all hotels |
-| Buses | Deterministic mock — 10–22 results per route, route-specific durations, 14 operators |
-| Trains | Deterministic mock — 6–15 results per route, 39 named trains, route-specific durations & pricing |
-| Cabs | Deterministic mock — Ola, Uber, Meru, Zoom, distance-based pricing |
-| Coupons | 11 — SAVE100, FIRST10, SUMMER20, HOTEL500, FLAT15, FLYSAVER, FLYOFF200, FLYDEAL15, HOTELOFF15, STAYMORE, HOTELDEAL |
-| Bookings | 3 sample bookings for john@example.com (only seeded on fresh DB; real bookings preserved on restart) |
-
----
-
-## API Endpoints
-
-| Method | Route | Auth |
-|---|---|---|
-| POST | /api/v1/auth/register | No |
-| POST | /api/v1/auth/login | No |
-| POST | /api/v1/auth/forgot-password | No |
-| POST | /api/v1/auth/reset-password | No |
-| GET | /api/v1/flights/search | No |
-| POST | /api/v1/flights/book | Yes |
-| GET | /api/v1/hotels/search | No |
-| POST | /api/v1/hotels/book | Yes |
-| GET | /api/v1/buses/search | No |
-| GET | /api/v1/trains/search | No |
-| GET | /api/v1/cabs/search | No |
-| POST | /api/v1/payments/initiate | Yes |
-| POST | /api/v1/payments/verify | Yes |
-| GET | /api/v1/bookings | Yes |
-| POST | /api/v1/bookings/{id}/cancel | Yes |
-| GET | /api/v1/bookings/{id}/invoice | Yes |
-| POST | /api/v1/coupons/validate | No |
-| GET | /api/v1/users/profile | Yes |
-| GET | /api/v1/admin/dashboard | Yes (Admin) |
-| GET | /api/v1/admin/analytics | Yes (Admin) |
-| GET | /api/v1/admin/users | Yes (Admin) |
-| POST | /api/v1/admin/users/{id}/block | Yes (Admin) |
-| GET | /api/v1/admin/bookings | Yes (Admin) |
-| GET | /api/v1/admin/users/{id}/overview | Yes (Admin) |
-| GET | /api/v1/admin/bookings/export-csv | Yes (Admin) |
-| GET | /api/v1/admin/coupons | Yes (Admin) |
-| POST | /api/v1/admin/coupons | Yes (Admin) |
-| PUT | /api/v1/admin/coupons/{id} | Yes (Admin) |
-| DELETE | /api/v1/admin/coupons/{id} | Yes (Admin) |
-| GET | /api/v1/admin/coupons/analytics | Yes (Admin) |
-| GET | /api/v1/admin/flights | Yes (Admin) |
-| PUT | /api/v1/admin/flights/{id} | Yes (Admin) |
-| GET | /api/v1/announcements/active | No |
-| GET | /api/v1/announcements | Yes (Admin) |
-| POST | /api/v1/announcements | Yes (Admin) |
-| PUT | /api/v1/announcements/{id} | Yes (Admin) |
-| DELETE | /api/v1/announcements/{id} | Yes (Admin) |
-| POST | /api/v1/ai/chat | No |
-| POST | /api/v1/ai/nl-search | No |
-| POST | /api/v1/ai/recommendations | No |
-| POST | /api/v1/ai/trip-plan | No |
-| GET | /api/v1/ai/price-insight | No |
-
-Full reference: [API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md)
-
----
-
-## CI/CD & Deployment
-
-| Item | Detail |
-|---|---|
-| Pipeline | GitHub Actions — triggers on push/merge to `Development` |
-| Registry | Docker Hub (`docker.io`) |
-| Images | `travelport-api` (.NET 8), `travelport-web` (Nginx+React) |
-| Local gate | `.githooks/pre-commit` runs `./scripts/test-all.sh` before every commit once hooks are enabled |
-| Job 1 | Build & Verify — `dotnet test` + frontend `vitest` + `dotnet build` + `npm run build` |
-| Job 2 | **Requires owner approval** → builds & pushes `:latest` + `:<git-sha>` tags to Docker Hub |
-| Job 3 | Verify Images — pulls both images from Docker Hub, confirms availability |
-| Approval gate | `environment: production` on Job 2 — GitHub notifies you and waits before any image is pushed |
-| DB migrations | Auto-applied on API startup (`db.Database.Migrate()`) |
-| Local run | Set `DOCKERHUB_USERNAME` in `.env`, then run `docker compose up -d` — `pull_policy: always` makes Compose fetch the newest `latest` image for `api` and `web` |
-
-See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for full setup guide including Docker Hub secrets configuration, rollback, and troubleshooting.
-
----
-
-## External API Configuration
-
-Credentials go in `backend/src/API/appsettings.Development.json` (gitignored — never commit secrets to `appsettings.json`).
-
-### Claude AI (AI Features) — **Required for Phase 1 AI features**
-1. Sign up at [console.anthropic.com](https://console.anthropic.com) → Create API Key
-2. Set in `appsettings.Development.json`:
-```json
-"Claude": { "ApiKey": "sk-ant-YOUR_KEY", "Model": "claude-haiku-4-5-20251001" }
-```
-> All 5 AI features (chatbot, NL search, recommendations, trip planner, price insights) gracefully degrade when the key is missing.
-
-### Duffel (Real Flights) — **Disabled by default; DB seed data used instead**
-> Set `Enabled: true` in `appsettings.Development.json` only — never in `appsettings.json`.
-1. Sign up at [app.duffel.com/join](https://app.duffel.com/join)
-2. **Developers → Access tokens** → create a **Test** token
-3. Set in `appsettings.Development.json`:
-```json
-"Duffel": { "ApiToken": "duffel_test_YOUR_TOKEN", "Enabled": true }
+```bash
+docker compose down
 ```
 
-### Amadeus (Hotels only — existing accounts)
-1. Sign up at [developers.amadeus.com](https://developers.amadeus.com) → Create App → copy API Key & Secret (new signups paused as of 2025)
-2. Set in config:
-```json
-"Amadeus": { "ApiKey": "YOUR_KEY", "ApiSecret": "YOUR_SECRET", "Enabled": true }
+Use `docker compose down -v` only when you intentionally want to delete the local database volume.
+
+## Run locally
+
+### Backend
+
+```bash
+cd backend
+dotnet restore TravelPort.sln
+dotnet build src/Database/TravelPort.Database.sqlproj --configuration Release
+sqlpackage /Action:Publish /SourceFile:src/Database/bin/Release/TravelPort.Database.dacpac /TargetConnectionString:"<local-connection-string>" /p:BlockOnPossibleDataLoss=True
+dotnet run --project src/API --launch-profile http
 ```
 
-### Razorpay (Real Payments)
-1. Create account at [razorpay.com](https://razorpay.com) → Settings → API Keys
-2. Set in config:
-```json
-"Razorpay": { "KeyId": "rzp_test_xxx", "KeySecret": "YOUR_SECRET", "Enabled": true }
+The API and Swagger run at `http://localhost:5000` and `http://localhost:5000/swagger`.
+
+### Frontend
+
+In a separate terminal:
+
+```bash
+cd frontend
+npm ci
+npm run dev
 ```
 
-### SMTP (Email Notifications)
-1. Use your SMTP provider credentials (Gmail, Mailgun, AWS SES, etc.)
-2. Set in config:
-```json
-"Email": {
-  "Enabled": true,
-  "FromEmail": "noreply@yourdomain.com",
-  "FromName": "TravelPort",
-  "SmtpHost": "smtp.yourprovider.com",
-  "SmtpPort": 587,
-  "Username": "smtp-user",
-  "Password": "smtp-password",
-  "EnableSsl": true
-}
+The frontend runs at `http://localhost:5173` and proxies `/api` requests to the local API.
+
+Register a new user through the application or `POST /api/v1/auth/register`. No public default accounts are provided.
+
+## Database deployment and schema changes
+
+The SSDT project at `backend/src/Database/TravelPort.Database.sqlproj` is the deployment authority. It builds a versionable DACPAC containing the complete table schema, stored procedures, functions, views, and idempotent non-sensitive post-deployment data. Publish it before the API in shared environments.
+
+```bash
+# Build the DACPAC
+dotnet build backend/src/Database/TravelPort.Database.sqlproj --configuration Release
+
+# Preview a deployment script
+sqlpackage /Action:Script \
+  /SourceFile:backend/src/Database/bin/Release/TravelPort.Database.dacpac \
+  /TargetConnectionString:"<target-connection-string>" \
+  /OutputPath:TravelPort.deploy.sql \
+  /p:BlockOnPossibleDataLoss=True
 ```
 
----
+The retained EF Core migration chain mirrors the application model and provides an explicitly enabled local-development fallback. `Database:ApplyEfMigrations` is `false` by default and must remain disabled in deployed API configuration. Every schema change must update and review both representations, with the DACPAC used for deployment. See [Database Scripts](database/README.md) and [Database Design](docs/DATABASE_DESIGN.md).
 
-## Project Structure
+## Tests and verification
 
+Run the shared test gate from the repository root:
+
+```powershell
+.\scripts\test-all.ps1
 ```
-Goibibo-AI-Assignment/
+
+Or run each part:
+
+```bash
+dotnet test backend/TravelPort.sln --configuration Release
+dotnet build backend/src/Database/TravelPort.Database.sqlproj --configuration Release
+npm run lint --prefix frontend
+npm run test --prefix frontend -- --run
+npm run build --prefix frontend
+```
+
+Dependency checks:
+
+```bash
+dotnet list backend/TravelPort.sln package --vulnerable --include-transitive
+npm audit --prefix frontend --audit-level=low
+```
+
+CI builds and uploads the DACPAC, restores and tests the API, lints/tests/builds the frontend, audits dependencies, and validates Docker Compose on pushes and pull requests to `master`. The manual database workflow publishes the DACPAC first and exposes an API deployment gate; company application-hosting details must be configured before that final deployment step is automated.
+
+## Project structure
+
+```text
+travel-port/
 ├── backend/
-│   └── src/
-│       ├── Domain/          # Entities, Enums
-│       ├── Application/     # DTOs, Services, Validators, Interfaces
-│       ├── Infrastructure/  # JWT, BCrypt
-│       ├── Persistence/     # EF Core, Repositories, Migrations, Seeds
-│       └── API/             # Controllers, Middleware, Program.cs
-├── frontend/
-│   └── src/
-│       ├── pages/           # FlightsPage, HotelsPage, BookingsPage, AdminPage, ProfilePage, hotel/* ...
-│       ├── pages/hotel/     # HotelDashboardPage, HotelBookingsPage, HotelRoomsPage, HotelProfilePage
-│       ├── components/      # FlightCard, HotelCard, BookingCard, ConfirmDialog, UI primitives
-│       ├── services/        # flightService, hotelService, bookingService, adminService, hotelManagerService, userService
-│       ├── features/auth/   # Redux slice, LoginForm, RegisterForm
-│       └── routes/          # AppRouter, PrivateRoute
-├── docs/                    # Architecture, API docs, DB design, Security guide
-└── .claude/                 # AI workflow commands and prompts
+│   ├── src/API/              # Controllers, middleware, startup, configuration templates
+│   ├── src/Application/      # Use cases, DTOs, validators, interfaces
+│   ├── src/Domain/           # Entities and enums
+│   ├── src/Infrastructure/   # Auth, providers, email, payments, PDF documents
+│   ├── src/Persistence/      # DbContext, repositories, migrations, safe seed data
+│   └── tests/                # xUnit tests
+├── frontend/                 # React and TypeScript SPA
+├── database/                 # Generated idempotent migration script
+├── docs/                     # Architecture, API, database, security, testing
+├── scripts/                  # Cross-platform verification commands
+├── docker-compose.yml
+└── README.md
 ```
-
----
 
 ## Documentation
 
-| Document | Description |
+| Document | Purpose |
 |---|---|
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design & layer responsibilities |
-| [API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md) | REST API reference |
-| [DATABASE_DESIGN.md](docs/DATABASE_DESIGN.md) | Schema & ER diagram |
-| [SECURITY_GUIDE.md](docs/SECURITY_GUIDE.md) | Auth & security implementation |
-| [AI_USAGE_REPORT.md](docs/AI_USAGE_REPORT.md) | AI-assisted development log |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Branch workflow & contribution rules |
-| [CLAUDE.md](CLAUDE.md) | AI collaboration guide — project context & standing rules |
-| [GIT.md](GIT.md) | Git workflow, branch naming & commit conventions |
-| [TODO.md](TODO.md) | Backlog — bugs, pending features, technical debt |
-| [TASK-TRACKER.md](TASK-TRACKER.md) | Day-by-day feature delivery log with status |
+| [Architecture](docs/ARCHITECTURE.md) | Components, data flow, authentication, and design decisions |
+| [API Documentation](docs/API_DOCUMENTATION.md) | REST endpoint reference |
+| [Database Design](docs/DATABASE_DESIGN.md) | Tables, relationships, migrations, and seed policy |
+| [Security Guide](docs/SECURITY_GUIDE.md) | Secrets, authentication, CORS, data protection, and limitations |
+| [Testing Guide](docs/TESTING_GUIDE.md) | Local and CI test commands |
+| [Software Requirements](docs/SRS.md) | Public-release functional and quality requirements |
+| [Technical Design](docs/TECHNICAL_DESIGN.md) | Components, security, database delivery, and release flow |
+| [Generated PDFs](docs/pdfs/) | Current API, deployment, SRS, and technical-design documents |
+| [Contributing](CONTRIBUTING.md) | Branch, commit, review, and verification workflow |
+| [AI Usage Report](docs/AI_USAGE_REPORT.md) | Historical AI-assisted development disclosure and current provider note |
+
+## Security
+
+- Do not commit `.env`, `appsettings.Development.json`, API keys, passwords, tokens, certificates, or connection strings.
+- Rotate any credential accidentally exposed in Git history; deleting it from the latest revision is insufficient.
+- Store production values in the company-approved secret manager or CI environment.
+- Report security concerns privately to the repository maintainers rather than opening a public issue.
+
+## Repository use
+
+Copyright © Prakash Infotech. All rights reserved.
+
+This repository is proprietary. No permission is granted to copy, modify, distribute, or reuse the software outside Prakash Infotech without written authorization.

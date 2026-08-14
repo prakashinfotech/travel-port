@@ -1,5 +1,7 @@
 # TASK-TRACKER.md — TravelPort Feature Delivery Log
 
+> Historical delivery log. Provider names, branches, package versions, and deployment approaches below describe the state at the recorded phase; see the root README and current configuration for the supported public-release setup.
+
 > Day-by-day progress tracker for the Goibibo AI Assignment.
 > Status: ✅ Done · 🚧 In Progress · ❌ Not Started · ⚠️ Partial / Needs Work
 
@@ -501,7 +503,7 @@
 | # | Feature | Status | Notes |
 |---|---|---|---|
 | 5.1 | **B1** Login redirect — preserve original destination after auth | ✅ | `location.state?.from` path used post-login; LoginForm updated |
-| 5.2 | **B2** Bookings disappear on restart — DataSeeder always re-seeds john's bookings | ✅ | `SeedBookingsAsync` deletes stale bookings for `john@example.com` before inserting fresh ones |
+| 5.2 | **B2** Bookings disappear on restart — historical seeder recreated sample bookings | ✅ | Historical implementation refreshed sample bookings during startup |
 | 5.3 | **B3** Coupon discount not applied — FlightService + HotelService BookAsync | ✅ | `ICouponRepository` + `CouponRepository` added; discount calculation wired in both services |
 | 5.4 | **D1** HomePage buses/trains/cabs search forms — replaced "Coming soon" block | ✅ | Full search forms with fields pre-wired to URL params for each mode |
 | 5.5 | **D3** BusesPage / TrainsPage / CabsPage — read URL params and auto-search on load | ✅ | `useSearchParams` + `useEffect` added to all three pages |

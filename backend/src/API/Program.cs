@@ -18,8 +18,7 @@ using TravelPort.Persistence.Seeds;
 using TravelPort.Application.Common.Models;
 
 // PdfSharpCore has no GDI font discovery on Linux — register Liberation Sans as Arial substitute
-if (!OperatingSystem.IsWindows())
-    PdfSharpCore.Fonts.GlobalFontSettings.FontResolver = new LinuxFontResolver();
+PdfSharp.Fonts.GlobalFontSettings.FontResolver = new LinuxFontResolver();
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -150,13 +149,16 @@ try
     // ── Pipeline ─────────────────────────────────────────────────────────────
     var app = builder.Build();
 
-    // Apply pending EF Core migrations and seed data
-    // db.Database.Migrate() is idempotent — safe to run on every startup
+    // SSDT/DACPAC is the deployment authority. EF migrations are available only
+    // as an explicit local-development fallback and are disabled by default.
     using (var scope = app.Services.CreateScope())
     {
         var db = scope.ServiceProvider.GetRequiredService<TravelPortDbContext>();
-        db.Database.Migrate();
-        await DataSeeder.SeedAsync(db);
+        if (builder.Configuration.GetValue<bool>("Database:ApplyEfMigrations"))
+            db.Database.Migrate();
+
+        if (builder.Configuration.GetValue("Database:RunSeedData", true))
+            await DataSeeder.SeedAsync(db);
     }
 
     app.UseMiddleware<ExceptionMiddleware>();

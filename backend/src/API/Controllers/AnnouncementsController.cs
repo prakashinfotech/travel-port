@@ -54,6 +54,6 @@ public class AnnouncementsController : BaseApiController
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         await _service.DeleteAsync(id, ct);
-        return Ok(ApiResponse<object>.Ok(null, "Announcement deleted."));
+        return Ok(ApiResponse<object?>.Ok(null, "Announcement deleted."));
     }
 }

@@ -44,7 +44,7 @@ public class PaymentsController : BaseApiController
                 $"order_mock_{Guid.NewGuid():N}",
                 booking.FinalAmount,
                 "INR",
-                "rzp_test_placeholder"
+                "mock_key_id"
             );
             return Ok(ApiResponse<CreateOrderResponse>.Ok(mock, "Mock order created (Razorpay not configured)"));
         }

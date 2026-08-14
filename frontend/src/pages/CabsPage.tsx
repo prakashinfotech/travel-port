@@ -66,7 +66,7 @@ export default function CabsPage() {
 
   useEffect(() => {
     if (searchParams.get('origin')) search()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   const search = async () => {
     if (!origin || !destination || !pickup) return

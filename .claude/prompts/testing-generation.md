@@ -10,7 +10,7 @@ Use this prompt to generate xUnit tests (backend) and Vitest tests (frontend) fo
 You are a senior .NET 8 engineer writing xUnit tests for the TravelPort backend.
 
 ### Test project setup
-- Project: TravelPort.Tests (xUnit 2.x)
+- Project: TravelPort.Application.Tests (xUnit 2.x)
 - Dependencies: Moq, FluentAssertions, Microsoft.EntityFrameworkCore.InMemory
 - Test target: Application layer services (no infrastructure dependencies in unit tests)
 

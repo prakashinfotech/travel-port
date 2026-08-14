@@ -6,22 +6,26 @@ CREATE PROCEDURE [dbo].[usp_CancelBooking]
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET @RefundAmount = CAST(0.00 AS DECIMAL(10, 2));
+    SET @ErrorMessage = NULL;
     BEGIN TRY
         BEGIN TRANSACTION;
 
-        DECLARE @Status      NVARCHAR(20),
+        DECLARE @Status      NVARCHAR(450),
                 @FinalAmount DECIMAL(10, 2),
-                @BookingType NVARCHAR(20),
+                @BookingType NVARCHAR(MAX),
                 @ReferenceId UNIQUEIDENTIFIER,
-                @WalletId    UNIQUEIDENTIFIER;
+                @WalletId    UNIQUEIDENTIFIER,
+                @PassengerCount INT;
 
         SELECT
             @Status      = [Status],
             @FinalAmount = [FinalAmount],
             @BookingType = [BookingType],
-            @ReferenceId = [ReferenceId]
+            @ReferenceId = [ReferenceId],
+            @PassengerCount = ISNULL([Passengers], 1)
         FROM [dbo].[Bookings]
-        WHERE [BookingId] = @BookingId AND [UserId] = @UserId AND [DeletedAt] IS NULL;
+        WHERE [Id] = @BookingId AND [UserId] = @UserId AND [DeletedAt] IS NULL;
 
         IF @Status IS NULL
         BEGIN
@@ -38,7 +42,7 @@ BEGIN
         END;
 
         -- Refund policy: 90% refund if cancelled more than 24 hrs before departure
-        SET @RefundAmount = @FinalAmount * 0.90;
+        SET @RefundAmount = @FinalAmount * CAST(0.90 AS DECIMAL(10, 2));
 
         -- Update booking status
         UPDATE [dbo].[Bookings]
@@ -46,26 +50,26 @@ BEGIN
             [CancelledAt]  = GETUTCDATE(),
             [RefundAmount] = @RefundAmount,
             [UpdatedAt]    = GETUTCDATE()
-        WHERE [BookingId] = @BookingId;
+        WHERE [Id] = @BookingId;
 
         -- Restore flight seats if a flight booking
         IF @BookingType = 'Flight'
         BEGIN
             UPDATE [dbo].[Flights]
-            SET [AvailableSeats] = [AvailableSeats] + 1,
+            SET [AvailableSeats] = [AvailableSeats] + @PassengerCount,
                 [UpdatedAt]      = GETUTCDATE()
-            WHERE [FlightId] = @ReferenceId;
+            WHERE [Id] = @ReferenceId;
         END;
 
         -- Credit refund to wallet
-        SELECT @WalletId = [WalletId] FROM [dbo].[Wallets] WHERE [UserId] = @UserId AND [DeletedAt] IS NULL;
+        SELECT @WalletId = [Id] FROM [dbo].[Wallets] WHERE [UserId] = @UserId AND [DeletedAt] IS NULL;
 
-        IF @WalletId IS NOT NULL AND @RefundAmount > 0
+        IF @WalletId IS NOT NULL AND @RefundAmount > CAST(0.00 AS DECIMAL(10, 2))
         BEGIN
             UPDATE [dbo].[Wallets]
             SET [Balance]   = [Balance] + @RefundAmount,
                 [UpdatedAt] = GETUTCDATE()
-            WHERE [WalletId] = @WalletId;
+            WHERE [Id] = @WalletId;
 
             INSERT INTO [dbo].[WalletTransactions]
                 ([WalletId], [Type], [Amount], [Description], [ReferenceId])

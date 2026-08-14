@@ -1,157 +1,29 @@
-# ✈️ TravelPort — Goibibo-Inspired Travel Booking Portal
+# TravelPort Documentation
 
-> Production-grade, enterprise-level full-stack travel booking platform built with AI-assisted development workflow.
+All documents describe the current sanitized public-release configuration unless explicitly marked as historical.
 
-[![CI/CD](https://github.com/org/travelport/actions/workflows/ci.yml/badge.svg)](https://github.com/org/travelport/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.md)
+- [Architecture](ARCHITECTURE.md)
+- [API Documentation](API_DOCUMENTATION.md)
+- [Database Design](DATABASE_DESIGN.md)
+- [Deployment](DEPLOYMENT.md)
+- [Security Guide](SECURITY_GUIDE.md)
+- [Testing Guide](TESTING_GUIDE.md)
+- [Software Requirements Specification](SRS.md)
+- [Technical Design](TECHNICAL_DESIGN.md)
+- [Generated PDF documents](pdfs/)
+- [Historical AI Usage Report](AI_USAGE_REPORT.md)
 
----
+The root [README](../README.md) is the entry point for setup and execution.
 
-## 📋 Overview
+| Document | Description |
+|---|---|
+| [Architecture](ARCHITECTURE.md) | System layers, flows, roles, caching, and design decisions |
+| [API Documentation](API_DOCUMENTATION.md) | REST resources, payloads, authorization, and errors |
+| [Database Design](DATABASE_DESIGN.md) | SQL Server entities, relationships, indexes, migrations, and safe seeds |
+| [Security Guide](SECURITY_GUIDE.md) | Secret handling, authentication, authorization, CORS, and data protection |
+| [Testing Guide](TESTING_GUIDE.md) | Local verification and CI gates |
+| [AI Usage Report](AI_USAGE_REPORT.md) | Historical AI-assisted development disclosure and current provider status |
 
-TravelPort is a comprehensive travel booking portal inspired by Goibibo, offering:
-- ✈️ Flight Search & Booking
-- 📅 Lowest-price flight date strip and monthly fare calendar
-- 🏨 Hotel Search & Booking
-- 🚌 Bus Booking
-- 🚂 Train Booking
-- 👤 User Authentication & Profiles
-- 💰 Wallet & Offers
-- 🛠️ Admin Panel
-- 🔔 Toast notifications, resilient error handling, and loading skeletons
-- 📄 Paginated flight results and a richer profile experience
+Reusable AI-assistance prompts remain under `.claude/` and `docs/skills/`. They are development aids, not runtime dependencies.
 
----
-
-## 🏗️ Architecture
-
-```
-travelport/
-├── frontend/          # React 18 + TypeScript + Vite + Tailwind
-├── backend/           # .NET 8 Web API (Clean Architecture)
-├── database/          # SQL Server migrations + seed data
-├── docs/              # Technical documentation
-├── tests/             # E2E & integration tests
-└── .claude/           # AI workflow configuration
-```
-
-See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for full system design.
-
----
-
-## 🛠️ Tech Stack
-
-| Layer       | Technology                                      |
-|-------------|--------------------------------------------------|
-| Frontend    | React 18, TypeScript, Vite, Tailwind CSS, Redux |
-| Backend     | .NET 8, Clean Architecture, EF Core, MediatR   |
-| Database    | SQL Server, EF Core Migrations                  |
-| Auth        | JWT + Refresh Tokens, Role-Based Authorization  |
-| DevOps      | Docker, GitHub Actions, CI/CD                   |
-| Caching     | Redis                                           |
-| Logging     | Serilog + Seq                                   |
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Node.js 20+
-- .NET 8 SDK
-- SQL Server / Docker Desktop
-- Redis (or use Docker Compose)
-
-### 1. Clone Repository
-```bash
-git clone https://github.com/org/travelport.git
-cd travelport
-```
-
-### 2. Environment Setup
-```bash
-cp .env.example .env
-# Edit .env with your values
-```
-
-### 3. Run with Docker Compose (Recommended)
-```bash
-docker-compose up --build
-```
-
-### 4. Manual Setup
-
-**Backend:**
-```bash
-cd backend
-dotnet restore
-dotnet ef database update
-dotnet run --project src/API
-```
-
-**Frontend:**
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
----
-
-## 🌐 Access Points
-
-| Service     | URL                          |
-|-------------|------------------------------|
-| Frontend    | http://localhost:5173         |
-| Backend API | http://localhost:5000/api    |
-| Swagger     | http://localhost:5000/swagger |
-| Seq Logs    | http://localhost:5341         |
-
----
-
-## 📚 Documentation
-
-| Document                                       | Description                    |
-|------------------------------------------------|--------------------------------|
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md)        | System architecture overview   |
-| [API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md) | REST API reference          |
-| [DATABASE_DESIGN.md](docs/DATABASE_DESIGN.md) | ER diagram & schema design     |
-| [DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) | Production deployment steps  |
-| [SECURITY_GUIDE.md](docs/SECURITY_GUIDE.md)   | Security implementation        |
-| [TESTING_GUIDE.md](docs/TESTING_GUIDE.md)     | Testing strategy & coverage    |
-| [AI_USAGE_REPORT.md](docs/AI_USAGE_REPORT.md) | AI development workflow log    |
-
----
-
-## 📁 Environment Variables
-
-See [.env.example](.env.example) for all required variables.
-
----
-
-## 🤝 Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
-
-## ✅ Test Gate
-
-Before every commit, run the shared test command:
-
-```bash
-./scripts/test-all.sh
-```
-
-```powershell
-.\scripts\test-all.cmd
-```
-
-Enable the versioned hook once per clone so commits are blocked when tests fail:
-
-```bash
-git config core.hooksPath .githooks
-```
-
----
-
-## 📄 License
-
-MIT License — see [LICENSE.md](LICENSE.md)
+Copyright © Prakash Infotech. All rights reserved.

@@ -2,7 +2,7 @@
 CREATE VIEW [dbo].[vw_FlightSearchResults]
 AS
 SELECT
-    f.[FlightId],
+    f.[Id] AS [FlightId],
     f.[Airline],
     f.[FlightNumber],
     f.[Source],

@@ -418,7 +418,7 @@ export default function HotelsPage() {
     }
   }
 
-  useEffect(() => { if (city) fetchHotels() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (city) fetchHotels() }, [])
 
   // Compute filtered list directly on every render — guarantees filters always reflect current state
   let filtered = [...hotels]

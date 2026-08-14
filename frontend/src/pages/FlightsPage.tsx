@@ -1377,7 +1377,7 @@ export default function FlightsPage() {
   useEffect(() => {
     fetchFlights()
     if (tripType === 'roundtrip' && returnDate) fetchReturnFlights()
-  }, []) // eslint-disable-line
+  }, [])
 
   // ── Fetch adjacent date prices in background ─────────────────────────────
 

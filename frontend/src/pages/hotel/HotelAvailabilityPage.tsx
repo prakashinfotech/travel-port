@@ -112,7 +112,7 @@ export default function HotelAvailabilityPage() {
       const rooms = hotel.data?.rooms ?? []
 
       // Get manager rooms for totalRooms info
-      let managerRoomsMap: Record<string, HotelRoomManagerDto> = {}
+      const managerRoomsMap: Record<string, HotelRoomManagerDto> = {}
       try {
         const mgr = await hotelManagerService.getRooms?.()
         if (mgr) mgr.forEach(r => { managerRoomsMap[r.id] = r })

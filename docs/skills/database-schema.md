@@ -1,106 +1,38 @@
-# Skill: Generate Database Schema
+# Skill: Maintain the Database Schema
 
-**Slash command:** `/generate-migration` (for EF Core) or use the prompt template below for raw SQL
-**Category:** Database
-**Stack:** SQL Server 2022 · SSDT (.sqlproj)
-
----
+**Command:** `/generate-migration`
+**Stack:** SSDT/Microsoft.Build.Sql, SQL Server 2019+, EF Core 8
 
 ## Purpose
 
-Generates SQL Server DDL (tables, stored procedures, functions, views) following TravelPort's database conventions and adds them to the SSDT database project.
+Maintain TravelPort's SQL Server schema with `backend/src/Database/TravelPort.Database.sqlproj` as the authoritative deployment source. The EF Core model and migration chain remain synchronized for application mapping and the explicitly enabled local-development fallback.
 
----
+## Workflow
 
-## When to Use
+1. Update the domain entity and Fluent API configuration.
+2. Update the corresponding SSDT table, index, constraint, stored procedure, function, view, or post-deployment script.
+3. Generate and review an EF migration when the application model changes:
 
-- Designing a new table in the SQL Database project
-- Writing a new stored procedure for a complex transactional operation
-- Creating a scalar/table-valued function for business logic
-- Building a reporting view
+   ```bash
+   dotnet ef migrations add <MigrationName> --project backend/src/Persistence --startup-project backend/src/API
+   ```
 
----
+4. Build the DACPAC:
 
-## Usage (with prompt template)
+   ```bash
+   dotnet build backend/src/Database/TravelPort.Database.sqlproj --configuration Release
+   ```
 
-Copy the prompt from [`.claude/prompts/database-schema.md`](../../.claude/prompts/database-schema.md) and fill in the task description.
+5. Publish the DACPAC to a disposable validation database and confirm the EF model matches it.
+6. Generate a SqlPackage deployment script against the actual target and review it before publication.
 
----
+## Conventions
 
-## Naming Conventions
+- Use plural table names and `uniqueidentifier` primary keys named `Id`.
+- Configure string lengths and money precision consistently in both SSDT and EF.
+- Preserve `CreatedAt`, `UpdatedAt`, and nullable `DeletedAt` audit fields.
+- Use safe delete behavior and explicitly review data-loss operations.
+- Seed only non-sensitive catalogue data. Never seed accounts, passwords, tokens, or private bookings.
+- Leave `Database:ApplyEfMigrations` disabled outside local development.
 
-| Object | Prefix | Example |
-|--------|--------|---------|
-| Table | none | `Bookings` |
-| Stored Procedure | `usp_` | `usp_BookFlight` |
-| Scalar Function | `fn_` | `fn_CalculateDiscount` |
-| Table-Valued Function | `fn_` | `fn_GetUserBookingStats` |
-| View | `vw_` | `vw_AdminDashboard` |
-| Index | `IX_` | `IX_Flights_OriginDestinationDate` |
-| Unique Index | `UQ_` | `UQ_Users_Email` |
-
----
-
-## Standard Column Set (every table)
-
-```sql
-Id          UNIQUEIDENTIFIER    NOT NULL DEFAULT NEWSEQUENTIALID(),
-...
-CreatedAt   DATETIME2           NOT NULL DEFAULT GETUTCDATE(),
-UpdatedAt   DATETIME2           NOT NULL DEFAULT GETUTCDATE(),
-DeletedAt   DATETIME2               NULL     -- soft delete
-```
-
----
-
-## Existing Objects Reference
-
-### Tables
-`Users` · `Flights` · `Hotels` · `HotelRooms` · `Bookings` · `Payments`
-`Wallets` · `WalletTransactions` · `SavedTravellers` · `Coupons` · `AuditLogs` · `RefreshTokens`
-`FlightCompanies` · `BusCompanies` · `CabCompanies`
-
-### Stored Procedures
-| Procedure | Purpose |
-|-----------|---------|
-| `usp_SearchFlights` | Paged, sorted flight search |
-| `usp_SearchHotels` | Paged hotel search with star/price filter |
-| `usp_BookFlight` | Atomic: seat decrement + coupon + audit log |
-| `usp_CancelBooking` | 90% refund → wallet + seat restore |
-| `usp_GetUserBookings` | Paged booking history with payment join |
-| `usp_ProcessWalletTransaction` | Credit/debit with balance guard |
-
-### Scalar Functions
-| Function | Returns |
-|----------|---------|
-| `fn_GenerateBookingRef` | Unique booking reference (e.g. `TP-20250601-ABCD`) |
-| `fn_CalculateDiscount` | Discount amount given coupon code + base price |
-| `fn_GetWalletBalance` | Current balance for a user |
-
-### Table-Valued Functions
-| Function | Returns |
-|----------|---------|
-| `fn_GetUserBookingStats` | Booking counts per status for a user |
-
-### Views
-| View | Purpose |
-|------|---------|
-| `vw_FlightSearchResults` | Denormalised flight data for search |
-| `vw_BookingSummary` | Booking + payment + user summary |
-| `vw_AdminDashboard` | Aggregate stats (revenue, bookings, users) |
-
----
-
-## SSDT Project Location
-
-All SQL files live in:
-```
-backend/src/Database/
-├── Tables/
-├── StoredProcedures/
-├── Functions/
-├── Views/
-└── Scripts/PostDeploy/
-```
-
-Files must be added as `<Build Include="..." />` entries in `TravelPort.Database.sqlproj`.
+See [Database Design](../DATABASE_DESIGN.md) and [Database Deployment](../../database/README.md).

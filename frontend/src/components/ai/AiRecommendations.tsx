@@ -76,7 +76,7 @@ export function AiRecommendations({ bookingHistory = [] }: Props) {
     }
   }
 
-  useEffect(() => { fetchRecs() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchRecs() }, [])
 
   const handleBook = (rec: Recommendation) => {
     const tomorrow = new Date()

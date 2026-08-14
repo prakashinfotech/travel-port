@@ -479,13 +479,6 @@ export default function HomePage() {
   const navigate = useNavigate()
   const { user } = useAuth()
 
-  // Admin and role-specific users should land on their dashboards, not the search page
-  if (user?.role === 'Admin') return <Navigate to="/admin" replace />
-  if (user?.role === 'Hotel') return <Navigate to="/hotel/dashboard" replace />
-  if (user?.role === 'FlightOperator') return <Navigate to="/flight-operator/dashboard" replace />
-  if (user?.role === 'BusOperator') return <Navigate to="/bus-operator/dashboard" replace />
-  if (user?.role === 'CabOperator') return <Navigate to="/cab-operator/dashboard" replace />
-
   const [mode, setMode]               = useState<TravelMode>('flight')
   const [tripType, setTripType]       = useState<TripType>('oneway')
   const [offerFilter, setOfferFilter] = useState<OfferFilter>('All')
@@ -617,6 +610,13 @@ export default function HomePage() {
     train:  'Popular Train Routes',
     cab:    'Popular Cab Routes',
   }[mode]
+
+  // Keep redirects after all hooks so every render preserves hook order.
+  if (user?.role === 'Admin') return <Navigate to="/admin" replace />
+  if (user?.role === 'Hotel') return <Navigate to="/hotel/dashboard" replace />
+  if (user?.role === 'FlightOperator') return <Navigate to="/flight-operator/dashboard" replace />
+  if (user?.role === 'BusOperator') return <Navigate to="/bus-operator/dashboard" replace />
+  if (user?.role === 'CabOperator') return <Navigate to="/cab-operator/dashboard" replace />
 
   return (
     <div className="min-h-screen bg-gray-50">

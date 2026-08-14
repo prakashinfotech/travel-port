@@ -1,7 +1,7 @@
 using System.Globalization;
-using PdfSharpCore.Drawing;
-using PdfSharpCore.Drawing.Layout;
-using PdfSharpCore.Pdf;
+using PdfSharp.Drawing;
+using PdfSharp.Drawing.Layout;
+using PdfSharp.Pdf;
 using TravelPort.Application.Common.Interfaces;
 using TravelPort.Application.DTOs.Bookings;
 
@@ -40,8 +40,8 @@ public class InvoiceDocumentService : IInvoiceDocumentService
     {
         var document = CreateDocument();
         var page = document.AddPage();
-        page.Width = PageWidth;
-        page.Height = PageHeight;
+        page.Width = XUnit.FromPoint(PageWidth);
+        page.Height = XUnit.FromPoint(PageHeight);
 
         var gfx = XGraphics.FromPdfPage(page);
         var ci = CultureInfo.InvariantCulture;
@@ -120,8 +120,8 @@ public class InvoiceDocumentService : IInvoiceDocumentService
     {
         var document = CreateDocument();
         var page = document.AddPage();
-        page.Width = PageWidth;
-        page.Height = PageHeight;
+        page.Width = XUnit.FromPoint(PageWidth);
+        page.Height = XUnit.FromPoint(PageHeight);
 
         var gfx = XGraphics.FromPdfPage(page);
         var ci = CultureInfo.InvariantCulture;
@@ -189,8 +189,8 @@ public class InvoiceDocumentService : IInvoiceDocumentService
     {
         var document = CreateDocument();
         var page = document.AddPage();
-        page.Width = PageWidth;
-        page.Height = PageHeight;
+        page.Width = XUnit.FromPoint(PageWidth);
+        page.Height = XUnit.FromPoint(PageHeight);
 
         var gfx = XGraphics.FromPdfPage(page);
         var ci = CultureInfo.InvariantCulture;
@@ -304,7 +304,7 @@ public class InvoiceDocumentService : IInvoiceDocumentService
 
     private static XFont Font(double size, bool bold)
     {
-        return new XFont("Arial", size, bold ? XFontStyle.Bold : XFontStyle.Regular);
+        return new XFont("Arial", size, bold ? XFontStyleEx.Bold : XFontStyleEx.Regular);
     }
 
     private static void DrawTopHeader(XGraphics gfx, ref double y, string title, string subtitle)

@@ -1,5 +1,7 @@
 # AI Usage Report — TravelPort
 
+> Historical disclosure: phase entries below record the provider and tooling used at the time. The current runtime provider is Groq (`Groq:ApiKey`, `llama-3.3-70b-versatile`); committed configuration contains no provider key. PDF generation now uses official PDFsharp 6.2.4.
+
 ## AI Tool Used
 
 **Claude Code (Anthropic)** — Claude Sonnet 4.6, running as an interactive CLI agent throughout all phases of development.
@@ -134,9 +136,9 @@
 | Saved cards — last 4 digits only | PCI-safe; Razorpay handles full PAN | ✅ |
 | SMTP credentials out of appsettings.json | Security fix — empty defaults, real values in gitignored file | ✅ |
 | Validator coverage expansion | Every new DTO gets a FluentValidation validator + positive/negative tests | ✅ |
-| Backend proxy for Claude API | API key never exposed to browser; SSE forwarded from Claude → backend → frontend | ✅ |
-| Graceful AI degradation | All 5 AI features degrade silently (hide / show fallback) when `Claude:ApiKey` is absent | ✅ |
-| claude-haiku-4-5-20251001 for chatbot | Fastest/cheapest Claude model; ideal for real-time chat and price insights | ✅ |
+| Backend proxy for Groq API | API key never exposed to browser; SSE/JSON is forwarded through the backend | ✅ |
+| Graceful AI degradation | All 5 AI features degrade safely when `Groq:ApiKey` is absent | ✅ |
+| Configurable Groq model | `Groq:Model` selects the runtime model without frontend changes | ✅ |
 | SSE streaming for chat + trip planner | Token-by-token streaming avoids request timeouts and improves perceived latency | ✅ |
 | Response caching on price-insight | 30-min `[ResponseCache]` prevents redundant Claude calls for the same route pair | ✅ |
 

@@ -250,12 +250,12 @@ CREATE TABLE RefreshTokens (
 
 | Entity | Count |
 |---|---|
-| Users | 4 (1 Admin, 3 Users) + hotel managers created dynamically |
 | Flights | 900+ across 42 routes, 7 airlines, 14 date slots |
 | Hotels | 60+ across 12 Indian cities |
 | Hotel Rooms | 120+ room types across all hotels |
 | Coupons | 11 (flight-specific + hotel-specific + universal) |
-| Bookings | Sample confirmed bookings for John (flight + hotel) |
+
+Fresh databases do not seed users, passwords, wallets, saved travellers, or bookings. Users register through the API; privileged/operator accounts are created through approved administrative flows.
 
 ---
 
@@ -316,7 +316,9 @@ public abstract class BaseEntity {
 
 ---
 
-## EF Core Migrations
+## SSDT deployment and EF compatibility migrations
+
+`backend/src/Database/TravelPort.Database.sqlproj` is the authoritative deployment source and produces the DACPAC published before the API. The EF migrations below are retained to keep the application model synchronized and to support the explicitly enabled local-development fallback; they are not the shared-environment deployment artifact.
 
 | Migration | Changes |
 |---|---|

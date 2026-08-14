@@ -9,13 +9,15 @@ CREATE PROCEDURE [dbo].[usp_ProcessWalletTransaction]
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET @NewBalance = CAST(0.00 AS DECIMAL(10, 2));
+    SET @ErrorMessage = NULL;
     BEGIN TRY
         BEGIN TRANSACTION;
 
         DECLARE @WalletId      UNIQUEIDENTIFIER,
                 @CurrentBalance DECIMAL(10, 2);
 
-        SELECT @WalletId = [WalletId], @CurrentBalance = [Balance]
+        SELECT @WalletId = [Id], @CurrentBalance = [Balance]
         FROM [dbo].[Wallets] WITH (UPDLOCK, ROWLOCK)
         WHERE [UserId] = @UserId AND [DeletedAt] IS NULL;
 
@@ -41,7 +43,7 @@ BEGIN
         UPDATE [dbo].[Wallets]
         SET [Balance]   = @NewBalance,
             [UpdatedAt] = GETUTCDATE()
-        WHERE [WalletId] = @WalletId;
+        WHERE [Id] = @WalletId;
 
         INSERT INTO [dbo].[WalletTransactions]
             ([WalletId], [Type], [Amount], [Description], [ReferenceId])

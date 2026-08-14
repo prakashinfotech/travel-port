@@ -193,7 +193,7 @@ export default function BookBusPage() {
     fetchLocked()
     const id = setInterval(fetchLocked, 4000)
     return () => clearInterval(id)
-  }, [bus?.id, isLoggedIn]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [bus?.id, isLoggedIn])
 
   // Release all selected seat locks when navigating away
   useEffect(() => {
@@ -204,7 +204,7 @@ export default function BookBusPage() {
         api.delete(endpoints.buses.lockSeats(bid), { data: { seatNumbers: seats.map(String) } }).catch(() => {})
       }
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
   const [discount, setDiscount]             = useState(0)
   const [couponApplied, setCouponApplied]   = useState(false)
   const [couponLoading, setCouponLoading]   = useState(false)
@@ -340,7 +340,7 @@ export default function BookBusPage() {
   const canProceedStep2 = !!boardingPoint && !!droppingPoint
 
   // Female seat set for display in summary
-  const femaleSet = useMemo(() => {
+  const femaleSet = (() => {
     const rowsPerDeck = Math.ceil(seatsPerDeck / 4)
     const set = new Set<number>()
     for (let r = 0; r < rowsPerDeck; r++) {
@@ -348,7 +348,7 @@ export default function BookBusPage() {
       set.add(seatsPerDeck + r * 4 + 4)
     }
     return set
-  }, [seatsPerDeck])
+  })()
 
   return (
     <div className="min-h-screen bg-gray-50">

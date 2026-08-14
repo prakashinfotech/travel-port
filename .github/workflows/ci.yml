@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  database:
+    name: Database - build DACPAC
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: dotnet build backend/src/Database/TravelPort.Database.sqlproj --configuration Release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: travelport-dacpac
+          path: backend/src/Database/bin/Release/TravelPort.Database.dacpac
+
+  backend:
+    name: Backend - restore, test, build, audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: dotnet restore backend/TravelPort.sln
+      - run: dotnet test backend/TravelPort.sln --configuration Release --no-restore --verbosity minimal
+      - run: dotnet build backend/TravelPort.sln --configuration Release --no-restore --verbosity minimal
+      - run: dotnet list backend/TravelPort.sln package --vulnerable --include-transitive
+
+  frontend:
+    name: Frontend - lint, test, build, audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --prefix frontend
+      - run: npm run lint --prefix frontend
+      - run: npm run test --prefix frontend -- --run
+      - run: npm run build --prefix frontend
+        env:
+          VITE_API_BASE_URL: ""
+      - run: npm audit --prefix frontend --audit-level=low
+
+  docker:
+    name: Docker Compose configuration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cp .env.example .env
+      - run: docker compose config --quiet

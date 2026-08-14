@@ -10,7 +10,7 @@ BEGIN
     DECLARE @Offset INT = (@PageNumber - 1) * @PageSize;
 
     SELECT
-        b.[BookingId],
+        b.[Id] AS [BookingId],
         b.[BookingRef],
         b.[BookingType],
         b.[ReferenceId],
@@ -21,13 +21,13 @@ BEGIN
         b.[CreatedAt],
         b.[CancelledAt],
         b.[RefundAmount],
-        p.[PaymentId],
+        p.[Id] AS [PaymentId],
         p.[Method]       AS [PaymentMethod],
         p.[Status]       AS [PaymentStatus],
         p.[PaidAt],
         COUNT(1) OVER () AS [TotalCount]
     FROM [dbo].[Bookings] b
-    LEFT JOIN [dbo].[Payments] p ON p.[BookingId] = b.[BookingId] AND p.[DeletedAt] IS NULL
+    LEFT JOIN [dbo].[Payments] p ON p.[BookingId] = b.[Id] AND p.[DeletedAt] IS NULL
     WHERE
         b.[UserId]    = @UserId
         AND b.[DeletedAt] IS NULL

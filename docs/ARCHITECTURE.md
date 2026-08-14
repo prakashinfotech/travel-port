@@ -49,7 +49,7 @@ backend/src/
 │   │   ├── UsersController.cs
 │   │   ├── AdminController.cs
 │   │   ├── HotelManagerController.cs   ← [Authorize(Roles="Hotel")] — scoped to JWT hotelId
-│   │   ├── AiController.cs             ← Gemini API proxy (chat/nl-search/recommendations/trip-plan/price-insight)
+│   │   ├── AiController.cs             ← Groq API proxy (chat/nl-search/recommendations/trip-plan/price-insight)
 │   │   ├── AnnouncementsController.cs
 │   │   ├── BusesController.cs
 │   │   ├── TrainsController.cs
@@ -123,7 +123,7 @@ backend/src/
     │   ├── BookingRepository.cs    ← GetHotelBookingsPagedAsync
     │   └── ...
     ├── Configurations/         ← EF entity configurations
-    └── Seeds/                  ← DataSeeder (users, 900+ flights, 60+ hotels, 11 coupons, bookings)
+    └── Seeds/                  ← Non-sensitive inventory and coupon seed data only
 ```
 
 ---
@@ -299,8 +299,8 @@ Refresh Token → New pair issued
 | `hotels:{City}:{CheckIn}:{CheckOut}:{Guests}:{Rating}:{Sort}` | 5 min | HotelService.SearchAsync |
 | `hotel:{id}` | 30 min | HotelService.GetByIdAsync |
 
-**Implementation:** `ICacheService` wraps `IDistributedCache` with JSON serialization.  
-**Default:** In-memory (`AddDistributedMemoryCache`).  
+**Implementation:** `ICacheService` wraps `IDistributedCache` with JSON serialization.
+**Default:** In-memory (`AddDistributedMemoryCache`).
 **Production swap:** Replace with `AddStackExchangeRedisCache` in `Program.cs` — no service code changes needed.
 
 Cache entries for a flight/hotel are **invalidated on booking** (seat count changes).

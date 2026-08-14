@@ -1,0 +1,21 @@
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost\\SQLEXPRESS;Database=TravelPort;Integrated Security=True;TrustServerCertificate=True;"
+  },
+  "JwtSettings": {
+    "Secret": "SET_A_RANDOM_SECRET_OF_AT_LEAST_32_CHARACTERS"
+  },
+  "Groq": { "ApiKey": "", "Model": "llama-3.3-70b-versatile" },
+  "Duffel": { "Enabled": false, "ApiToken": "" },
+  "Amadeus": { "Enabled": false, "ApiKey": "", "ApiSecret": "" },
+  "Razorpay": { "Enabled": false, "KeyId": "", "KeySecret": "" },
+  "Email": {
+    "Enabled": false,
+    "FromEmail": "",
+    "SmtpHost": "",
+    "SmtpPort": 587,
+    "Username": "",
+    "Password": "",
+    "EnableSsl": true
+  }
+}

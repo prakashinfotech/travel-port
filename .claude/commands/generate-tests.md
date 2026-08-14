@@ -5,7 +5,7 @@ description: Generate xUnit tests (backend) or Vitest tests (frontend) for a Tra
 You are working on the **TravelPort** project.
 
 ## Backend — xUnit (.NET 8)
-- Test project: `backend/tests/TravelPort.Tests/`
+- Test project: `backend/tests/TravelPort.Application.Tests/`
 - Use `Moq` for mocking interfaces (`IUserRepository`, `IUnitOfWork`, `IJwtService`, etc.)
 - Use `FluentAssertions` for readable assertions
 - Test class naming: `<ServiceName>Tests`

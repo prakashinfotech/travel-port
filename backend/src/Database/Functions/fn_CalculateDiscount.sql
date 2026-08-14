@@ -8,7 +8,7 @@ CREATE FUNCTION [dbo].[fn_CalculateDiscount]
 RETURNS DECIMAL(10, 2)
 AS
 BEGIN
-    DECLARE @Discount    DECIMAL(10, 2) = 0;
+    DECLARE @Discount    DECIMAL(10, 2) = CAST(0.00 AS DECIMAL(10, 2));
     DECLARE @Type        NVARCHAR(20);
     DECLARE @Value       DECIMAL(10, 2);
     DECLARE @MinAmount   DECIMAL(10, 2);
@@ -26,21 +26,21 @@ BEGIN
     FROM [dbo].[Coupons]
     WHERE [Code]     = @CouponCode
       AND [IsActive] = 1
-      AND ([ExpiresAt] IS NULL OR [ExpiresAt] > GETUTCDATE())
+      AND ISNULL([ExpiresAt], CONVERT(DATETIME2, '9999-12-31')) > GETUTCDATE()
       AND [DeletedAt] IS NULL;
 
     -- Coupon not found or expired
-    IF @Type IS NULL RETURN 0;
+    IF @Type IS NULL RETURN CAST(0.00 AS DECIMAL(10, 2));
 
     -- Minimum order amount not met
-    IF @OrderAmount < @MinAmount RETURN 0;
+    IF @OrderAmount < ISNULL(@MinAmount, CAST(0.00 AS DECIMAL(10, 2))) RETURN CAST(0.00 AS DECIMAL(10, 2));
 
     -- Usage limit exceeded
-    IF @UsageLimit IS NOT NULL AND @UsedCount >= @UsageLimit RETURN 0;
+    IF @UsageLimit IS NOT NULL AND ISNULL(@UsedCount, 0) >= @UsageLimit RETURN CAST(0.00 AS DECIMAL(10, 2));
 
     SET @Discount = CASE @Type
-        WHEN 'Percentage' THEN @OrderAmount * @Value / 100
-        ELSE @Value
+        WHEN 'Percentage' THEN @OrderAmount * ISNULL(@Value, CAST(0.00 AS DECIMAL(10, 2))) / CAST(100.00 AS DECIMAL(10, 2))
+        ELSE ISNULL(@Value, CAST(0.00 AS DECIMAL(10, 2)))
     END;
 
     -- Cap at maximum discount

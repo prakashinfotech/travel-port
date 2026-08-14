@@ -11,6 +11,10 @@ CREATE PROCEDURE [dbo].[usp_BookFlight]
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET @BookingId = NULL;
+    SET @BookingRef = NULL;
+    SET @FinalAmount = CAST(0.00 AS DECIMAL(10, 2));
+    SET @ErrorMessage = NULL;
     BEGIN TRY
         BEGIN TRANSACTION;
 
@@ -24,11 +28,25 @@ BEGIN
             @BusinessPrice  = [BusinessPrice],
             @AvailableSeats = [AvailableSeats]
         FROM [dbo].[Flights] WITH (UPDLOCK, ROWLOCK)
-        WHERE [FlightId] = @FlightId AND [IsActive] = 1 AND [DeletedAt] IS NULL;
+        WHERE [Id] = @FlightId AND [IsActive] = 1 AND [DeletedAt] IS NULL;
 
         IF @EconomyPrice IS NULL
         BEGIN
             SET @ErrorMessage = 'Flight not found or inactive.';
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END;
+
+        IF @PassengerCount <= 0
+        BEGIN
+            SET @ErrorMessage = 'Passenger count must be greater than zero.';
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END;
+
+        IF @Class = 'Business' AND @BusinessPrice IS NULL
+        BEGIN
+            SET @ErrorMessage = 'Business class is not available for this flight.';
             ROLLBACK TRANSACTION;
             RETURN;
         END;
@@ -41,9 +59,9 @@ BEGIN
         END;
 
         -- Calculate price
-        DECLARE @UnitPrice     DECIMAL(10, 2) = CASE @Class WHEN 'Business' THEN @BusinessPrice ELSE @EconomyPrice END;
-        DECLARE @TotalAmount   DECIMAL(10, 2) = @UnitPrice * @PassengerCount;
-        DECLARE @DiscountAmt   DECIMAL(10, 2) = 0;
+        DECLARE @UnitPrice     DECIMAL(10, 2) = CASE @Class WHEN 'Business' THEN ISNULL(@BusinessPrice, @EconomyPrice) ELSE @EconomyPrice END;
+        DECLARE @TotalAmount   DECIMAL(10, 2) = @UnitPrice * CAST(@PassengerCount AS DECIMAL(10, 2));
+        DECLARE @DiscountAmt   DECIMAL(10, 2) = CAST(0.00 AS DECIMAL(10, 2));
 
         -- Apply coupon if provided
         IF @CouponCode IS NOT NULL
@@ -57,7 +75,7 @@ BEGIN
                     @UsedCount   INT;
 
             SELECT
-                @CouponId    = [CouponId],
+                @CouponId    = [Id],
                 @CouponType  = [Type],
                 @CouponValue = [Value],
                 @MinAmount   = [MinAmount],
@@ -67,22 +85,22 @@ BEGIN
             FROM [dbo].[Coupons]
             WHERE [Code] = @CouponCode
               AND [IsActive] = 1
-              AND ([ExpiresAt] IS NULL OR [ExpiresAt] > GETUTCDATE())
+              AND ISNULL([ExpiresAt], CONVERT(DATETIME2, '9999-12-31')) > GETUTCDATE()
               AND [DeletedAt] IS NULL;
 
-            IF @CouponId IS NOT NULL AND @TotalAmount >= @MinAmount
-               AND (@UsageLimit IS NULL OR @UsedCount < @UsageLimit)
+            IF @CouponId IS NOT NULL AND @TotalAmount >= ISNULL(@MinAmount, CAST(0.00 AS DECIMAL(10, 2)))
+               AND (@UsageLimit IS NULL OR ISNULL(@UsedCount, 0) < @UsageLimit)
             BEGIN
                 SET @DiscountAmt = CASE @CouponType
-                    WHEN 'Percentage' THEN @TotalAmount * @CouponValue / 100
-                    ELSE @CouponValue
+                    WHEN 'Percentage' THEN @TotalAmount * ISNULL(@CouponValue, CAST(0.00 AS DECIMAL(10, 2))) / CAST(100.00 AS DECIMAL(10, 2))
+                    ELSE ISNULL(@CouponValue, CAST(0.00 AS DECIMAL(10, 2)))
                 END;
 
                 IF @MaxDiscount IS NOT NULL AND @DiscountAmt > @MaxDiscount
                     SET @DiscountAmt = @MaxDiscount;
 
                 -- Increment coupon usage
-                UPDATE [dbo].[Coupons] SET [UsedCount] = [UsedCount] + 1 WHERE [CouponId] = @CouponId;
+                UPDATE [dbo].[Coupons] SET [UsedCount] = [UsedCount] + 1 WHERE [Id] = @CouponId;
             END;
         END;
 
@@ -94,17 +112,17 @@ BEGIN
         -- Create booking
         SET @BookingId = NEWID();
         INSERT INTO [dbo].[Bookings]
-            ([BookingId], [BookingRef], [UserId], [BookingType], [ReferenceId],
-             [TotalAmount], [DiscountAmount], [FinalAmount], [Status])
+            ([Id], [BookingRef], [UserId], [BookingType], [ReferenceId],
+             [TotalAmount], [DiscountAmount], [FinalAmount], [Status], [Passengers], [CouponCode])
         VALUES
             (@BookingId, @BookingRef, @UserId, 'Flight', @FlightId,
-             @TotalAmount, @DiscountAmt, @FinalAmount, 'Pending');
+             @TotalAmount, @DiscountAmt, @FinalAmount, 'Pending', @PassengerCount, @CouponCode);
 
         -- Decrement available seats
         UPDATE [dbo].[Flights]
         SET [AvailableSeats] = [AvailableSeats] - @PassengerCount,
             [UpdatedAt]      = GETUTCDATE()
-        WHERE [FlightId] = @FlightId;
+        WHERE [Id] = @FlightId;
 
         -- Audit
         INSERT INTO [dbo].[AuditLogs] ([UserId], [Action], [Entity], [EntityId], [NewValues])

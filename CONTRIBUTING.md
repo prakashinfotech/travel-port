@@ -1,105 +1,58 @@
-# Contributing Guide
-
-## Branch Strategy
-
-```
-main
- └── Development   ← integration branch; all PRs merge here
-       └── feature/your-feature   ← ALL work happens on feature branches
-```
-
-### Rules
-
-| Rule | Detail |
-|---|---|
-| **Never commit directly to `main`** | `main` is protected — direct pushes are blocked |
-| **Never commit directly to `Development`** | All work goes on a feature branch; merge via PR |
-| **Always branch from `Development`** | `git checkout Development && git pull` before creating a branch |
-| **Merge to `Development` via PR only** | Open a Pull Request: `feature/x` → `Development` |
-| **Merge to `main` via PR only** | Raise a Pull Request from `Development` → `main` when ready to release |
-| **No force pushes** | Force pushes to `main` and `Development` are disabled |
-
----
+# Contributing to TravelPort
 
 ## Workflow
 
-### Every change — feature branch required
+The default and integration branch is `master`. Do not commit directly to a protected `master` branch after the initial repository bootstrap.
+
 ```bash
-# Start from up-to-date Development
-git checkout Development
-git pull origin Development
+git switch master
+git pull --ff-only
+git switch -c feat/short-description
+```
 
-# Create your feature branch
-git checkout -b feature/your-feature-name
+Use one of these prefixes: `feat/`, `fix/`, `docs/`, `test/`, `refactor/`, `chore/`, or `security/`.
 
-# Enable the repository hook once per clone
+Before opening a pull request:
+
+```bash
+dotnet test backend/TravelPort.sln --configuration Release
+npm run lint --prefix frontend
+npm run test --prefix frontend -- --run
+npm run build --prefix frontend
+dotnet list backend/TravelPort.sln package --vulnerable --include-transitive
+npm audit --prefix frontend --audit-level=low
+```
+
+You can also enable the versioned local hook:
+
+```bash
 git config core.hooksPath .githooks
-
-# ... do work, run tests, commit ...
-./scripts/test-all.sh
-git add <specific-files>
-git commit -m "feat: describe your change"
-
-# Push the feature branch
-git push -u origin feature/your-feature-name
-
-# Open a PR on GitHub: feature/your-feature-name → Development
-# After merge, delete the branch locally and remotely
-git checkout Development
-git branch -d feature/your-feature-name
-git push origin --delete feature/your-feature-name
 ```
 
-### Releasing to main
-1. Go to GitHub → Pull Requests → New Pull Request
-2. Set **base: `main`** ← **compare: `Development`**
-3. Write a clear PR description summarising what changed
-4. Merge (squash or merge commit — no rebase)
+## Commit messages
 
----
+Use Conventional Commits:
 
-## Commit Message Format
-
-```
-<type>: <short description>
-
-Types: feat | fix | refactor | docs | test | chore
+```text
+type(scope): concise imperative summary
 ```
 
 Examples:
-- `feat: add hotel filter by star rating`
-- `fix: correct flight search parameter name`
-- `docs: update API endpoint table in README`
-- `chore: bump EF Core to 8.0.12`
 
----
+- `feat(bookings): add cancellation confirmation`
+- `fix(auth): reject expired refresh tokens`
+- `docs(setup): clarify SQL Server prerequisites`
+- `security(deps): update PDF generation library`
 
-## Test Rule
+## Pull requests
 
-Every commit must pass the shared repository test gate before it is created.
+- Target `master`.
+- Explain the reason and user-visible behavior.
+- Include setup, migration, and configuration impact.
+- Include exact verification commands and results.
+- Add screenshots for UI changes.
+- Never include credentials, tokens, production data, or private recovery files.
 
-Commands:
+Fresh databases intentionally contain no default user accounts. Create users through registration or an approved private environment setup process.
 
-```bash
-./scripts/test-all.sh
-```
-
-```powershell
-.\scripts\test-all.cmd
-```
-
-What is enforced:
-- The versioned pre-commit hook at `.githooks/pre-commit` runs the shared test command.
-- Contributors should enable the hook once per clone with `git config core.hooksPath .githooks`.
-- GitHub Actions runs the same backend and frontend tests again on every push and pull request to `Development`.
-
----
-
-## Test Credentials (Development Only)
-
-| Role | Email | Password |
-|---|---|---|
-| Admin | admin@travelport.com | Admin@123 |
-| User | john@example.com | User@123 |
-| User | priya@example.com | User@123 |
-| User | rahul@example.com | User@123 |
+Copyright © Prakash Infotech. All rights reserved.

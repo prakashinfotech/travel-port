@@ -41,7 +41,7 @@ Generates comprehensive test suites for TravelPort backend services (xUnit) or f
 ### Backend (xUnit)
 | Artifact | Location |
 |----------|----------|
-| Test class | `backend/tests/TravelPort.Tests/<domain>/<Name>Tests.cs` |
+| Test class | `backend/tests/TravelPort.Application.Tests/<domain>/<Name>Tests.cs` |
 | Mock setup | Inline using `Moq` |
 | Assertions | `FluentAssertions` |
 

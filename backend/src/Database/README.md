@@ -1,29 +1,27 @@
-# New SDK-style SQL project with Microsoft.Build.Sql
+# TravelPort SSDT database project
+
+This SDK-style Microsoft.Build.Sql project is the authoritative database deployment source for TravelPort. It targets SQL Server 2019 or newer and builds on Windows or Linux with the .NET 8 SDK.
 
 ## Build
 
-To build the project, run the following command:
-
 ```bash
-dotnet build
+dotnet build TravelPort.Database.sqlproj --configuration Release
 ```
 
-🎉 Congrats! You have successfully built the project and now have a `dacpac` to deploy anywhere.
+The DACPAC is written to `bin/Release/TravelPort.Database.dacpac`.
 
-## Publish
+## Deploy
 
-To publish the project, the SqlPackage CLI or the SQL Database Projects extension for VS Code is required. The following command will publish the project to a local SQL Server instance:
-
-```bash
-sqlpackage /Action:Publish /SourceFile:bin/Debug/TravelPort.Database.dacpac /TargetServerName:localhost /TargetDatabaseName:TravelPort.Database
-```
-
-Learn more about authentication and other options for SqlPackage here: https://aka.ms/sqlpackage-ref
-
-### Install SqlPackage CLI
-
-If you would like to use the command-line utility SqlPackage.exe for deploying the `dacpac`, you can obtain it as a dotnet tool.  The tool is available for Windows, macOS, and Linux.
+Generate and review a script first:
 
 ```bash
-dotnet tool install -g microsoft.sqlpackage
+sqlpackage /Action:Script \
+  /SourceFile:bin/Release/TravelPort.Database.dacpac \
+  /TargetConnectionString:"<target-connection-string>" \
+  /OutputPath:TravelPort.deploy.sql \
+  /p:BlockOnPossibleDataLoss=True
 ```
+
+After approval and backup, use `/Action:Publish` with the same source and target. The post-deployment script is idempotent and contains catalogue data only; it does not create users or credentials.
+
+Keep the EF Core model and compatibility migration chain in `../Persistence/Migrations` synchronized with each SSDT schema change. Deployed API instances must leave `Database:ApplyEfMigrations` disabled.

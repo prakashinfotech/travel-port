@@ -3,7 +3,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TravelPort.Application.Common.Interfaces;
 using TravelPort.Application.DTOs.Payments;
@@ -14,16 +13,13 @@ public class RazorpayService : IPaymentService
 {
     private readonly HttpClient _http;
     private readonly RazorpaySettings _settings;
-    private readonly ILogger<RazorpayService> _logger;
-
     private const string BaseUrl = "https://api.razorpay.com/v1";
 
     public bool IsConfigured => _settings.Enabled
         && !string.IsNullOrWhiteSpace(_settings.KeyId)
         && !string.IsNullOrWhiteSpace(_settings.KeySecret);
 
-    public RazorpayService(HttpClient http, IOptions<RazorpaySettings> settings,
-        ILogger<RazorpayService> logger)
+    public RazorpayService(HttpClient http, IOptions<RazorpaySettings> settings)
     {
         _http = http;
         _settings = settings.Value;

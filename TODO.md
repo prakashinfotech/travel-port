@@ -1,5 +1,7 @@
 # TODO.md — TravelPort Backlog
 
+> Current setup, security, and release instructions live in the root README. Older completed entries below are retained as project history.
+
 > Status legend: 🔴 High priority · 🟡 Medium · 🟢 Low · ✅ Done · ❌ Won't do
 
 ---
@@ -12,7 +14,7 @@
 | 2 | Verify TravellerSelector popup closes correctly on mobile | 🟡 | `overflow-hidden` fix applied; test touch events |
 | 3 | Wire Razorpay live key for Card payment in production | 🟡 | Card/UPI/NetBanking pages currently use mock API; real Razorpay needs live key in appsettings |
 | 4 | Mobile-responsive filter drawer — slide-over panel for filters on screens < 1024px | 🔴 | All listing pages (Flights/Hotels/Buses/Trains/Cabs) hide the left sidebar on mobile |
-| 5 | ✅ Gemini AI fully working — `gemini-2.0-flash` model via env var; `Gemini__Model` wired in `docker-compose.yml` | ✅ | |
+| 5 | Current Groq AI integration verified with optional `Groq__ApiKey`; historical Gemini work is retained below for audit context | Done | Disabled safely when no key is configured |
 | 6 | ✅ Bold UI redesign — Poppins font, dark navbar gradient, dark footer, gradient buttons, vibrant badges | ✅ | |
 
 ---
@@ -108,7 +110,7 @@
 
 - [x] ✅ **Dockerfile for API + Frontend** — multi-stage Dockerfiles for both; Nginx serves React SPA + proxies `/api` to backend.
 - [x] ✅ **CI/CD pipeline** — GitHub Actions 3-job workflow: build → owner approval gate → Docker push to Docker Hub → image verify; `environment: production` requires manual approval before any image is pushed.
-- [x] ✅ **docker-compose.yml** — orchestrates SQL Server 2022 + .NET API + Nginx/React; healthcheck gates API start; images pulled from Docker Hub via `DOCKERHUB_USERNAME` env var.
+- [x] ✅ **docker-compose.yml** — orchestrates SQL Server 2022 + .NET API + Nginx/React; healthcheck gates API start; application images build locally from source.
 - [x] ✅ **Auto EF migrations on startup** — `db.Database.Migrate()` in `Program.cs`; no manual `dotnet ef` needed in containers.
 - [ ] 🟡 **HTTPS with Let's Encrypt** — add Certbot sidecar to docker-compose for automatic SSL certificate management.
 - [ ] 🟢 **Redis for caching** — replace in-memory `IMemoryCache` with Redis for multi-instance support.

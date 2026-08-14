@@ -33,7 +33,7 @@ export function SavedCards() {
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { fetchCards() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchCards() }, [])
 
   const handleDelete = async () => {
     if (!cardToDelete) return

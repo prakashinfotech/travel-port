@@ -13,18 +13,18 @@
 |---|---|
 | Frontend | React 18, TypeScript, Vite, Tailwind CSS v3, Redux Toolkit |
 | Backend | .NET 8, Clean Architecture, EF Core 8, FluentValidation |
-| Database | SQL Server Express (localhost\SQLEXPRESS) |
+| Database | SQL Server 2019+, SSDT/Microsoft.Build.Sql DACPAC, EF Core 8 |
 | Auth | JWT (15 min) + Refresh Tokens (7 days), BCrypt cost 12 |
 | Caching | In-memory (IMemoryCache via ICacheService) |
-| Deployment | Docker (multi-stage Dockerfiles, Nginx, docker-compose), GitHub Actions CI/CD |
-| External | Duffel (flights, off by default), Razorpay (payments), SMTP/Office365 (email) |
+| Deployment | Local Docker builds; manual DACPAC-first GitHub deployment workflow |
+| External | Groq, Amadeus, Duffel, Razorpay, and SMTP (all optional/configured without committed secrets) |
 
 ---
 
 ## Repository Layout
 
 ```
-Goibibo-AI-Assignment/
+travel-port/
 ├── backend/src/
 │   ├── Domain/          # Entities, Enums — no dependencies
 │   ├── Application/     # DTOs, Services, Interfaces, Validators
@@ -64,13 +64,13 @@ After any code or config change, update the relevant documentation:
 ### 3. Commit and PR workflow — NEVER BREAK THIS SEQUENCE
 - **Never auto-commit or auto-push.** Only start this workflow when the user explicitly says "commit" or "create PR"
 - **Mandatory sequence for every commit — no exceptions:**
-  1. `git checkout Development && git pull origin Development` — pull latest Development first
+  1. `git switch master && git pull --ff-only origin master` — pull the latest `master` branch first
   2. `git checkout -b <descriptive-feature-branch>` — create a new branch named after the feature/fix (e.g. `feat/hotel-search-filter`, `fix/booking-email-null`)
   3. Stage specific files (never `git add -A` blindly), then commit following `GIT.md` conventions
   4. **Stop. Ask the user:** "Ready to push `<branch>` to origin and open a PR?" — never push without explicit yes
   5. Only push + create PR after user confirms
 - Follow the commit convention in `GIT.md` exactly
-- All commits go to a feature branch, never directly to `main` or `Development`
+- All commits go to a feature branch, never directly to protected `master` after repository bootstrap
 - Before a commit, run the shared test gate: `./scripts/test-all.sh` or `.\scripts\test-all.cmd`
 - Keep `git config core.hooksPath .githooks` enabled in the working clone so the pre-commit hook enforces tests
 
@@ -80,11 +80,11 @@ After any code or config change, update the relevant documentation:
 - Real tokens must never appear in `appsettings.json`
 
 ### 5. Database refresh
-When DataSeeder changes, the DB must be dropped and recreated:
+Build and publish the authoritative DACPAC to a disposable development database. Destructive refreshes are local-only and require an explicit target check:
 ```bash
 cd backend
-dotnet ef database drop --project src/Persistence --startup-project src/API --force
-dotnet ef database update --project src/Persistence --startup-project src/API
+dotnet build src/Database/TravelPort.Database.sqlproj --configuration Release
+sqlpackage /Action:Publish /SourceFile:src/Database/bin/Release/TravelPort.Database.dacpac /TargetConnectionString:"<development-connection-string>" /p:BlockOnPossibleDataLoss=True
 dotnet run --project src/API --launch-profile https
 ```
 
@@ -124,14 +124,16 @@ dotnet run --project src/API --launch-profile https
 
 | File | Purpose |
 |---|---|
-| `backend/src/API/Program.cs` | DI registration, middleware pipeline, auto-migrate on startup |
+| `backend/src/API/Program.cs` | DI registration, middleware pipeline, optional local EF migration fallback |
+| `backend/src/Database/TravelPort.Database.sqlproj` | Authoritative SSDT schema and DACPAC deployment artifact |
 | `backend/src/Application/DependencyInjection.cs` | Service registrations |
 | `backend/src/Persistence/Seeds/DataSeeder.cs` | All seed data (900+ flights, 60+ hotels, 11 coupons) |
 | `backend/src/Application/Services/FlightService.cs` | Flight search + booking logic |
 | `backend/src/Application/Services/AdminService.cs` | Admin dashboard, analytics, user/coupon management |
 | `backend/src/Infrastructure/ExternalProviders/Email/SmtpEmailService.cs` | Email templates (table-based HTML for Gmail/Outlook compat) |
 | `docker-compose.yml` | SQL Server + API + Nginx/React orchestration |
-| `.github/workflows/deploy.yml` | 3-job CI/CD pipeline |
+| `.github/workflows/ci.yml` | Master-branch build, test, audit, DACPAC, and Compose verification |
+| `.github/workflows/deploy.yml` | Manual DACPAC publish followed by the API deployment gate |
 | `frontend/src/api/axios.ts` | Axios instance + JWT interceptor |
 | `frontend/src/api/endpoints.ts` | All API endpoint constants |
 | `frontend/src/types/index.ts` | All shared TypeScript types |
@@ -141,14 +143,9 @@ dotnet run --project src/API --launch-profile https
 
 ---
 
-## Test Credentials
+## Test Accounts
 
-| Role | Email | Password |
-|---|---|---|
-| Admin | admin@travelport.com | Admin@123 |
-| User | john@example.com | User@123 |
-| User | priya@example.com | User@123 |
-| User | rahul@example.com | User@123 |
+Fresh databases do not contain public default accounts. Register through the application or use a company-approved private environment setup process.
 
 ---
 
@@ -166,7 +163,8 @@ App → `http://localhost` | Swagger → `http://localhost/api/swagger`
 # Backend
 cd backend
 dotnet restore
-dotnet ef database update --project src/Persistence --startup-project src/API
+dotnet build src/Database/TravelPort.Database.sqlproj --configuration Release
+sqlpackage /Action:Publish /SourceFile:src/Database/bin/Release/TravelPort.Database.dacpac /TargetConnectionString:"<development-connection-string>" /p:BlockOnPossibleDataLoss=True
 dotnet run --project src/API --launch-profile https
 
 # Frontend (separate terminal)

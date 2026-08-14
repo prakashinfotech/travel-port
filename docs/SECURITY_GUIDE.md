@@ -104,13 +104,15 @@ Enforced via ASP.NET Core Rate Limiting middleware (`AddRateLimiter`) with `Fixe
 | SMTP username + password | `appsettings.Development.json` or Docker env var `Email__Username` / `Email__Password` |
 | Razorpay Key + Secret | `appsettings.Development.json` or CI/CD secret |
 | Duffel API token | `appsettings.Development.json` only |
+| Groq API key | `appsettings.Development.json`, user secrets, or deployment secret |
 
 ### appsettings.json (committed) — safe defaults only
 ```json
 {
   "Email": { "Enabled": false, "Username": "", "Password": "" },
   "Razorpay": { "Enabled": false, "KeyId": "", "KeySecret": "" },
-  "Duffel": { "Enabled": false, "ApiToken": "" }
+  "Duffel": { "Enabled": false, "ApiToken": "" },
+  "Groq": { "ApiKey": "" }
 }
 ```
 

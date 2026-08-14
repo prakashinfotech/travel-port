@@ -24,7 +24,7 @@ BEGIN
     END;
 
     SELECT
-        h.[HotelId],
+        h.[Id] AS [HotelId],
         h.[Name],
         h.[City],
         h.[Address],
@@ -33,11 +33,11 @@ BEGIN
         h.[Latitude],
         h.[Longitude],
         MIN(r.[PricePerNight])           AS [MinPricePerNight],
-        MIN(r.[PricePerNight]) * @Nights AS [TotalMinPrice],
+        MIN(r.[PricePerNight]) * CAST(@Nights AS DECIMAL(10, 2)) AS [TotalMinPrice],
         COUNT(1) OVER ()                 AS [TotalCount]
     FROM [dbo].[Hotels] h
     INNER JOIN [dbo].[HotelRooms] r
-        ON r.[HotelId] = h.[HotelId]
+        ON r.[HotelId] = h.[Id]
         AND r.[IsActive] = 1
         AND r.[MaxGuests] >= @Guests
         AND r.[TotalRooms] >= @Rooms
@@ -50,7 +50,7 @@ BEGIN
         AND (@MinPrice  IS NULL OR r.[PricePerNight] >= @MinPrice)
         AND (@MaxPrice  IS NULL OR r.[PricePerNight] <= @MaxPrice)
     GROUP BY
-        h.[HotelId], h.[Name], h.[City], h.[Address],
+        h.[Id], h.[Name], h.[City], h.[Address],
         h.[StarRating], h.[Amenities], h.[Latitude], h.[Longitude]
     ORDER BY
         CASE WHEN @SortBy = 'Price'  THEN MIN(r.[PricePerNight]) END ASC,

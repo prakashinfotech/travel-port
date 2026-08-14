@@ -1,8 +1,10 @@
 # .NET build artifacts
 **/bin/
 **/obj/
+artifacts/
 *.user
 *.suo
+*.lscache
 .vs/
 _ReSharper*/
 *.DotSettings.user
@@ -11,6 +13,10 @@ _ReSharper*/
 logs/
 *.log
 *.txt
+TestResults/
+coverage/
+coverage.*
+*.trx
 
 # EF Core migration bundles
 efbundle
@@ -20,24 +26,51 @@ efbundle.exe
 node_modules/
 dist/
 .cache/
+**/.vite/
 *.local
 
 # Env / secrets
-.env
-.env.local
-.env.*.local
-appsettings.Development.json
-appsettings.Production.json
+.env*
+!.env.example
+!**/.env.example
+appsettings.*.json
+!appsettings.json
+!appsettings.*.json.example
+secrets.json
+credentials.json
+*Private*Credentials*.xlsx
+*Private*Credentials*.pdf
+*credentials*.xlsx
+*credentials*.pdf
+*.pfx
+*.p12
+*.pem
+*.key
 
 # SQL Server database project artifacts
 *.dbmdl
 *.dbproj.schemaview
 *.jfm
+*.dacpac
 
 # OS
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# Temp / Claude
-C:/Temp/
+# Temporary, backup, generated, and IDE files
+*.bak
+*.tmp
+*.temp
+*.orig
+*.rej
+*.pid
+*.zip
+*.tar
+*.gz
+.idea/
+.vscode/
+outputs/
+_scratch/
+tmp/
+_company_release/

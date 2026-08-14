@@ -178,7 +178,7 @@ public class BookingService : IBookingService
 
             await _email.SendHotelBookingConfirmationAsync(
                 toEmail, toName, booking.BookingRef,
-                hotel.Name, hotel.Address, hotel.City, hotel.StarRating,
+                hotel.Name, hotel.Address ?? string.Empty, hotel.City, hotel.StarRating,
                 roomType,
                 booking.CheckIn?.ToString("dd MMM yyyy") ?? string.Empty,
                 booking.CheckOut?.ToString("dd MMM yyyy") ?? string.Empty,

@@ -1,9 +1,9 @@
 # 📡 API Documentation — TravelPort
 
-**Base URL (local):** `http://localhost:5000/api/v1`  
-**Base URL (Docker):** `http://localhost/api/v1`  
-**Swagger UI (local):** `http://localhost:5000/swagger`  
-**Swagger UI (Docker):** `http://localhost/api/swagger`  
+**Base URL (local):** `http://localhost:5000/api/v1`
+**Base URL (Docker):** `http://localhost/api/v1`
+**Swagger UI (local):** `http://localhost:5000/swagger`
+**Swagger UI (Docker):** `http://localhost/api/swagger`
 **Auth:** `Authorization: Bearer <jwt_token>`
 
 ---
@@ -23,7 +23,7 @@
 ### POST /auth/register
 ```json
 Request:
-{ "name": "John Doe", "email": "john@example.com", "phone": "9876543210", "password": "Secure@123" }
+{ "name": "Sample User", "email": "user@example.invalid", "phone": "9000000000", "password": "replace-with-strong-password" }
 
 Response 201:
 { "success": true, "message": "Registration successful. Please verify your email." }
@@ -32,7 +32,7 @@ Response 201:
 ### POST /auth/login
 ```json
 Request:
-{ "email": "john@example.com", "password": "Secure@123" }
+{ "email": "user@example.invalid", "password": "replace-with-strong-password" }
 
 Response 200:
 {
@@ -41,7 +41,7 @@ Response 200:
     "accessToken": "eyJ...",
     "refreshToken": "abc...",
     "expiresIn": 900,
-    "user": { "userId": "uuid", "name": "John", "email": "john@example.com", "role": "User" }
+    "user": { "userId": "uuid", "name": "Sample User", "email": "user@example.invalid", "role": "User" }
   }
 }
 ```
@@ -49,7 +49,7 @@ Response 200:
 ### POST /auth/forgot-password
 ```json
 Request:
-{ "email": "john@example.com" }
+{ "email": "user@example.invalid" }
 
 Response 200:
 {
@@ -64,7 +64,7 @@ When SMTP email is disabled (`Email__Enabled=false`), the backend logs the reset
 ### POST /auth/reset-password
 ```json
 Request:
-{ "token": "raw-reset-token", "newPassword": "NewPass@123" }
+{ "token": "raw-reset-token", "newPassword": "replace-with-new-strong-password" }
 
 Response 200:
 {
@@ -129,7 +129,7 @@ Request:
   "passengers": [
     { "name": "John Doe", "age": 30, "gender": "Male", "passportNo": "A1234567" }
   ],
-  "contactEmail": "john@example.com",
+  "contactEmail": "user@example.invalid",
   "couponCode": "SAVE100"
 }
 
@@ -575,7 +575,7 @@ Response 200 (paginated):
     {
       "id": "uuid",
       "name": "John Doe",
-      "email": "john@example.com",
+      "email": "user@example.invalid",
       "phone": "9876543210",
       "role": "User",
       "isActive": true,
@@ -690,7 +690,7 @@ Response 200:
       "reviewCount": 120,
       "isActive": true,
       "roomCount": 6,
-      "managerEmail": "manager@grandpalace.com",
+      "managerEmail": "manager@example.invalid",
       "createdAt": "2026-01-01T00:00:00Z"
     }
   ]
@@ -719,7 +719,7 @@ Response 200:
   "data": {
     "id": "uuid",
     "name": "John Doe",
-    "email": "john@example.com",
+    "email": "user@example.invalid",
     "phone": "9876543210",
     "role": "User",
     "isActive": true,
@@ -747,7 +747,7 @@ Query Params: status=Confirmed&type=Flight (both optional)
 
 Response 200: Content-Type: text/csv
 BookingReference,UserName,UserEmail,Type,Status,Amount,BookingDate,...
-FL2026XXXXXX,John Doe,john@example.com,Flight,Confirmed,4500,2026-05-01,...
+FL2026XXXXXX,Sample User,user@example.invalid,Flight,Confirmed,4500,2026-05-01,...
 ```
 
 ### GET /admin/coupons/analytics — Coupon Usage Analytics
@@ -824,8 +824,8 @@ Request:
   "address": "123 Marine Drive, Mumbai",
   "starRating": 5,
   "managerName": "Rajesh Kumar",
-  "managerEmail": "manager@grandpalace.com",
-  "managerPassword": "Hotel@2025"
+  "managerEmail": "manager@example.invalid",
+  "managerPassword": "replace-with-strong-temporary-password"
 }
 
 Response 201:
@@ -839,7 +839,7 @@ Response 201:
     "starRating": 5.0,
     "isActive": true,
     "roomCount": 0,
-    "managerEmail": "manager@grandpalace.com"
+    "managerEmail": "manager@example.invalid"
   }
 }
 ```
@@ -907,8 +907,8 @@ Request:
   "logoUrl": null,
   "headquartersCity": "Gurugram",
   "contactPhone": "+91-124-4973838",
-  "managerEmail": "ops@indigo.in",
-  "managerPassword": "Temp@1234",
+  "managerEmail": "operator@example.invalid",
+  "managerPassword": "replace-with-strong-temporary-password",
   "managerName": "Anil Sharma"
 }
 
@@ -922,7 +922,7 @@ Response 201:
     "iataCode": "6E",
     "isActive": true,
     "flightCount": 0,
-    "managerEmail": "ops@indigo.in",
+    "managerEmail": "operator@example.invalid",
     "createdAt": "2026-05-19T..."
   }
 }
@@ -1016,7 +1016,7 @@ Response 201:
 { "success": true, "message": "Bus added.", "data": { ...OperatorBusDto } }
 ```
 
-**Schedule types:** `OneTime` (single departure date), `Daily` (runs every day), `Weekly` (runs on specified days of week).  
+**Schedule types:** `OneTime` (single departure date), `Daily` (runs every day), `Weekly` (runs on specified days of week).
 **Seat layouts:** `2-2` (standard seater), `2-1` (sleeper/luxury), `1-1` (VIP), `3-2` (economy), `2-2-2` (wide-body).
 
 ### GET /bus-operator/buses/{busId}/seat-layout
@@ -1036,7 +1036,7 @@ Response 200:
     "ladiesSeats": ["1A", "1B"],
     "seats": [
       { "seatNumber": "1A", "isLadiesOnly": true, "isBooked": false },
-      { "seatNumber": "3B", "isLadiesOnly": false, "isBooked": true, "passengerName": "Priya", "passengerEmail": "priya@example.com", "bookingRef": "BU2026000001", "bookingId": "uuid" }
+      { "seatNumber": "3B", "isLadiesOnly": false, "isBooked": true, "passengerName": "Sample Passenger", "passengerEmail": "passenger@example.invalid", "bookingRef": "BU2026000001", "bookingId": "uuid" }
     ],
     "unassignedPassengers": 2
   }
@@ -1048,7 +1048,7 @@ Response 200:
 Request:
 {
   "passengerName": "Priya Sharma",
-  "passengerEmail": "priya@example.com",
+  "passengerEmail": "passenger@example.invalid",
   "passengerPhone": "+91 9123456789",
   "seatNumbers": ["3A", "3B"]
 }
@@ -1226,7 +1226,7 @@ Response 200:
 
 ## AI Endpoints
 
-All AI endpoints proxy to Claude API server-side. The `Claude:ApiKey` must be set in `appsettings.Development.json`. All endpoints return graceful fallbacks when the key is missing.
+All AI endpoints proxy to Groq server-side. Set `Groq:ApiKey` only in ignored local settings, user secrets, or deployment secrets. All endpoints return graceful fallbacks when the key is missing.
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
@@ -1237,7 +1237,7 @@ All AI endpoints proxy to Claude API server-side. The `Claude:ApiKey` must be se
 | GET | `/ai/price-insight` | ❌ | One-line price trend tip for a flight route (cached 30 min) |
 
 ### POST /ai/chat
-Streams Claude's response as `text/event-stream`. Each event is `data: "text chunk"\n\n`. Stream ends with `data: [DONE]\n\n`.
+Streams the Groq response as `text/event-stream`. Each event is `data: "text chunk"\n\n`. Stream ends with `data: [DONE]\n\n`.
 
 ```json
 Request:
@@ -1302,7 +1302,7 @@ Response 200:
 ```
 
 ### POST /ai/trip-plan
-Streams a Claude-generated day-by-day itinerary as `text/event-stream`. Response is markdown text with embedded `[BOOK_FLIGHT:params]` and `[BOOK_HOTEL:params]` deep-link markers.
+Streams a Groq-generated day-by-day itinerary as `text/event-stream`. Response is markdown text with embedded `[BOOK_FLIGHT:params]` and `[BOOK_HOTEL:params]` deep-link markers.
 
 ```json
 Request:

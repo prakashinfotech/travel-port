@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using TravelPort.Domain.Entities;
 using TravelPort.Domain.Enums;
 using TravelPort.Persistence.Context;
@@ -9,66 +9,19 @@ public static class DataSeeder
 {
     public static async Task SeedAsync(TravelPortDbContext context)
     {
-        await SeedUsersAsync(context);
         await SeedFlightsAsync(context);
         await SeedHotelsAsync(context);
         await SeedCouponsAsync(context);
         await context.SaveChangesAsync();
-        await SeedBookingsAsync(context);
-        await context.SaveChangesAsync();
     }
 
-    // ── Users ────────────────────────────────────────────────────────────────
+    // â”€â”€ Users â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-    private static async Task SeedUsersAsync(TravelPortDbContext context)
-    {
-        if (await context.Users.AnyAsync()) return;
-
-        var admin = new User
-        {
-            Id = Guid.NewGuid(), Name = "Admin User", Email = "admin@travelport.com",
-            Phone = "9000000001", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123", 12),
-            Role = UserRole.Admin, IsVerified = true, IsActive = true
-        };
-        admin.Wallet = new Wallet { Id = Guid.NewGuid(), UserId = admin.Id, Balance = 0 };
-
-        var john = new User
-        {
-            Id = Guid.NewGuid(), Name = "John Doe", Email = "john@example.com",
-            Phone = "9876543210", PasswordHash = BCrypt.Net.BCrypt.HashPassword("User@123", 12),
-            Role = UserRole.User, IsVerified = true, IsActive = true
-        };
-        john.Wallet = new Wallet { Id = Guid.NewGuid(), UserId = john.Id, Balance = 5000 };
-        john.SavedTravellers.Add(new SavedTraveller
-        {
-            Id = Guid.NewGuid(), UserId = john.Id, Name = "Jane Doe",
-            Email = "jane@example.com", Phone = "9876543211"
-        });
-
-        var priya = new User
-        {
-            Id = Guid.NewGuid(), Name = "Priya Sharma", Email = "priya@example.com",
-            Phone = "9123456789", PasswordHash = BCrypt.Net.BCrypt.HashPassword("User@123", 12),
-            Role = UserRole.User, IsVerified = true, IsActive = true
-        };
-        priya.Wallet = new Wallet { Id = Guid.NewGuid(), UserId = priya.Id, Balance = 2500 };
-
-        var rahul = new User
-        {
-            Id = Guid.NewGuid(), Name = "Rahul Verma", Email = "rahul@example.com",
-            Phone = "9988776655", PasswordHash = BCrypt.Net.BCrypt.HashPassword("User@123", 12),
-            Role = UserRole.User, IsVerified = true, IsActive = true
-        };
-        rahul.Wallet = new Wallet { Id = Guid.NewGuid(), UserId = rahul.Id, Balance = 1000 };
-
-        context.Users.AddRange(admin, john, priya, rahul);
-    }
-
-    // ── Flights ──────────────────────────────────────────────────────────────
+    // â”€â”€ Flights â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private static async Task SeedFlightsAsync(TravelPortDbContext context)
     {
-        // Return early if flights already exist — preserves flight IDs so user bookings stay valid.
+        // Return early if flights already exist â€” preserves flight IDs so user bookings stay valid.
         // Dates may drift stale over time but that is acceptable for a demo environment.
         if (await context.Flights.AnyAsync()) return;
 
@@ -137,7 +90,7 @@ public static class DataSeeder
     // Departure hour slots per airline "personality"
     private static readonly int[][] DepHours =
     [
-        [5, 6, 7, 9, 12, 15, 17, 20],    // IndiGo — high frequency
+        [5, 6, 7, 9, 12, 15, 17, 20],    // IndiGo â€” high frequency
         [6, 8, 14, 18],                   // SpiceJet
         [7, 10, 13, 16, 19],              // Air India
         [8, 11, 14, 17],                  // Vistara
@@ -146,13 +99,13 @@ public static class DataSeeder
         [8, 15],                          // Go First
     ];
 
-    // ── Demand multiplier: day-of-week + peak periods (May–June 2026) ───────────
+    // â”€â”€ Demand multiplier: day-of-week + peak periods (Mayâ€“June 2026) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private static decimal GetDemandMultiplier(DateTime date)
     {
         // Day-of-week base
         decimal mult = date.DayOfWeek switch
         {
-            DayOfWeek.Saturday => 1.55m,   // peak leisure — beach/hills rush
+            DayOfWeek.Saturday => 1.55m,   // peak leisure â€” beach/hills rush
             DayOfWeek.Friday   => 1.40m,   // getaway start
             DayOfWeek.Sunday   => 1.28m,   // return journeys
             DayOfWeek.Thursday => 1.15m,   // corporate + early travellers
@@ -160,29 +113,29 @@ public static class DataSeeder
             _                  => 1.00m,   // mid-week budget window
         };
 
-        // Indian school summer vacation surge (May 15 – Jun 15): families travel
+        // Indian school summer vacation surge (May 15 â€“ Jun 15): families travel
         if ((date.Month == 5 && date.Day >= 15) || (date.Month == 6 && date.Day <= 15))
             mult *= 1.25m;
 
-        // Buddha Purnima long weekend (May 11–13): holiday cluster
+        // Buddha Purnima long weekend (May 11â€“13): holiday cluster
         if (date.Month == 5 && date.Day is >= 11 and <= 13)
             mult *= 1.18m;
 
-        // Eid al-Adha cluster (~Jun 6–9): biggest travel surge of the window
+        // Eid al-Adha cluster (~Jun 6â€“9): biggest travel surge of the window
         if (date.Month == 6 && date.Day is >= 5 and <= 9)
             mult *= 1.38m;
 
-        // End-of-June rush (Jun 27–30): return before July school re-openings
+        // End-of-June rush (Jun 27â€“30): return before July school re-openings
         if (date.Month == 6 && date.Day >= 27)
             mult *= 1.15m;
 
-        return Math.Min(mult, 2.5m); // hard cap — no extreme outliers
+        return Math.Min(mult, 2.5m); // hard cap â€” no extreme outliers
     }
 
     private static List<Flight> BuildFlights()
     {
         var today = DateTime.UtcNow.Date;
-        // Full May–June 2026; only future dates included (safe to reseed any day in May/June)
+        // Full Mayâ€“June 2026; only future dates included (safe to reseed any day in May/June)
         var dates = Enumerable.Range(0, 61)
             .Select(i => new DateTime(2026, 5, 1).AddDays(i))
             .Where(d => d >= today && d <= new DateTime(2026, 6, 30))
@@ -208,7 +161,7 @@ public static class DataSeeder
                 {
                     var demand = GetDemandMultiplier(date);
 
-                    // Peak days: airlines add capacity → harder to skip
+                    // Peak days: airlines add capacity â†’ harder to skip
                     var skipBits = demand >= 1.5m ? 15 : demand >= 1.25m ? 7 : 3;
                     var skip = (HashCode.Combine(src, dst, airline, date.DayOfYear) & skipBits) == 0;
                     if (skip && hours.Length > 2) continue;
@@ -229,7 +182,7 @@ public static class DataSeeder
                         var dep     = date.AddHours(depHour).AddMinutes(depMin);
                         var arr     = dep.AddMinutes(dur);
 
-                        // Price: base × airline multiplier × demand multiplier ± small day variation
+                        // Price: base Ã— airline multiplier Ã— demand multiplier Â± small day variation
                         var dayVariation = (date.Day % 5) * 80m;
                         var eco = Math.Round(ecoBase * priceMult * demand + dayVariation, 0);
                         var biz = bizBase.HasValue ? (decimal?)Math.Round(bizBase.Value * priceMult * demand, 0) : null;
@@ -238,8 +191,8 @@ public static class DataSeeder
                         var total = airline == "IndiGo" ? 180 : airline == "Air India" ? 200 : 170;
                         var hash  = HashCode.Combine(src, dst, airline, date.DayOfYear, slot);
                         var avail = demand >= 1.4m
-                            ? 15 + (Math.Abs(hash) % 45)   // 15–60 on peak (selling fast)
-                            : 55 + (Math.Abs(hash) % 80);  // 55–135 on off-peak (plenty of seats)
+                            ? 15 + (Math.Abs(hash) % 45)   // 15â€“60 on peak (selling fast)
+                            : 55 + (Math.Abs(hash) % 80);  // 55â€“135 on off-peak (plenty of seats)
 
                         flights.Add(new Flight
                         {
@@ -266,14 +219,14 @@ public static class DataSeeder
         return flights;
     }
 
-    // ── Hotels ───────────────────────────────────────────────────────────────
+    // â”€â”€ Hotels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private static async Task SeedHotelsAsync(TravelPortDbContext context)
     {
         if (await context.Hotels.CountAsync() >= 60) return;
 
         context.Hotels.AddRange(
-            // ── MUMBAI ───────────────────────────────────────────────────────
+            // â”€â”€ MUMBAI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             MakeHotel("Taj Mahal Palace", "Mumbai",
                 "Apollo Bunder, Colaba, Mumbai - 400001", 5.0m, 4.8m, 3240,
                 "Iconic luxury hotel overlooking the Gateway of India. A UNESCO World Heritage landmark.",
@@ -314,7 +267,7 @@ public static class DataSeeder
                 19.1066m, 72.9205m,
                 ("Smart Room", 3200m, 2, 40), ("Smart Studio", 4500m, 2, 20)),
 
-            // ── DELHI ────────────────────────────────────────────────────────
+            // â”€â”€ DELHI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             MakeHotel("The Oberoi New Delhi", "Delhi",
                 "Dr. Zakir Hussain Marg, New Delhi - 110003", 5.0m, 4.9m, 4560,
                 "Legendary luxury hotel offering breathtaking views of the golf course and Humayun's Tomb.",
@@ -355,7 +308,7 @@ public static class DataSeeder
                 28.5562m, 77.0909m,
                 ("Comfortable Room", 5500m, 2, 50), ("Refreshing Suite", 9500m, 4, 15)),
 
-            // ── GOA ──────────────────────────────────────────────────────────
+            // â”€â”€ GOA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             MakeHotel("Taj Exotica Resort & Spa", "Goa",
                 "Calwaddo, Benaulim, South Goa - 403716", 5.0m, 4.8m, 2100,
                 "Sprawling luxury resort amid coconut groves with direct beach access on Benaulim Beach.",
@@ -388,7 +341,7 @@ public static class DataSeeder
                 15.2111m, 73.9397m,
                 ("Superior Room", 9500m, 2, 30), ("Suite", 22000m, 4, 10)),
 
-            // ── BANGALORE ────────────────────────────────────────────────────
+            // â”€â”€ BANGALORE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             MakeHotel("ITC Windsor", "Bangalore",
                 "Golf Course Road, Sankey Road, Bengaluru - 560052", 5.0m, 4.5m, 1560,
                 "Heritage luxury hotel inspired by English manor houses, offering timeless elegance.",
@@ -421,10 +374,10 @@ public static class DataSeeder
                 12.9352m, 77.6243m,
                 ("Standard Room", 2200m, 2, 30), ("Deluxe Room", 3000m, 2, 15)),
 
-            // ── JAIPUR ───────────────────────────────────────────────────────
+            // â”€â”€ JAIPUR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             MakeHotel("Rambagh Palace", "Jaipur",
                 "Bhawani Singh Road, Jaipur - 302005", 5.0m, 4.9m, 3120,
-                "Former residence of the Maharaja of Jaipur — a magnificent palace hotel.",
+                "Former residence of the Maharaja of Jaipur â€” a magnificent palace hotel.",
                 "[\"WiFi\",\"Pool\",\"Spa\",\"Multiple Restaurants\",\"Gym\",\"Polo\",\"Tennis\",\"Heritage Walks\"]",
                 "https://images.unsplash.com/photo-1590523741831-ab7e8b8f9c7f?w=800",
                 26.8947m, 75.8203m,
@@ -446,7 +399,7 @@ public static class DataSeeder
                 26.9279m, 75.8166m,
                 ("Heritage Room", 2800m, 2, 20), ("Deluxe Room", 3800m, 2, 10)),
 
-            // ── HYDERABAD ────────────────────────────────────────────────────
+            // â”€â”€ HYDERABAD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             MakeHotel("Taj Falaknuma Palace", "Hyderabad",
                 "Engine Bowli, Falaknuma, Hyderabad - 500053", 5.0m, 4.9m, 2780,
                 "Former palace of the Nizam of Hyderabad. India's most exclusive palace hotel.",
@@ -471,10 +424,10 @@ public static class DataSeeder
                 17.2313m, 78.4298m,
                 ("Superior Room", 6500m, 2, 50), ("Deluxe Suite", 14000m, 4, 15)),
 
-            // ── CHENNAI ──────────────────────────────────────────────────────
+            // â”€â”€ CHENNAI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             MakeHotel("ITC Grand Chola", "Chennai",
                 "Mount Road, Guindy, Chennai - 600032", 5.0m, 4.8m, 2400,
-                "India's largest luxury hotel — a tribute to the magnificence of the Chola dynasty.",
+                "India's largest luxury hotel â€” a tribute to the magnificence of the Chola dynasty.",
                 "[\"WiFi\",\"Multiple Pools\",\"Spa\",\"5 Restaurants\",\"Gym\",\"Business Center\"]",
                 "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800",
                 13.0082m, 80.2208m,
@@ -504,10 +457,10 @@ public static class DataSeeder
                 13.0759m, 80.2721m,
                 ("Standard Room", 1800m, 2, 30), ("Deluxe Room", 2500m, 2, 15)),
 
-            // ── KOLKATA ──────────────────────────────────────────────────────
+            // â”€â”€ KOLKATA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             MakeHotel("The Oberoi Grand Kolkata", "Kolkata",
                 "Jawaharlal Nehru Road, Kolkata - 700013", 5.0m, 4.8m, 2300,
-                "Kolkata's grande dame — a Victorian-era masterpiece with legendary service.",
+                "Kolkata's grande dame â€” a Victorian-era masterpiece with legendary service.",
                 "[\"WiFi\",\"Pool\",\"Spa\",\"Restaurant\",\"Gym\",\"Business Center\",\"Heritage\"]",
                 "https://images.unsplash.com/photo-1564501049412-61c2a3083791?w=800",
                 22.5550m, 88.3497m,
@@ -537,7 +490,7 @@ public static class DataSeeder
                 22.5571m, 88.3545m,
                 ("Standard Room", 2000m, 2, 30), ("Deluxe Room", 2800m, 2, 15)),
 
-            // ── AHMEDABAD ────────────────────────────────────────────────────
+            // â”€â”€ AHMEDABAD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             MakeHotel("Hyatt Regency Ahmedabad", "Ahmedabad",
                 "SG Highway, Ahmedabad - 380054", 5.0m, 4.6m, 1340,
                 "Premium hotel on the SG Highway corridor, the business hub of Ahmedabad.",
@@ -562,7 +515,7 @@ public static class DataSeeder
                 23.0373m, 72.5602m,
                 ("Standard Room", 2800m, 2, 30), ("Executive Room", 4200m, 2, 15)),
 
-            // ── PUNE ─────────────────────────────────────────────────────────
+            // â”€â”€ PUNE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             MakeHotel("JW Marriott Pune", "Pune",
                 "Senapati Bapat Road, Pune - 411016", 5.0m, 4.7m, 1980,
                 "Landmark luxury hotel at the heart of Pune's business and leisure district.",
@@ -587,7 +540,7 @@ public static class DataSeeder
                 18.5196m, 73.8744m,
                 ("Standard Room", 2200m, 2, 25), ("Deluxe Room", 3200m, 2, 12)),
 
-            // ── KOCHI ────────────────────────────────────────────────────────
+            // â”€â”€ KOCHI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             MakeHotel("Casino Hotel Kochi", "Kochi",
                 "Wellington Island, Kochi - 682003", 5.0m, 4.6m, 1420,
                 "Waterfront luxury hotel on Wellington Island with stunning backwater views.",
@@ -612,7 +565,7 @@ public static class DataSeeder
                 9.9638m, 76.2437m,
                 ("Dormitory Bed", 700m, 1, 40), ("Private Room", 2500m, 2, 15)),
 
-            // ── LUCKNOW ──────────────────────────────────────────────────────
+            // â”€â”€ LUCKNOW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             MakeHotel("Taj Mahal Lucknow", "Lucknow",
                 "Vipin Khand, Gomti Nagar, Lucknow - 226010", 5.0m, 4.6m, 1200,
                 "Luxury hotel in Gomti Nagar, the upscale commercial heart of Lucknow.",
@@ -629,7 +582,7 @@ public static class DataSeeder
                 26.8467m, 80.9462m,
                 ("Superior Room", 4500m, 2, 35), ("Junior Suite", 9500m, 4, 10)),
 
-            // ── MUMBAI (additional) ──────────────────────────────────────────
+            // â”€â”€ MUMBAI (additional) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             MakeHotel("The St. Regis Mumbai", "Mumbai",
                 "Lower Parel, Mumbai - 400013", 5.0m, 4.7m, 2650,
                 "Mumbai's tallest luxury hotel, offering panoramic views from 30+ floors above Lower Parel.",
@@ -640,7 +593,7 @@ public static class DataSeeder
 
             MakeHotel("Sofitel Mumbai BKC", "Mumbai",
                 "Bandra Kurla Complex, Mumbai - 400051", 5.0m, 4.6m, 1900,
-                "French elegance meets Mumbai's business heart — luxury redefined in BKC.",
+                "French elegance meets Mumbai's business heart â€” luxury redefined in BKC.",
                 "[\"WiFi\",\"Pool\",\"Spa\",\"Restaurant\",\"Gym\",\"Business Center\",\"Bar\"]",
                 "https://images.unsplash.com/photo-1590523741831-ab7e8b8f9c7f?w=800",
                 19.0668m, 72.8695m,
@@ -648,7 +601,7 @@ public static class DataSeeder
 
             MakeHotel("Juhu Beach Resort", "Mumbai",
                 "Juhu Tara Road, Juhu, Mumbai - 400049", 3.0m, 3.9m, 720,
-                "Beachside resort steps from Juhu Beach — casual comfort with sea breeze.",
+                "Beachside resort steps from Juhu Beach â€” casual comfort with sea breeze.",
                 "[\"WiFi\",\"Pool\",\"Restaurant\",\"Parking\",\"Beach Access\"]",
                 "https://images.unsplash.com/photo-1549294413-26f195200c16?w=800",
                 19.0875m, 72.8258m,
@@ -664,16 +617,16 @@ public static class DataSeeder
 
             MakeHotel("Backpacker Panda Mumbai", "Mumbai",
                 "Fort, Mumbai - 400001", 2.0m, 4.2m, 880,
-                "Social hostel in the heritage Fort district — perfectly placed for budget explorers.",
+                "Social hostel in the heritage Fort district â€” perfectly placed for budget explorers.",
                 "[\"WiFi\",\"Cafe\",\"Lockers\",\"Rooftop\",\"Tours\"]",
                 "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800",
                 18.9322m, 72.8353m,
                 ("Dormitory Bed", 800m, 1, 50), ("Private Double", 2800m, 2, 12)),
 
-            // ── DELHI (additional) ───────────────────────────────────────────
+            // â”€â”€ DELHI (additional) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             MakeHotel("The Leela Palace New Delhi", "Delhi",
                 "Diplomatic Enclave, New Delhi - 110023", 5.0m, 4.9m, 3800,
-                "Ultra-luxury palace hotel in Chanakyapuri — India's most awarded luxury property.",
+                "Ultra-luxury palace hotel in Chanakyapuri â€” India's most awarded luxury property.",
                 "[\"WiFi\",\"Pool\",\"Spa\",\"Multiple Restaurants\",\"Gym\",\"Butler Service\",\"Concierge\"]",
                 "https://images.unsplash.com/photo-1587474260584-136574528ed5?w=800",
                 28.5965m, 77.1875m,
@@ -697,7 +650,7 @@ public static class DataSeeder
 
             MakeHotel("OYO Flagship New Delhi Station", "Delhi",
                 "Paharganj, New Delhi - 110055", 2.0m, 3.7m, 620,
-                "Budget hotel steps from New Delhi Railway Station — clean, affordable, well-connected.",
+                "Budget hotel steps from New Delhi Railway Station â€” clean, affordable, well-connected.",
                 "[\"WiFi\",\"Room Service\",\"24-Hour Front Desk\"]",
                 "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=800",
                 28.6435m, 77.2189m,
@@ -705,13 +658,13 @@ public static class DataSeeder
 
             MakeHotel("The Hans Hotel New Delhi", "Delhi",
                 "Barakhamba Road, Connaught Place, New Delhi - 110001", 4.0m, 4.0m, 870,
-                "Classic hotel with a prime CP address — reliable mid-range choice for business travellers.",
+                "Classic hotel with a prime CP address â€” reliable mid-range choice for business travellers.",
                 "[\"WiFi\",\"Restaurant\",\"Gym\",\"Business Center\",\"Parking\"]",
                 "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800",
                 28.6295m, 77.2277m,
                 ("Standard Room", 5500m, 2, 35), ("Executive Room", 8000m, 2, 15)),
 
-            // ── GOA (additional) ─────────────────────────────────────────────
+            // â”€â”€ GOA (additional) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             MakeHotel("Grand Hyatt Goa", "Goa",
                 "Bambolim Beach Resort, Goa - 403206", 5.0m, 4.8m, 2400,
                 "Award-winning resort on Bambolim Bay with 5 pools, 9 dining outlets and a private beach.",
@@ -722,7 +675,7 @@ public static class DataSeeder
 
             MakeHotel("W Goa", "Goa",
                 "Vagator Beach, North Goa - 403509", 5.0m, 4.7m, 1950,
-                "W's eclectic beach resort — bold design, infinity pool and Goa's best sunset views.",
+                "W's eclectic beach resort â€” bold design, infinity pool and Goa's best sunset views.",
                 "[\"WiFi\",\"Beachfront\",\"Pool\",\"Spa\",\"Restaurant\",\"Bar\",\"Gym\",\"DJ Events\"]",
                 "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800",
                 15.5987m, 73.7451m,
@@ -738,7 +691,7 @@ public static class DataSeeder
 
             MakeHotel("Kenilworth Beach Resort Goa", "Goa",
                 "Utorda-Majorda Beach, South Goa - 403713", 4.0m, 4.4m, 1100,
-                "Secluded south Goa hideaway on the quieter Utorda Beach — ideal for families.",
+                "Secluded south Goa hideaway on the quieter Utorda Beach â€” ideal for families.",
                 "[\"WiFi\",\"Beachfront\",\"Pool\",\"Spa\",\"Restaurant\",\"Gym\",\"Kids Club\"]",
                 "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=800",
                 15.3175m, 73.9221m,
@@ -746,13 +699,13 @@ public static class DataSeeder
 
             MakeHotel("The Beach House Goa", "Goa",
                 "Baga Beach Road, North Goa - 403516", 3.0m, 4.1m, 760,
-                "Charming boutique property a 2-minute walk from Baga Beach — vibrant location, great value.",
+                "Charming boutique property a 2-minute walk from Baga Beach â€” vibrant location, great value.",
                 "[\"WiFi\",\"Pool\",\"Restaurant\",\"Beach Access\",\"Cafe\"]",
                 "https://images.unsplash.com/photo-1549294413-26f195200c16?w=800",
                 15.5546m, 73.7529m,
                 ("Standard Room", 3000m, 2, 20), ("Beach Room", 5500m, 2, 10)),
 
-            // ── BANGALORE (additional) ───────────────────────────────────────
+            // â”€â”€ BANGALORE (additional) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             MakeHotel("The Oberoi Bengaluru", "Bangalore",
                 "MG Road, Bengaluru - 560001", 5.0m, 4.9m, 2800,
                 "Landmark luxury hotel on MG Road, offering impeccable Oberoi service and stunning city views.",
@@ -763,7 +716,7 @@ public static class DataSeeder
 
             MakeHotel("JW Marriott Bangalore", "Bangalore",
                 "Vittal Mallya Road, Bengaluru - 560001", 5.0m, 4.7m, 2100,
-                "Sophisticated luxury in the heart of the city — close to UB City and Cubbon Park.",
+                "Sophisticated luxury in the heart of the city â€” close to UB City and Cubbon Park.",
                 "[\"WiFi\",\"Pool\",\"Spa\",\"Multiple Restaurants\",\"Gym\",\"Business Center\",\"Bar\"]",
                 "https://images.unsplash.com/photo-1564501049412-61c2a3083791?w=800",
                 12.9709m, 77.5962m,
@@ -771,7 +724,7 @@ public static class DataSeeder
 
             MakeHotel("Vivanta Bengaluru MG Road", "Bangalore",
                 "MG Road, Bengaluru - 560001", 4.0m, 4.5m, 1600,
-                "Contemporary Taj-owned property in the busiest part of Bangalore — perfect location.",
+                "Contemporary Taj-owned property in the busiest part of Bangalore â€” perfect location.",
                 "[\"WiFi\",\"Pool\",\"Spa\",\"Restaurant\",\"Gym\",\"Bar\"]",
                 "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800",
                 12.9766m, 77.6072m,
@@ -787,13 +740,13 @@ public static class DataSeeder
 
             MakeHotel("Zostel Bangalore", "Bangalore",
                 "Indiranagar, Bengaluru - 560038", 2.0m, 4.3m, 920,
-                "Popular backpacker hostel in trendy Indiranagar — great social vibe and pub-street access.",
+                "Popular backpacker hostel in trendy Indiranagar â€” great social vibe and pub-street access.",
                 "[\"WiFi\",\"Cafe\",\"Rooftop\",\"Lockers\",\"Tours\"]",
                 "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800",
                 12.9716m, 77.6411m,
                 ("Dormitory Bed", 700m, 1, 40), ("Private Room", 2500m, 2, 12)),
 
-            // ── JAIPUR (additional) ──────────────────────────────────────────
+            // â”€â”€ JAIPUR (additional) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             MakeHotel("Taj Hotel Convention Centre Jaipur", "Jaipur",
                 "Ambawata, Queens Road, Jaipur - 302021", 5.0m, 4.7m, 1650,
                 "Modern luxury hotel adjacent to the Jaipur Convention Centre, perfect for large events.",
@@ -804,7 +757,7 @@ public static class DataSeeder
 
             MakeHotel("Narain Niwas Palace Hotel", "Jaipur",
                 "Kanota Bagh, Narain Singh Road, Jaipur - 302004", 4.0m, 4.5m, 1420,
-                "Regal heritage hotel built in 1881, surrounded by lush gardens — colonial charm preserved.",
+                "Regal heritage hotel built in 1881, surrounded by lush gardens â€” colonial charm preserved.",
                 "[\"WiFi\",\"Pool\",\"Restaurant\",\"Heritage Decor\",\"Cycling\",\"Croquet\"]",
                 "https://images.unsplash.com/photo-1561501900-3701fa6a0864?w=800",
                 26.9226m, 75.8246m,
@@ -820,7 +773,7 @@ public static class DataSeeder
 
             MakeHotel("Hotel Samode Haveli", "Jaipur",
                 "Gangapole, Jaipur - 302002", 4.0m, 4.6m, 1860,
-                "Restored 19th-century mansion inside Jaipur's old city walls — authentic Rajput experience.",
+                "Restored 19th-century mansion inside Jaipur's old city walls â€” authentic Rajput experience.",
                 "[\"WiFi\",\"Pool\",\"Restaurant\",\"Heritage Walks\",\"Rooftop\",\"Spa\"]",
                 "https://images.unsplash.com/photo-1549294413-26f195200c16?w=800",
                 26.9268m, 75.8238m,
@@ -842,7 +795,7 @@ public static class DataSeeder
                 26.9315m, 75.8143m,
                 ("Heritage Room", 3500m, 2, 20), ("Haveli Suite", 7500m, 4, 8)),
 
-            // ── HYDERABAD (additional) ───────────────────────────────────────
+            // â”€â”€ HYDERABAD (additional) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             MakeHotel("ITC Kohenur Hyderabad", "Hyderabad",
                 "HITEC City, Hyderabad - 500081", 5.0m, 4.8m, 2200,
                 "Iconic glass-and-steel luxury tower in HITEC City, inspired by the Kohinoor diamond.",
@@ -853,7 +806,7 @@ public static class DataSeeder
 
             MakeHotel("The Westin Hyderabad Mindspace", "Hyderabad",
                 "Mindspace IT Park, Madhapur, Hyderabad - 500081", 5.0m, 4.6m, 1900,
-                "Modern luxury in Hyderabad's IT district — premium amenities for corporate travellers.",
+                "Modern luxury in Hyderabad's IT district â€” premium amenities for corporate travellers.",
                 "[\"WiFi\",\"Pool\",\"Spa\",\"Restaurant\",\"Gym\",\"Business Center\",\"Parking\"]",
                 "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800",
                 17.4428m, 78.3831m,
@@ -861,7 +814,7 @@ public static class DataSeeder
 
             MakeHotel("Lemon Tree Premier HITEC City", "Hyderabad",
                 "HITEC City, Hyderabad - 500081", 4.0m, 4.2m, 1100,
-                "Smart upscale hotel in the tech district — cheerful interiors and great value dining.",
+                "Smart upscale hotel in the tech district â€” cheerful interiors and great value dining.",
                 "[\"WiFi\",\"Pool\",\"Restaurant\",\"Gym\",\"Business Center\"]",
                 "https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=800",
                 17.4512m, 78.3824m,
@@ -885,7 +838,7 @@ public static class DataSeeder
         );
     }
 
-    // Gallery image pools keyed by star tier — each pool has 12 distinct Unsplash hotel photos
+    // Gallery image pools keyed by star tier â€” each pool has 12 distinct Unsplash hotel photos
     private static readonly string[][] _galleryPools =
     [
         // 3-star budget/midscale
@@ -964,7 +917,7 @@ public static class DataSeeder
         return hotel;
     }
 
-    // ── Coupons ──────────────────────────────────────────────────────────────
+    // â”€â”€ Coupons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private static async Task SeedCouponsAsync(TravelPortDbContext context)
     {
@@ -990,49 +943,5 @@ public static class DataSeeder
         var toAdd = all.Where(c => !existing.Contains(c.Code)).ToList();
         if (toAdd.Count > 0)
             context.Coupons.AddRange(toAdd);
-    }
-
-    // ── Bookings ─────────────────────────────────────────────────────────────
-
-    private static async Task SeedBookingsAsync(TravelPortDbContext context)
-    {
-        var john           = await context.Users.FirstOrDefaultAsync(u => u.Email == "john@example.com");
-        var flight         = await context.Flights.FirstOrDefaultAsync(f => f.Source == "BOM" && f.Destination == "DEL");
-        var cancelledFlight= await context.Flights.FirstOrDefaultAsync(f => f.Source == "DEL" && f.Destination == "BOM");
-        var hotel          = await context.Hotels.Include(h => h.Rooms).FirstOrDefaultAsync(h => h.City == "Goa");
-
-        if (john == null || flight == null || cancelledFlight == null || hotel == null) return;
-        var room = hotel.Rooms.FirstOrDefault();
-        if (room == null) return;
-
-        // Only seed sample bookings when John has none — preserves real bookings created during testing
-        if (await context.Bookings.AnyAsync(b => b.UserId == john.Id)) return;
-
-        context.Bookings.AddRange(
-            new Booking
-            {
-                Id = Guid.NewGuid(), BookingRef = "TP-FL-2026001", UserId = john.Id,
-                BookingType = BookingType.Flight, ReferenceId = flight.Id, Passengers = 2,
-                TotalAmount = flight.EconomyPrice * 2, DiscountAmount = 0,
-                FinalAmount = flight.EconomyPrice * 2, Status = BookingStatus.Confirmed
-            },
-            new Booking
-            {
-                Id = Guid.NewGuid(), BookingRef = "TP-HT-2026001", UserId = john.Id,
-                BookingType = BookingType.Hotel, ReferenceId = hotel.Id,
-                CheckIn = DateTime.UtcNow.Date.AddDays(7), CheckOut = DateTime.UtcNow.Date.AddDays(10),
-                TotalAmount = room.PricePerNight * 3, DiscountAmount = 500,
-                FinalAmount = room.PricePerNight * 3 - 500, CouponCode = "HOTEL500",
-                Status = BookingStatus.Confirmed
-            },
-            new Booking
-            {
-                Id = Guid.NewGuid(), BookingRef = "TP-FL-2026002", UserId = john.Id,
-                BookingType = BookingType.Flight, ReferenceId = cancelledFlight.Id, Passengers = 1,
-                TotalAmount = cancelledFlight.EconomyPrice, DiscountAmount = 0,
-                FinalAmount = cancelledFlight.EconomyPrice, Status = BookingStatus.Cancelled,
-                CancelledAt = DateTime.UtcNow.AddDays(-3), RefundAmount = cancelledFlight.EconomyPrice * 0.9m
-            }
-        );
     }
 }

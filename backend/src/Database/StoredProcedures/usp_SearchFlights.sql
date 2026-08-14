@@ -14,7 +14,7 @@ BEGIN
     DECLARE @Offset INT = (@PageNumber - 1) * @PageSize;
 
     SELECT
-        f.[FlightId],
+        f.[Id] AS [FlightId],
         f.[Airline],
         f.[FlightNumber],
         f.[Source],
