@@ -232,8 +232,8 @@ travel-port/
 - Store production values in the company-approved secret manager or CI environment.
 - Report security concerns privately to the repository maintainers rather than opening a public issue.
 
-## Repository use
+## License
 
-Copyright © Prakash Infotech. All rights reserved.
+TravelPort is available under the [MIT License](LICENSE).
 
-This repository is proprietary. No permission is granted to copy, modify, distribute, or reuse the software outside Prakash Infotech without written authorization.
+Copyright (c) 2026 Prakash Infotech.
